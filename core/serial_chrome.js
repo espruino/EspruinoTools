@@ -19,6 +19,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
 **/
 
 (function() {
+  if (typeof chrome === 'undefined' || chrome.serial===undefined) return;
   if (chrome.serial.getDevices===undefined) {
     // wrong chrome version
     console.log("Chrome does NOT have post-M33 serial API");

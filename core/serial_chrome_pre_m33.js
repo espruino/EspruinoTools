@@ -19,6 +19,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
 **/
 
 (function() {
+  if (typeof chrome === 'undefined' || chrome.serial===undefined) return;
   if (chrome.serial.getPorts===undefined) {
     // wrong chrome version
     console.log("Chrome does NOT have pre-M33 serial API");

@@ -33,11 +33,28 @@
   
   /** See addSection and getSections */
   var builtinSections = {};
+
+  function _get(callback) {
+    if (typeof chrome !== 'undefined') {
+      chrome.storage.sync.get( "CONFIGS", function (data) { 
+        var value = data["CONFIGS"];
+        console.log("GET chrome.storage.sync = "+JSON.stringify(value));
+        callback(value);
+      });
+    } else {
+      callback({});
+    }
+  }
+
+  function _set(data) {
+    if (typeof chrome !== 'undefined') {
+      console.log("SET chrome.storage.sync = "+JSON.stringify(data));
+      chrome.storage.sync.set({ CONFIGS : data });    
+    }
+  }
   
   function loadConfiguration(callback) {
-    chrome.storage.sync.get( "CONFIGS", function (data) {
-      var value = data["CONFIGS"];
-      console.log("GET chrome.storage.sync = "+JSON.stringify(value));
+    _get(function (value) {
       for (var key in value) { 
         if (key=="set") continue;
         Espruino.Config[key] = value[key];
@@ -126,14 +143,13 @@
       var data = {};
       for (var key in Espruino.Config)
         if (key != "set")
-          data[key] = Espruino.Config[key];
-      console.log("SET chrome.storage.sync = "+JSON.stringify(data));
-      chrome.storage.sync.set({ CONFIGS : data});    
+          data[key] = Espruino.Config[key];      
+      _set(data); 
     }
   };
    
   function clearAll() { // clear all settings
-    chrome.storage.sync.set({ CONFIGS : {} });
+    _set({});
     for (var name in Espruino.Core.Config.data) {
       var options = Espruino.Core.Config.data[name];
       Espruino.Config[name] = options.defaultValue;

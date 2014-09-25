@@ -14,19 +14,13 @@
   
   function getVersion(callback) 
   {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.open('GET', 'manifest.json');
-    xmlhttp.onload = function (e) {
-        var manifest = JSON.parse(xmlhttp.responseText);
+    $.getJSON('manifest.json',function (manifest) {
         callback(manifest.version);
-    };
-    xmlhttp.send(null);
+    });
   }
 
   function init() {
-
-    getVersion(function(version){
-
+    getVersion(function(version) {
       Espruino.Core.Config.addSection("About", {
         description : "About the Espruino Web IDE v"+ version,
         sortOrder : -1000,

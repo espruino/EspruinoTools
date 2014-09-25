@@ -31,7 +31,7 @@
   function init() 
   {
     // Add buttons
-    Espruino.Core.App.addIcon({ 
+    if (Espruino.Core.App) Espruino.Core.App.addIcon({ 
       id: "clearScreen",
       icon: "clear", 
       title : "Clear Screen", 

@@ -70,7 +70,7 @@
         if (vAvailable > vCurrent && env.BOARD=="ESPRUINOBOARD") {
           console.log("New Firmware "+tAvailable+" available");
 
-          Espruino.Core.App.addIcon({
+          if (Espruino.Core.App) Espruino.Core.App.addIcon({
             id:'update',
             icon: 'alert',
             title: 'New Firmware '+ tAvailable +' available. Click to update.',

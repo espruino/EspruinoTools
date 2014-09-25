@@ -14,7 +14,7 @@
 var Espruino;
 
 (function() {
-  
+
   /** List of processors. These are functions that are called one
    * after the other with the data received from the last one.
    * 
@@ -100,6 +100,7 @@ var Espruino;
     initialised : false,
   };
 
+  return Espruino;
 })();
 
 
