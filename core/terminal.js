@@ -257,6 +257,8 @@
         case 27 : {
           termControlChars = [ 27 ];
         } break;
+        case 19 : break; // XOFF
+        case 17 : break; // XON
         default : {
           // Else actually add character
           termText[termCursorY] = trimRight(
