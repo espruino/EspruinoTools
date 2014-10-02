@@ -35,7 +35,7 @@ inputNode.onaudioprocess = function(e) {
   dataout.set(data);
   var bits = new Array(data.length);
   for (var i = 0; i < data.length; ++i) {
-    var bitValue = data[i] > -0.2;
+    var bitValue = data[i] > -0.1;
     bits[i] = bitValue;
   }
 
@@ -52,7 +52,7 @@ inputNode.onaudioprocess = function(e) {
           inSamples="";
           // draw our waveform
           if (soundDebugFn) {
-            var d = [], d2 = [], d3 = [], d4 = [];
+            var d = [], d2 = [];
             var lookAhead = 500;
             for (var x=0;x<1000;x++) {
               d[x] = data[i+x-lookAhead];
