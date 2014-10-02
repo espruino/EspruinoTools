@@ -14,62 +14,56 @@ if (!navigator.getUserMedia) {
   return;
 }
 
-var inputNode = context.createScriptProcessor(2048, 1/*in*/, 1/*out*/);
+var inputNode = context.createScriptProcessor(4096, 1/*in*/, 1/*out*/);
 window.dontGarbageCollectMePlease = inputNode;
 console.log("Audio Sample rate : "+context.sampleRate);
 var BAUD = 9600;
 var bitTime = context.sampleRate / BAUD; // intentionally a float
 console.log("Baud", BAUD, "Bit time", bitTime);
 
-var inSamples = undefined;
-var inSampleCounter = 0;
+// Used when getting data from sound
+var inSamples = undefined; // data received
+var inSampleCounter = 0; // number of samples while value is the same (==bits)
 
+// Used when creating sounds from data
 var outSampleCounter = 0;
 var outSample = undefined;
 
 var lastBitValue = 1;
+var minValue = 0; // a running minimum value so we can take account of the capacitor
 
 inputNode.onaudioprocess = function(e) { 
   var data = e.inputBuffer.getChannelData(0);
   var dataout = e.outputBuffer.getChannelData(0);
-  dataout.set(data);
-  var bits = new Array(data.length);
-  for (var i = 0; i < data.length; ++i) {
-    var bitValue = data[i] > -0.1;
-    bits[i] = bitValue;
-  }
+ 
+  var charactersRead = "";
 
   for (var i = 0; i < data.length; ++i) {
     // -------------------------------------------- Input
-    var value = bits[i];    
+
+    // work out what our bit is... 
+    // keep track of the minimum (actually the max - sig is inverted)
+    // then when signal is a bit above(below) that, it's a 1
+    var value = data[i] > (minValue-0.1);    
+    minValue -= 0.002;
+    if (minValue < data[i]) minValue = data[i];
+
     // if we've counted past a bit
      if (inSampleCounter >= bitTime || 
         ((value!=lastBitValue) && (inSamples===undefined || inSampleCounter>=bitTime/2))) {
       inSampleCounter -= bitTime;
       if (inSamples===undefined) {
         // detect start bit, else ignore
-        if (!lastBitValue) {
+        if (!lastBitValue)
           inSamples="";
-          // draw our waveform
-          if (soundDebugFn) {
-            var d = [], d2 = [];
-            var lookAhead = 500;
-            for (var x=0;x<1000;x++) {
-              d[x] = data[i+x-lookAhead];
-              d2[x] = bits[i+x-lookAhead]/2;
-            }
-            soundDebugFn(d,d2);
-          }
-        }
       } else {
         inSamples = (lastBitValue?"1":"0") + inSamples;
         if (inSamples.length>=9) {
           // STOP,D7,D6,D5,D4,D3,D2,D1,D0
           var byteData = inSamples.substr(-8); // extract D7..D0
           var byteVal = parseInt(byteData,2);
-          console.log(byteData, byteVal, String.fromCharCode(byteVal));
-          if (readListener)
-            readListener(String.fromCharCode(byteVal));
+//        console.log(byteData, byteVal, String.fromCharCode(byteVal));
+          charactersRead += String.fromCharCode(byteVal);
           inSamples=undefined; // wait for next start bit
         }
       }
@@ -80,6 +74,9 @@ inputNode.onaudioprocess = function(e) {
     }
     inSampleCounter++;
     lastBitValue = value;
+  
+
+    // ---------------------------------------------------------------------
     // -------------------------------------------- Output 
     if (outSample===undefined && dataToSend.length&& i>100) { 
       outSample = (dataToSend.charCodeAt(0)<<1) | 512;
@@ -95,6 +92,34 @@ inputNode.onaudioprocess = function(e) {
       }
     } else
       dataout[i] = -1; // idle state
+  }
+
+  // print debug information
+  if (soundDebugFn) {
+    var sum = 0;
+    var bits = new Array(data.length);
+    var mv = new Array(data.length);
+    for (var i = 0; i < data.length; ++i) {  
+      // just what we do above
+      bits[i] = data[i] > (minValue-0.1);    
+      minValue -= 0.002;
+      if (minValue < data[i]) minValue = data[i];
+      mv[i] = minValue;
+      sum += data[i]*data[i];
+    }
+
+    if (sum>0.01*data.length) {
+      setTimeout(function() {
+        soundDebugFn(data,mv);
+      }, 10);
+    }
+  }
+
+  // call our listener if we've got characters in
+  if (charactersRead && readListener) {
+    setTimeout(function() {
+      readListener(charactersRead);
+    }, 10);
   }
 };
 
