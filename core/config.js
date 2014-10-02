@@ -35,7 +35,7 @@
   var builtinSections = {};
 
   function _get(callback) {
-    if (typeof chrome !== 'undefined') {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.sync.get( "CONFIGS", function (data) { 
         var value = data["CONFIGS"];
         console.log("GET chrome.storage.sync = "+JSON.stringify(value));
@@ -47,7 +47,7 @@
   }
 
   function _set(data) {
-    if (typeof chrome !== 'undefined') {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
       console.log("SET chrome.storage.sync = "+JSON.stringify(data));
       chrome.storage.sync.set({ CONFIGS : data });    
     }
