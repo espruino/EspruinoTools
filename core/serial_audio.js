@@ -3,6 +3,9 @@
 var dataToSend = "";
 var soundDebugFn = undefined;
 
+var soundInputPolarity = -1;
+var soundOutputPolarity = -1;
+
   function init() {
 // Fix up prefixing
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -40,13 +43,13 @@ inputNode.onaudioprocess = function(e) {
 
   for (var i = 0; i < data.length; ++i) {
     // -------------------------------------------- Input
-
+    var dataValue = data[i]*soundInputPolarity;
     // work out what our bit is... 
     // keep track of the minimum (actually the max - sig is inverted)
-    // then when signal is a bit above(below) that, it's a 1
-    var value = data[i] > (minValue-0.1);    
-    minValue -= 0.002;
-    if (minValue < data[i]) minValue = data[i];
+    // then when signal is a bit above(below) that, it's a 1    
+    var value = dataValue < (minValue+0.1);    
+    minValue += 0.002;
+    if (dataValue < minValue) minValue = dataValue;
 
     // if we've counted past a bit
      if (inSampleCounter >= bitTime || 
@@ -85,13 +88,13 @@ inputNode.onaudioprocess = function(e) {
       outSampleCounter = 0;      
     }
     if (outSample!==undefined) {
-      dataout[i] = (outSample &(1<<Math.floor(outSampleCounter/bitTime))) ? -1 : 1;
+      dataout[i] = (outSample &(1<<Math.floor(outSampleCounter/bitTime))) ? soundOutputPolarity : -soundOutputPolarity;
       outSampleCounter++;
       if (outSampleCounter >= bitTime*10) {
         outSample = undefined; // stop output of byte
       }
     } else
-      dataout[i] = -1; // idle state
+      dataout[i] = soundOutputPolarity; // idle state = 1
   }
 
   // print debug information
@@ -101,9 +104,10 @@ inputNode.onaudioprocess = function(e) {
     var mv = new Array(data.length);
     for (var i = 0; i < data.length; ++i) {  
       // just what we do above
-      bits[i] = data[i] > (minValue-0.1);    
-      minValue -= 0.002;
-      if (minValue < data[i]) minValue = data[i];
+      var value = dataValue < (minValue+0.1);    
+      minValue += 0.002;
+      if (dataValue < minValue) minValue = dataValue;
+      bits[i] = value;
       mv[i] = minValue;
       sum += data[i]*data[i];
     }
@@ -198,6 +202,10 @@ navigator.getUserMedia({
 	},
    "setSoundDebugFunction": function(fn) { 
      soundDebugFn = fn; 
+   },
+  "setSoundPolarity": function(rxPol, txPol) {  // either 1 or -1
+     soundInputPolarity = rxPol;
+     soundOutputPolarity = txPol;
    },
   };
 })();
