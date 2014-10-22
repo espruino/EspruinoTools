@@ -13,6 +13,7 @@
 (function(){
   
   var minifyUrl = "http://closure-compiler.appspot.com/compile";
+  var minifyCache = [];
   
   function init() {
     Espruino.Core.Config.add("MINIFICATION_LEVEL", {
@@ -63,10 +64,28 @@
   }
 
   function minifyCode(code, callback, minificationLevel) {
+    for (var i in minifyCache) {
+      var item = minifyCache[i];
+      if (item.code==code && item.level==minificationLevel) {
+        console.log("Found code in minification cache - using that");
+        // move to front of cache
+        minifyCache.splice(i,1); // remove old
+        minifyCache.push(item); // add at front
+        // callback
+        callback(item.minified);
+        return;
+      }
+    }
+
+    
+
     closureCompiler(code, minificationLevel, 'compiled_code', function(minified) {
       if (minified.trim()!="") { 
         console.log("Minification complete. Code Size reduced from " + code.length + " to " + minified.length);
         console.log(JSON.stringify(minified));
+        if (minifyCache.length>100)
+          minifyCache = minifyCache.slice(-100);
+        minifyCache.push({ level : minificationLevel, code : code, minified : minified });
         callback(minified);
       } else {
         Espruino.Core.Notifications.warning("Errors while minifying - sending unminified code.");
