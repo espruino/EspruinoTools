@@ -65,12 +65,15 @@
      *   `a = \n b`
      *   `for (.....) \n X`
      *   `if (.....) \n X`
+     *   `if (.....) { } \n else foo`   
      *   `while (.....) \n X`
      *   `do \n X`
      *   `function (.....) \n X`   
      *   `function N(.....) \n X`
      *   `var a \n , b`    `var a = 0 \n, b`
      *   `var a, \n b`     `var a = 0, \n b`
+     *   `a \n . b`
+     *   `foo() \n . b`
      *   
      *   These are divided into two groups - where there are brackets
      *   after the keyword (statementBeforeBrackets) and where there aren't
@@ -95,7 +98,14 @@
       
       if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;
       
-      if (brackets>0 || statement || statementBeforeBrackets || varDeclaration) {
+      if (brackets>0 || // we have brackets - sending the special newline means Espruino doesn't have to do a search itself - faster. 
+          statement || // statement was before brackets - expecting something else 
+          statementBeforeBrackets ||  // we have an 'if'/etc
+          varDeclaration || // variable declaration then newline
+          tok.str=="," || // comma on newline - there was probably something before
+          tok.str=="." || // dot on newline - there was probably something before
+          tok.str=="else" // else on newline
+        ) {
         //console.log("Possible"+JSON.stringify(previousString));
         previousString = previousString.replace(/\n/g, "\x1B\x0A");
       }
@@ -105,7 +115,7 @@
       
       
       if (brackets==0) {
-        if (tok.str=="for" || tok.str=="if" || tok.str=="while" || tok.str=="function") {
+        if (tok.str=="for" || tok.str=="if" || tok.str=="while" || tok.str=="function" || tok.str=="throw") {
           statementBeforeBrackets = true;
           varDeclaration = false;
         } else if (tok.str=="var") {
