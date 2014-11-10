@@ -192,7 +192,8 @@
              { base:"0111000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
     "ldr"  :[{ base:"01001---________", regex : /(r[0-7]),\[pc,(#[0-9]+)\]/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load             
              { base:"01001---________", regex : /(r[0-7]),([a-zA-Z_]+)/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label)
-             { base:"0101100---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset      
+             { base:"0101100---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"0110100000___---", regex : /(r[0-7]),\[(r[0-7])\]/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
              { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
     
     "ldrb" :[{ base:"0101110---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset 
