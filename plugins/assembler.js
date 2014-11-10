@@ -114,6 +114,15 @@
     return _int(offset, bits, shift, true);
   }  
   
+  // special 23-bit address (bottom bit ignored) split into two halves
+  function bl_addr() {
+    var normal = sint(0, 22, 1); // un-split address 
+    return function(value, labels) {
+      var v = normal(value, labels);
+      return ((v>>11)&0x7FF)<<16 | (v&0x7FF);
+    };
+  }   
+  
   var ops = { 
     // Format 1: move shifted register
     "lsl"  :[{ base:"00000-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)/, args:[reg(0),reg(3),uint(6,5,0)] }],
@@ -156,8 +165,9 @@
     "ble" :[{ base:"11011101________", regex : /^(.*)$/, args:[sint(0,8,1)] }], // 5.16 Format 16: conditional branch
     // 5.17 Format 17: software interrupt
     // 5.18 Format 18: unconditional branch
-    "b"   :[{ base:"11100___________", regex : /^(.*)$/, args:[sint(0,11,1)] }], // 5.16 Format 16: conditional branch
+    "b"   :[{ base:"11100___________", regex : /^(.*)$/, args:[sint(0,11,1)] }], 
     // 5.19 Format 19: long branch with link
+    "bl"  :[{ base:"11110___________11111___________", regex : /^(.*)$/, args:[bl_addr()] }], 
     // .... 
 
     
