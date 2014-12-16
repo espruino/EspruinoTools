@@ -171,6 +171,7 @@
     // .... 
 
     
+    "adr"  :[{ base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_]+)/,args:[reg(8),uint(0,8,2)] }], // ADR pseudo-instruction to save address (actually ADD PC)
     "push" :[{ base:"1011010-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
     "pop"  :[{ base:"1011110-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
     "add"  :[{ base:"00110---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
@@ -187,6 +188,7 @@
              { base:"00011-1___---___", regex : /^([^,]+),([^,]+),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ],
    
     "str"  :[{ base:"0101000---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset 
+             { base:"0110000000___---", regex : /(r[0-7]),\[(r[0-7])\]/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
              { base:"0110000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
     "strb" :[{ base:"0101010---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
              { base:"0111000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
