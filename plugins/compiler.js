@@ -47,7 +47,7 @@
       "ReturnStatement" : function(x, node) {
         var v = x.handle(node.argument);
         if (v) x.out("  pop {r0}");
-        x.out("  bx lr");
+        x.out("  b end_of_fn");
       },  
       "ExpressionStatement" : function(x, node) {
         return x.handle(node.expression);
@@ -76,25 +76,21 @@
       },        
       "Identifier" : function(x, node) {
         var localOffset = x.getLocalOffset(node.name);
-//        if (localOffset !== undefined) {
-//          x.out("  ldr r0, [sp,#"+localOffset+"]", "FIXME - need offset");
-//          x.out("  push {r0}");
- //       } else { 
+        if (localOffset !== undefined) {
+          x.out("  ldr r0, [sp,#"+localOffset+"]", "FIXME - need offset");
+          x.out("  push {r0}");
+          return stackValue();
+        } else { 
           // else search for the global variable
           var name = x.addBinaryData(node.name);
           return x.call("jspeiFindInScopes", name);
-  //      }
+        }
       }
   };
   
   function compileFunction(node) {
     var locals = {}; // dictionary of local variables
     var params = []; // simple list of the type of each parameter
-    node.params.forEach(function( paramNode, idx) { 
-      locals[paramNode.name] = { type : "param", offset : idx };
-      params.push("JsVar"); 
-    }); 
-    
     var constData = []; // constants that get shoved at the end of the code
     var assembly = []; // assembly that is output
     var x = {    
@@ -157,18 +153,35 @@
           return undefined;
       }
     };
+    // Parse parameters
+    node.params.forEach(function( paramNode, idx) { 
+      locals[paramNode.name] = { type : "param", offset : idx };
+      x.out("  push {r"+idx+"}", "push params onto stack - TODO: could do this in bulk");
+      // TODO: add code to clear up at exit
+      params.push("JsVar"); 
+    }); 
     // Serialise all statements
     node.body.body.forEach(function(s, idx) {
       if (idx==0) return; // we know this is the 'compiled' string
       var v = x.handle(s);
       if (v) x.call("jsvUnLock",v);
-    });    
-    // dd random labels for now
+    });  
+    x.out("end_of_fn:");  
+    node.params.forEach(function( paramNode, idx) { 
+      x.out("  pop {r3}", "pop params off the stack - TODO: just add/sub stack ptr"); 
+    }); 
+    x.out("  bx lr"); 
+    // do random labels for now
     x.out("jspeiFindInScopes:");
+    x.out("  .word 0xDEAD");
     x.out("jsvNewFromInteger:");
+    x.out("  .word 0xDEAD");
     x.out("jsvNewFromFloat:");
+    x.out("  .word 0xDEAD");
     x.out("jsvNewFromString:");
+    x.out("  .word 0xDEAD");
     x.out("jsvMathsOp:");
+    x.out("  .word 0xDEAD");
     // Write out any of the constants
     constData.forEach(function(c,n) {
       x.out("const_"+n+":");
