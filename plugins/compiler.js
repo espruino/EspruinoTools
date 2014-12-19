@@ -171,7 +171,7 @@
     callback(code);
   }
   
-  Espruino.Plugins.ExamplePlugin = {
+  Espruino.Plugins.Compiler = {
     init : init,
   };
 }());
