@@ -299,7 +299,7 @@
 //---------------------------------------------------------------------------
   
   function init() {
-    // When code is sent to Espruino, search it for modules and add extra code required to load them 
+    // When code is sent to Espruino, search it for bits of assembler and then assemble them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
       findASMBlocks(code, callback);
     });
