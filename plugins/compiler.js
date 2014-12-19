@@ -25,6 +25,10 @@
     });
   }
   
+  function isFloat(n) {
+    return n === +n && n !== (n|0);
+  }
+  
   function stackValue() {
     return "[stack]";
   }
@@ -58,10 +62,17 @@
       "BinaryExpression" : function(x, node) {
         var l = x.handle(node.left);
         var r = x.handle(node.right);
-        return x.call("jsvMathsOp", l, r, node.operator);
+        return x.call("jsvMathsOp", l, r, node.operator.charCodeAt(0)+"/* "+node.operator+" */");
       },
       "Literal" : function(x, node) {
-        return x.call("jsvNewFromString", x.addBinaryData(node.value));
+        if (typeof node.value == "string")
+          return x.call("jsvNewFromString", x.addBinaryData(node.value));
+        else if (typeof node.value == "number") {
+          if (isFloat(node.value)) 
+            return x.call("jsvNewFromFloat", x.addBinaryData(node.value));
+          else
+            return x.call("jsvNewFromInteger", x.addBinaryData(node.value));
+        } else console.warn("Unknown literal type "+typeof node.value);
       },        
       "Identifier" : function(x, node) {
         var name = x.addBinaryData(node.name);
@@ -83,15 +94,26 @@
       "addBinaryData": function(data) {
         // strings need zero terminating
         if (typeof data == "string") data+="\0";
+        else if (typeof data == "number") {
+          if (isFloat(data)) {
+            var b = new ArrayBuffer(8);
+            new Float64Array(b)[0] = data;
+            data = String.fromCharCode.apply(null,new Uint8Array(b));
+          } else {
+            var b = new ArrayBuffer(4);
+            new Int32Array(b)[0] = data;
+            data = String.fromCharCode.apply(null,new Uint8Array(b));
+          }
+        } else console.warn("Unknown data type "+typeof node.value);
+        
         // check for dups, work out offset
-        var offs = 0;
-        for (var i in constData) {
-          if (data == constData[i]) 
-            return "consts + "+offs+"";
-          offs += constData.length;
-        }        
-        constData.push(data);        
-        return "consts + "+offs+"";
+        for (var n in constData) {
+          if (data == constData[n]) 
+            return "const_"+n;
+          // add to offset - all needs to be word aligned
+        }
+        // otherwise add to array
+        return "const_"+(constData.push(data)-1);
       },
       "out": function(data) {
         console.log("] "+data);
@@ -118,8 +140,19 @@
       var v = x.handle(s);
       if (v) x.call("jsvUnLock",v);
     });    
-    console.log("] consts: ");
-    console.log("] "+JSON.stringify(constData.join("")));
+    
+    constData.forEach(function(c,n) {
+      x.out("const_"+n+":");
+      for (var i=0;i<c.length;i+=4) {
+        var word = 
+          (c.charCodeAt(i  )) |
+          (c.charCodeAt(i+1) << 8) |
+          (c.charCodeAt(i+2) << 16) |
+          (c.charCodeAt(i+3) << 24);
+        x.out("  .word 0x"+word.toString(16)+" ; "+JSON.stringify(c.substr(i,4)));                
+      }
+    });
+    
   }
 
   function compileCode(code, callback) {
