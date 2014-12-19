@@ -118,7 +118,7 @@
         return "const_"+(constData.push(data)-1);
       },
       "out": function(data) {
-        console.log("] "+data);
+  //      console.log("] "+data);
         assembly.push(data);
       },
       "call": function(name /*, ... args ... */) {
@@ -160,15 +160,21 @@
           (c.charCodeAt(i+1) << 8) |
           (c.charCodeAt(i+2) << 16) |
           (c.charCodeAt(i+3) << 24);
-        x.out("  .word 0x"+word.toString(16)+" ; "+JSON.stringify(c.substr(i,4)));                
+        x.out("  .word 0x"+word.toString(16)/*+" ; "+JSON.stringify(c.substr(i,4))*/);                
       }
     });
     // now try and assemble it
-    console.log(Espruino.Plugins.Assembler.asm(assembly));
+    //console.log(Espruino.Plugins.Assembler.asm(assembly));
     
+    var params = [];
+    node.params.forEach(function(p) { params.push("JsVar"); });
+    var paramSpec = "JsVar ("+params.join(",")+")";
+    // wrap this up into an actual 'E.asm' statement:
+    return "var "+node.id.name+" = "+"E.asm(\""+paramSpec+"\",\n  "+assembly.map(JSON.stringify).join(",\n  ")+");";
   }
 
   function compileCode(code, callback) {
+    var offset = 0;
     var ast = acorn.parse(code, { ecmaVersion : 6 });
     ast.body.forEach(function(node) {
       if (node.type=="FunctionDeclaration") {
@@ -177,10 +183,18 @@
             node.body.body[0].type=="ExpressionStatement" &&
             node.body.body[0].expression.type=="Literal" && 
             node.body.body[0].expression.value=="compiled") {
-          compileFunction(node);
+          var asm = compileFunction(node);
+          if (asm) {
+            asm = asm;
+            console.log(asm);
+            //console.log(node);
+            code = code.substr(0,node.start+offset) + asm + code.substr(node.end+offset);
+            offset += (node.end-node.start) + asm.length; // offset for future code snippets
+          }
         }
       }
     });
+    console.log(code);
     callback(code);
   }
   
