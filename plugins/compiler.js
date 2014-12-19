@@ -117,8 +117,8 @@
         // otherwise add to array
         return "const_"+(constData.push(data)-1);
       },
-      "out": function(data) {
-  //      console.log("] "+data);
+      "out": function(data, comment) {
+        console.log("] "+data + (comment?("\t\t; "+comment):""));
         assembly.push(data);
       },
       "call": function(name /*, ... args ... */) {
@@ -160,7 +160,7 @@
           (c.charCodeAt(i+1) << 8) |
           (c.charCodeAt(i+2) << 16) |
           (c.charCodeAt(i+3) << 24);
-        x.out("  .word 0x"+word.toString(16)/*+" ; "+JSON.stringify(c.substr(i,4))*/);                
+        x.out("  .word 0x"+word.toString(16),  /*comment*/JSON.stringify(c.substr(i,4)));                
       }
     });
     // now try and assemble it
@@ -186,7 +186,7 @@
           var asm = compileFunction(node);
           if (asm) {
             asm = asm;
-            console.log(asm);
+            //console.log(asm);
             //console.log(node);
             code = code.substr(0,node.start+offset) + asm + code.substr(node.end+offset);
             offset += (node.end-node.start) + asm.length; // offset for future code snippets
@@ -194,7 +194,7 @@
         }
       }
     });
-    console.log(code);
+    //console.log(code);
     callback(code);
   }
   
