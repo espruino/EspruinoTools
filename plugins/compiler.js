@@ -75,15 +75,33 @@
         } else console.warn("Unknown literal type "+typeof node.value);
       },        
       "Identifier" : function(x, node) {
-        var name = x.addBinaryData(node.name);
-        return x.call("jspeiFindInScopes", name);
+        var localOffset = x.getLocalOffset(node.name);
+//        if (localOffset !== undefined) {
+//          x.out("  ldr r0, [sp,#"+localOffset+"]", "FIXME - need offset");
+//          x.out("  push {r0}");
+ //       } else { 
+          // else search for the global variable
+          var name = x.addBinaryData(node.name);
+          return x.call("jspeiFindInScopes", name);
+  //      }
       }
   };
   
   function compileFunction(node) {
-    var constData = [];
-    var assembly = [];
-    var x = {      
+    var locals = {}; // dictionary of local variables
+    var params = []; // simple list of the type of each parameter
+    node.params.forEach(function( paramNode, idx) { 
+      locals[paramNode.name] = { type : "param", offset : idx };
+      params.push("JsVar"); 
+    }); 
+    
+    var constData = []; // constants that get shoved at the end of the code
+    var assembly = []; // assembly that is output
+    var x = {    
+      "getLocalOffset" : function (name) { // get the offset of the local, or undefined
+        if (name in locals) return locals[name].offset;
+        return undefined;
+      },  
       "handle": function(node) {
         if (node.type in handlers)
           return handlers[node.type](x, node);
@@ -166,8 +184,6 @@
     // now try and assemble it
     //console.log(Espruino.Plugins.Assembler.asm(assembly));
     
-    var params = [];
-    node.params.forEach(function(p) { params.push("JsVar"); });
     var paramSpec = "JsVar ("+params.join(",")+")";
     // wrap this up into an actual 'E.asm' statement:
     return "var "+node.id.name+" = "+"E.asm(\""+paramSpec+"\",\n  "+assembly.map(JSON.stringify).join(",\n  ")+");";
