@@ -15,6 +15,8 @@ eval(fs.readFileSync("core/config.js").toString());
 eval(fs.readFileSync("plugins/assembler.js").toString());
 eval(fs.readFileSync("plugins/compiler.js").toString());
 
+Espruino.Core.Notifications = console;
+
 Espruino.init();
 
 Espruino.callProcessor("transformForEspruino",'function a(b) { "compiled";return b+1; }', function(code) {

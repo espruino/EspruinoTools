@@ -193,7 +193,7 @@
     "strb" :[{ base:"0101010---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
              { base:"0111000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
     "ldr"  :[{ base:"01001---________", regex : /(r[0-7]),\[pc,(#[0-9]+)\]/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load             
-             { base:"01001---________", regex : /(r[0-7]),([a-zA-Z_]+)/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label)
+             { base:"01001---________", regex : /(r[0-7]),([0-9a-zA-Z_]+)/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label)
              { base:"0101100---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
              { base:"0110100000___---", regex : /(r[0-7]),\[(r[0-7])\]/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
              { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
@@ -247,7 +247,7 @@
       if (firstArgEnd<0) firstArgEnd=line.length;
       var opName = line.substr(0,firstArgEnd);
       var args = line.substr(firstArgEnd).replace(/[ \t]/g,"").trim();
-      if (!(opName in ops)) throw "Unknown Op '"+opName+"'";
+      if (!(opName in ops)) throw "Unknown Op '"+opName+"' in '"+line+"'";
       // search ops
       var found = false;
       for (var n in ops[opName]) {
@@ -304,6 +304,19 @@
       findASMBlocks(code, callback);
     });
   }
+
+  function assembleBlock(asmLines) {
+    var machineCode = [];
+    try {
+      assemble(asmLines, function(word) { machineCode.push("0x"+word.toString(16)); });
+    } catch (err) {
+      console.log("Assembler failed: "+err);
+      Espruino.Core.Notifications.error("Assembler failed: "+err);
+      return;
+    }
+          
+    return machineCode;
+  }
   
   /* Finds instances of 'E.asm' and replaces them */
   function findASMBlocks(code, callback){
@@ -351,14 +364,7 @@
           if (!match(")",undefined)) return;
           var endIndex = tok.endIdx;
           
-          var machineCode = [];
-          try {
-            assemble(asmLines, function(word) { machineCode.push("0x"+word.toString(16)); });
-          } catch (err) {
-            console.log("Assembler failed: "+err);
-            Espruino.Core.Notifications.error("Assembler failed: "+err);
-            return;
-          }
+          var machineCode = assembleBlock(asmLines);
           
           assembledCode +=
                  "var ASM_BASE"+asmBlockCount+"=ASM_BASE+1/*thumb*/;\n"+
@@ -387,7 +393,8 @@
   
   
   Espruino.Plugins.Assembler = {
-    init : init
+    init : init,
+    asm : assembleBlock, // hacky tool for doing assembly right now
   };
 }());
 

@@ -56,12 +56,14 @@ var Espruino;
     });
   }
   
-  // workaround for broken chrome on Mac
-  if (navigator.userAgent.indexOf("Mac OS X")>=0 &&
-      navigator.userAgent.indexOf("Chrome/33.0.1750")>=0) {
-    $(document).ready(function() { window.setTimeout(init,100); });
-  } else {
-    $(document).ready(init);
+  if (typeof $ == "function") {
+    // workaround for broken chrome on Mac
+    if (navigator.userAgent.indexOf("Mac OS X")>=0 &&
+        navigator.userAgent.indexOf("Chrome/33.0.1750")>=0) {
+      $(document).ready(function() { window.setTimeout(init,100); });
+    } else {
+      $(document).ready(init);
+    }
   }
   
   /** Add a processor function of type function(data,callback) */
@@ -98,6 +100,7 @@ var Espruino;
     addProcessor : addProcessor,
     callProcessor : callProcessor,
     initialised : false,
+    init : init, // just in case we need to initialise this by hand
   };
 
   return Espruino;

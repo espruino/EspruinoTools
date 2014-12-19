@@ -46,8 +46,8 @@
       },
       "ReturnStatement" : function(x, node) {
         var v = x.handle(node.argument);
-        if (v) x.out("POP {r0}");
-        x.out("BX LR");
+        if (v) x.out("  pop {r0}");
+        x.out("  bx lr");
       },  
       "ExpressionStatement" : function(x, node) {
         return x.handle(node.expression);
@@ -62,7 +62,7 @@
       "BinaryExpression" : function(x, node) {
         var l = x.handle(node.left);
         var r = x.handle(node.right);
-        return x.call("jsvMathsOp", l, r, node.operator.charCodeAt(0)+"/* "+node.operator+" */");
+        return x.call("jsvMathsOp", l, r, node.operator.charCodeAt(0));
       },
       "Literal" : function(x, node) {
         if (typeof node.value == "string")
@@ -70,7 +70,7 @@
         else if (typeof node.value == "number") {
           if (isFloat(node.value)) 
             return x.call("jsvNewFromFloat", x.addBinaryData(node.value));
-          else
+          else 
             return x.call("jsvNewFromInteger", x.addBinaryData(node.value));
         } else console.warn("Unknown literal type "+typeof node.value);
       },        
@@ -82,6 +82,7 @@
   
   function compileFunction(node) {
     var constData = [];
+    var assembly = [];
     var x = {      
       "handle": function(node) {
         if (node.type in handlers)
@@ -92,6 +93,7 @@
       },
       // Store binary data and return a pointer
       "addBinaryData": function(data) {
+        // TODO: what if this could have been stored directly in a thumb operation
         // strings need zero terminating
         if (typeof data == "string") data+="\0";
         else if (typeof data == "number") {
@@ -117,30 +119,39 @@
       },
       "out": function(data) {
         console.log("] "+data);
+        assembly.push(data);
       },
       "call": function(name /*, ... args ... */) {
         for (var i=0;i<arguments.length-1;i++) {
           var arg = arguments[i+1];
           if (isStackValue(arg))
-            x.out("POP {r"+i+"}");
-          else
-            x.out("MOVL r"+i+", "+arg);
+            x.out("  pop {r"+i+"}");
+          else if (typeof arg == "number")
+            x.out("  movs r"+i+", #"+arg);
+          else 
+            x.out("  ldr r"+i+", "+arg);
         }
-        x.out("BL "+name);
+        x.out("  bl "+name);
         if (name!="jsvUnLock") {
-          x.out("PUSH {r0}");
+          x.out("  push {r0}");
           return stackValue();
         } else
           return undefined;
       }
     };
-    
+    // Serialise all statements
     node.body.body.forEach(function(s, idx) {
       if (idx==0) return; // we know this is the 'compiled' string
       var v = x.handle(s);
       if (v) x.call("jsvUnLock",v);
     });    
-    
+    // dd random labels for now
+    x.out("jspeiFindInScopes:");
+    x.out("jsvNewFromInteger:");
+    x.out("jsvNewFromFloat:");
+    x.out("jsvNewFromString:");
+    x.out("jsvMathsOp:");
+    // Write out any of the constants
     constData.forEach(function(c,n) {
       x.out("const_"+n+":");
       for (var i=0;i<c.length;i+=4) {
@@ -152,6 +163,8 @@
         x.out("  .word 0x"+word.toString(16)+" ; "+JSON.stringify(c.substr(i,4)));                
       }
     });
+    // now try and assemble it
+    console.log(Espruino.Plugins.Assembler.asm(assembly));
     
   }
 
