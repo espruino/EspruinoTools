@@ -181,7 +181,7 @@
     // .... 
 
     
-    "adr"  :[{ base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_]+)/,args:[reg(8),uint(0,8,2)] }], // ADR pseudo-instruction to save address (actually ADD PC)
+    "adr"  :[{ base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)/,args:[reg(8),uint(0,8,2)] }], // ADR pseudo-instruction to save address (actually ADD PC)
     "push" :[{ base:"1011010-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
     "pop"  :[{ base:"1011110-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
     "add"  :[{ base:"00110---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate

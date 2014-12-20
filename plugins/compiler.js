@@ -117,8 +117,11 @@
       "addBinaryData": function(data) {
         // TODO: what if this could have been stored directly in a thumb operation
         // strings need zero terminating
-        if (typeof data == "string") data+="\0";
-        else if (typeof data == "number") {
+        var prefix = "";
+        if (typeof data == "string") {
+          data += "\0";
+          prefix = "*"; // it's a pointer
+        } else if (typeof data == "number") {
           if (isFloat(data)) {
             var b = new ArrayBuffer(8);
             new Float64Array(b)[0] = data;
@@ -133,11 +136,11 @@
         // check for dups, work out offset
         for (var n in constData) {
           if (data == constData[n]) 
-            return "const_"+n;
+            return prefix+"const_"+n;
           // add to offset - all needs to be word aligned
         }
         // otherwise add to array
-        return "const_"+(constData.push(data)-1);
+        return prefix+"const_"+(constData.push(data)-1);
       },
       "out": function(data, comment) {
         console.log("] "+data + (comment?("\t\t; "+comment):""));
@@ -154,7 +157,7 @@
         return s;
       },
       "call": function(name /*, ... args ... */) {
-        for (var i=0;i<arguments.length-1;i++) {
+        for (var i=arguments.length-2;i>=0;i--) {
           var arg = arguments[i+1];
           if (isStackValue(arg))
             x.out("  pop {r"+i+"}");
@@ -162,7 +165,10 @@
             x.out("  movs r"+i+", #"+arg);
           else {
             if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
-            x.out("  ldr r"+i+", "+arg);
+            if (arg[0]=="*")
+              x.out("  adr r"+i+", "+arg.substr(1)); // return pointer
+            else
+              x.out("  ldr r"+i+", "+arg);
           }
         }   
         var exportIdx = exportNames.indexOf(name);

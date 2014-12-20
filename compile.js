@@ -27,7 +27,7 @@ Espruino.Core.Env = {
 
 Espruino.init();
 
-Espruino.callProcessor("transformForEspruino",'console.log("Hello");\nfunction a(b) { "compiled";return b+1; }\nconsole.log("World")', function(code) {
+Espruino.callProcessor("transformForEspruino",'console.log("Hello");\nfunction a(b) { "compiled";return b+"World"; }\nconsole.log("World")', function(code) {
   console.log(code);
 });
 
