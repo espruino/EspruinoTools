@@ -80,7 +80,7 @@
       "BinaryExpression" : function(x, node) {
         var l = x.handle(node.left);
         var r = x.handle(node.right);
-        return x.call("jsvMathsOp", l, r, node.operator.charCodeAt(0));
+        return x.call("jsvMathsOpSkipNames", l, r, node.operator.charCodeAt(0));
       },
       "Literal" : function(x, node) {
         if (typeof node.value == "string")
