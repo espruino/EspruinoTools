@@ -100,6 +100,7 @@
     var locals = {}; // dictionary of local variables
     var params = []; // simple list of the type of each parameter
     var constData = []; // constants that get shoved at the end of the code
+    var trampolines = []; // which trampoline functions we need to make
     var assembly = []; // assembly that is output
     var x = {    
       "getLocalOffset" : function (name) { // get the offset of the local, or undefined
@@ -173,15 +174,12 @@
         }   
         var exportIdx = exportNames.indexOf(name);
         if (exportIdx>=0) {
-          // OPT: could just store fn ptr in constants with addBinaryData
-          if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
-          x.out("  ldr    r7, exports");
-          x.out("  ldr    r7, [r7, #"+(exportIdx*4)+"]", "Get fn address");
-          x.out("  bl     trampoline", name);
-        } else {
-          // unknown label?
-          x.out("  bl "+name);
+          // Just make sure we create a trampoline for this
+          if (trampolines.indexOf(name) < 0)
+            trampolines.push(name);
         }
+        x.out("  bl "+name);
+        
         if (name!="jsvUnLock") {
           x.out("  push {r0}");
           return stackValue();
@@ -209,9 +207,14 @@
     }); 
     x.out("  pop {r7,lr}", "Restore registers that might get overwritten");
     x.out("  bx lr"); 
-    // add trampoline
-    x.out("trampoline:");
-    x.out("  bx r7");
+    // add trampoline functions
+    trampolines.forEach(function(tramp) {
+      if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
+      x.out(tramp+":");
+      x.out("  ldr    r7, exports");
+      x.out("  ldr    r7, [r7, #"+(exportNames.indexOf(tramp)*4)+"]", "Get fn address");
+      x.out("  bx r7");
+    });
     // work out length and align to a word boundary
     if (x.getCodeSize()&2) x.out("  nop");
     // add exports - TODO: maybe we should just try and find out the actual function pointers? it'd be a bunch easier
