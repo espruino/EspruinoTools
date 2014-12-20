@@ -39,7 +39,16 @@
       return vals[reg]<<reg_offset;
     };
   }
-  var reg4 = reg; // 4 bit register
+  function reg4(reg_offset) { // 4 bit register
+    return function(reg) {
+      var vals = { r0:0,r1:1,r2:2,r3:3,r4:4,r5:5,r6:6,r7:7,
+                   r8:8,r9:9,r10:10,r11:11,r12:12,r13:13,r14:14,r15:15,
+                   lr:14, pc:15 };
+      if (!(reg in vals)) throw "Unknown register name "+reg;
+      return vals[reg]<<reg_offset;
+    };
+  }
+
    
   function reg_or_immediate(reg_offset, immediate_bit) {
     return function(reg) {
@@ -95,7 +104,7 @@
       } 
       
       
-      console.log("VALUE----------- "+binValue+" PC "+labels["PC"]+" L "+labels[value]);
+      //console.log("VALUE----------- "+binValue+" PC "+labels["PC"]+" L "+labels[value]);
       
       if (binValue>=minValue && binValue<=maxValue && (binValue&((1<<shift)-1))==0)
         return ((binValue >> shift) & ((1<<bits)-1)) << offset;
@@ -168,6 +177,7 @@
     "b"   :[{ base:"11100___________", regex : /^(.*)$/, args:[sint(0,11,1)] }], 
     // 5.19 Format 19: long branch with link
     "bl"  :[{ base:"11110___________11111___________", regex : /^(.*)$/, args:[bl_addr()] }], 
+    "bx"   :[{ base:"010001110----000", regex : /(lr|r[0-9]+)/, args:[reg4(3)] }], 
     // .... 
 
     
@@ -207,8 +217,9 @@
              { base:"0100011010---101", regex : /sp,(r[0-7])/, args:[reg(3)] }], // made up again
     "movs" :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }],
     "movw" :[{ base:"11110-100100----0___----________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg4(8),thumb2_immediate_t3] }],
-    "bx"   :[{ base:"0100011101110000", regex : /lr/, args:[] }], // made up again
-    ".word":[{ base:"--------------------------------", regex : /0x([0-9A-Fa-f]+)/, args:[function(v){v=parseInt(v,16);return (v>>16)|(v<<16);}] }], // made up again
+
+    ".word":[{ base:"--------------------------------", regex : /0x([0-9A-Fa-f]+)/, args:[function(v){v=parseInt(v,16);return (v>>16)|(v<<16);}] },
+             { base:"--------------------------------", regex : /([0-9]+)/, args:[function(v){v=parseInt(v);return (v>>16)|(v<<16);}] }],
     "nop"  :[{ base:"1011111100000000", regex : "", args:[] }], // made up again
     "cpsie"  :[{ base:"1011011001100010", regex : /i/, args:[] }], // made up again
     "cpsid"  :[{ base:"1011011001110010", regex : /i/, args:[] }], // made up again
@@ -293,6 +304,7 @@
 
   function assemble(asmLines, wordCallback) {    
     var labels = assemble_internal(asmLines, function() {}, undefined);
+    console.log(labels);
     assemble_internal(asmLines, wordCallback, labels);
   }
   

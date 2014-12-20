@@ -89,6 +89,14 @@
   };
   
   function compileFunction(node) {
+    var board = Espruino.Core.Env.getBoardData();
+    if (typeof board.EXPORT != "object") {
+      console.warn("Compiler not active as no process.env.EXPORT available");
+      return undefined;
+    }
+    var exportPtr = board.EXPORT[1];
+    var exportNames = board.EXPORT[0].split(",");
+
     var locals = {}; // dictionary of local variables
     var params = []; // simple list of the type of each parameter
     var constData = []; // constants that get shoved at the end of the code
@@ -135,6 +143,16 @@
         console.log("] "+data + (comment?("\t\t; "+comment):""));
         assembly.push(data);
       },
+      "getCodeSize": function() { // get the current size of the code
+        var s = 0;
+        assembly.forEach(function(line) { 
+          if (line.trim().substr(-1)!=":") { // ignore labels
+            var bigOnes = ["bl","movw",".word"]; // 4 byte instructuons
+            s += (bigOnes.indexOf(line.trim().split(" ")[0])>=0) ? 4 : 2; 
+          }
+        });
+        return s;
+      },
       "call": function(name /*, ... args ... */) {
         for (var i=0;i<arguments.length-1;i++) {
           var arg = arguments[i+1];
@@ -142,10 +160,22 @@
             x.out("  pop {r"+i+"}");
           else if (typeof arg == "number")
             x.out("  movs r"+i+", #"+arg);
-          else 
+          else {
+            if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
             x.out("  ldr r"+i+", "+arg);
+          }
+        }   
+        var exportIdx = exportNames.indexOf(name);
+        if (exportIdx>=0) {
+          // OPT: could just store fn ptr in constants with addBinaryData
+          if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
+          x.out("  ldr    r7, exports");
+          x.out("  ldr    r7, [r7, #"+(exportIdx*4)+"]", "Get fn address");
+          x.out("  bl     trampoline", name);
+        } else {
+          // unknown label?
+          x.out("  bl "+name);
         }
-        x.out("  bl "+name);
         if (name!="jsvUnLock") {
           x.out("  push {r0}");
           return stackValue();
@@ -153,7 +183,8 @@
           return undefined;
       }
     };
-    // Parse parameters
+    x.out("  push {r7,lr}", "Save registers that might get overwritten");
+    // Parse parameters and push onto stack    
     node.params.forEach(function( paramNode, idx) { 
       locals[paramNode.name] = { type : "param", offset : idx };
       x.out("  push {r"+idx+"}", "push params onto stack - TODO: could do this in bulk");
@@ -170,18 +201,16 @@
     node.params.forEach(function( paramNode, idx) { 
       x.out("  pop {r3}", "pop params off the stack - TODO: just add/sub stack ptr"); 
     }); 
+    x.out("  pop {r7,lr}", "Restore registers that might get overwritten");
     x.out("  bx lr"); 
-    // do random labels for now
-    x.out("jspeiFindInScopes:");
-    x.out("  .word 0xDEAD");
-    x.out("jsvNewFromInteger:");
-    x.out("  .word 0xDEAD");
-    x.out("jsvNewFromFloat:");
-    x.out("  .word 0xDEAD");
-    x.out("jsvNewFromString:");
-    x.out("  .word 0xDEAD");
-    x.out("jsvMathsOp:");
-    x.out("  .word 0xDEAD");
+    // add trampoline
+    x.out("trampoline:");
+    x.out("  bx r7");
+    // work out length and align to a word boundary
+    if (x.getCodeSize()&2) x.out("  nop");
+    // add exports - TODO: maybe we should just try and find out the actual function pointers? it'd be a bunch easier
+     x.out("exports:");
+    x.out("  .word "+exportPtr, "Function table pointer");
     // Write out any of the constants
     constData.forEach(function(c,n) {
       x.out("const_"+n+":");

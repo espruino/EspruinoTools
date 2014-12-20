@@ -16,6 +16,14 @@ eval(fs.readFileSync("plugins/compiler.js").toString());
 eval(fs.readFileSync("plugins/assembler.js").toString());
 
 Espruino.Core.Notifications = console;
+Espruino.Core.Env = {
+  getBoardData : function() {
+    return { EXPORT : ["jsvLock,jsvUnLock,jsvMathsOp,"+
+      "jsvNewFromFloat,jsvNewFromInteger,jsvNewFromString,jsvNewFromBool,"+
+      "jsvGetFloat,jsvGetInteger,jsvGetBool,"+
+      "jspeiFindInScopes,jspReplaceWith,", 536871028] };
+  }
+};
 
 Espruino.init();
 
