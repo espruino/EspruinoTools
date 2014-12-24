@@ -1,4 +1,4 @@
-#!/bin/node
+#!/usr/bin/node
 // Very simple hack to test the code from node
 //  sudo npm install -g acorn
 
@@ -27,7 +27,10 @@ Espruino.Core.Env = {
 
 Espruino.init();
 
-Espruino.callProcessor("transformForEspruino",'x=42;\nfunction f() { "compiled";return 1; }', function(code) {
+//var c = 'x=42;\nfunction f() { "compiled";return 1; }';
+var c = "function f() {'compiled';iterations=0;while ((iterations<16) & ((Xr*Xr+Xi*Xi)<4)) { t=Xr*Xr - Xi*Xi + Cr;      Xi=2*Xr*Xi+Ci;      Xr=t;      iterations=iterations+1;    } return iterations;}";
+
+Espruino.callProcessor("transformForEspruino",c, function(code) {
   console.log(code);
 });
 

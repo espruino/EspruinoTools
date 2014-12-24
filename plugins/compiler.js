@@ -82,7 +82,7 @@
       "BlockStatement" : function(x, node) {
         node.body.forEach(function(s) {
           var v = x.handle(s);
-          if (v) v.free();
+          if (v) v.free(x);
         });
       },
       "IfStatement" : function(x, node) {
@@ -104,7 +104,27 @@
           x.out(lEnd+":");
         } else {
           x.out(lFalse+":");
+          vbool.free(x);
         }        
+      },
+      "WhileStatement" : function(x, node) {
+        var lTest = x.getNewLabel("_while_test");
+        var lEnd =  x.getNewLabel("_while_end");
+        var lBody =  x.getNewLabel("_while_body");
+        x.out(lTest+":");
+        var v = x.handle(node.test);
+        v.get(x, "r0");
+        var vbool = x.call("jsvGetBool", v);
+        vbool.get(x,"r0");
+        x.out("  cmp r0, #0");        
+        x.out("  bne "+lBody);
+        x.out("  b "+lEnd, "Done in case jump is a large one"); 
+        x.out(lBody+":");
+        vbool.free(x);
+        x.handle(node.body);        
+        x.out("  b "+lTest);
+        x.out(lEnd+":");
+        vbool.free(x);    
       },
       "ReturnStatement" : function(x, node) {
         var v = x.handle(node.argument);
