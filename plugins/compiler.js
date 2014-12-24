@@ -29,33 +29,52 @@
     return n === +n && n !== (n|0);
   }
   
-  function stackValue() {
-    return "[stack]";
+  function stackValue(x) {
+    var stackDepth = x.getStackDepth();
+    return { 
+      type : "stackValue",
+      get : function(x, register) { 
+        var relativeDepth = x.getStackDepth()-stackDepth;
+        x.out("  ldr "+register+", [sp, #"+(relativeDepth*4)+"]"); 
+      }, 
+      pop : function(x, register) { 
+        x.out("  pop {"+register+"}"); 
+      }, 
+      free : function(x) { 
+        // make sure we 
+        x.addTrampoline("jsvUnLock");
+        x.out("  pop {r0}"); 
+        x.out("  bl jsvUnLock"); 
+      },
+    };
   }
   
   function isStackValue(x) {
-    return x=="[stack]";
+    return (typeof x == "object") && ("type" in x) && (x.type=="stackValue");
   }
   
   var handlers = {
       "BlockStatement" : function(x, node) {
         node.body.forEach(function(s) {
           var v = x.handle(s);
-          if (v) x.call("jsvUnLock",v);
+          if (v) v.free();
         });
       },
       "IfStatement" : function(x, node) {
         var v = x.handle(node.test);
+        v.get(x, "r0");
         var vbool = x.call("jsvGetBool", v);
-        x.out("  pop {r0}");
-        x.out("  cmp r0, #0");
+        vbool.get(x,"r0");
+        x.out("  cmp r0, #0");        
         var lFalse = x.getNewLabel("_if_false");
         x.out("  bne "+lFalse);
+        vbool.free(x);
         x.handle(node.consequent);        
         if (node.alternate) {
           var lEnd =  x.getNewLabel("_if_end");
           x.out("  b "+lEnd);
           x.out(lFalse+":");
+          vbool.free(x);
           x.handle(node.alternale);
           x.out(lEnd+":");
         } else {
@@ -64,7 +83,7 @@
       },
       "ReturnStatement" : function(x, node) {
         var v = x.handle(node.argument);
-        if (v) x.out("  pop {r0}");
+        if (v) v.pop(x,"r0");
         x.out("  b end_of_fn");
       },  
       "ExpressionStatement" : function(x, node) {
@@ -75,12 +94,14 @@
           console.warn("Unhandled AssignmentExpression '"+node.operator+"'");
         var l = x.handle(node.left);
         var r = x.handle(node.right);
-        return x.call("jspReplaceWith", l, r);
+        var v = x.call("jspReplaceWith", l, r);
+        return v;
       },      
       "BinaryExpression" : function(x, node) {
         var l = x.handle(node.left);
         var r = x.handle(node.right);
-        return x.call("jsvMathsOpSkipNames", l, r, node.operator.charCodeAt(0));
+        var v = x.call("jsvMathsOpSkipNames", l, r, node.operator.charCodeAt(0));
+        return v;
       },
       "Literal" : function(x, node) {
         if (typeof node.value == "string")
@@ -99,7 +120,7 @@
         if (localOffset !== undefined) {
           x.out("  ldr r0, [r7, #"+(localOffset*4)+"]", "Get argument "+node.name);
           x.out("  push {r0}");
-          return stackValue();
+          return stackValue(x);
         } else { 
           // else search for the global variable
           var name = x.addBinaryData(node.name);
@@ -170,6 +191,10 @@
         // otherwise add to array
         return prefix+"const_"+(constData.push(data)-1);
       },
+      "addTrampoline" : function(name) {        
+        if (trampolines.indexOf(name) < 0)
+          trampolines.push(name);
+      },
       "out": function(data, comment) {
         console.log("] "+data + (comment?("\t\t; "+comment):""));
         assembly.push(data);
@@ -184,12 +209,25 @@
         });
         return s;
       },
+      "getStackDepth": function() { // get the current size of the code
+        var depth = 0;
+        assembly.forEach(function(line) { 
+          if (line.trim().substr(-1)!=":") { // ignore labels
+            var op = line.trim().split(" ")[0];
+            if (op=="push") depth++;
+            if (op=="pop") depth++;
+          }
+        });
+        return depth;
+      },
       "call": function(name /*, ... args ... */) {
+        var hasStackValues = false; 
         for (var i=arguments.length-2;i>=0;i--) {
           var arg = arguments[i+1];
-          if (isStackValue(arg))
-            x.out("  pop {r"+i+"}");
-          else if (typeof arg == "number")
+          if (isStackValue(arg)) {
+            hasStackValues = true;
+            arg.get(x, "r"+i);
+          } else if (typeof arg == "number")
             x.out("  movs r"+i+", #"+arg);
           else {
             if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
@@ -199,19 +237,25 @@
               x.out("  ldr r"+i+", "+arg);
           }
         }   
-        var exportIdx = exportNames.indexOf(name);
-        if (exportIdx>=0) {
-          // Just make sure we create a trampoline for this
-          if (trampolines.indexOf(name) < 0)
-            trampolines.push(name);
-        }
+        if (exportNames.indexOf(name)>=0)
+          x.addTrampoline(name);
         x.out("  bl "+name);
-        
-        if (name!="jsvUnLock") {
-          x.out("  push {r0}");
-          return stackValue();
-        } else
-          return undefined;
+
+        var resultReg = "r0";
+
+        // free any values that were on the stack
+        if (hasStackValues) {
+          x.out("  mov r4, r0"); // jsvUnLock will overwrite r0 - save as r4
+          resultReg = "r4";
+          for (var i=arguments.length-2;i>=0;i--) {
+            var arg = arguments[i+1];
+            if (isStackValue(arg))
+              arg.free(x);
+          }
+        }
+
+        x.out("  push {"+resultReg+"}");
+        return stackValue(x);
       }
     };
     // r6 is for trampolining
@@ -219,7 +263,8 @@
     x.out("  push {r6,r7,lr}", "Save registers that might get overwritten");  
     var stackItems = node.params.length;
     if (stackItems>4) stackItems = 4; // only first 4 are in registers
-    x.out("  sub sp, #"+(stackItems*4), "add space for local vars of the stack"); 
+    if (stackItems>0)
+      x.out("  sub sp, #"+(stackItems*4), "add space for local vars of the stack"); 
     x.out("  add r7, sp, #0", "copy current stack pointer to r7"); 
     // Parse parameters and push onto stack    
     node.params.forEach(function( paramNode, idx) { 
@@ -233,10 +278,11 @@
     node.body.body.forEach(function(s, idx) {
       if (idx==0) return; // we know this is the 'compiled' string
       var v = x.handle(s);
-      if (v) x.call("jsvUnLock",v);
+      if (v) v.free(x);
     });  
     x.out("end_of_fn:");  
-    x.out("  add sp, #"+(stackItems*4), "take loal vars of the stack"); 
+    if (stackItems>0)
+      x.out("  add sp, #"+(stackItems*4), "take local vars of the stack"); 
     x.out("  pop {r6,r7,lr}", "Restore registers that might get overwritten");
     x.out("  bx lr"); 
     // add trampoline functions
@@ -282,11 +328,11 @@
             node.body.body[0].type=="ExpressionStatement" &&
             node.body.body[0].expression.type=="Literal" && 
             node.body.body[0].expression.value=="compiled") {
-          try {
+       //   try {
             var asm = compileFunction(node);
-          } catch (err) {
-            console.warn(err.toString());
-          }
+       //   } catch (err) {
+//            console.warn(err.toString());
+        //  }
           if (asm) {
             asm = asm;
             //console.log(asm);
