@@ -18,7 +18,7 @@ eval(fs.readFileSync("plugins/assembler.js").toString());
 Espruino.Core.Notifications = console;
 Espruino.Core.Env = {
   getBoardData : function() {
-    return { EXPORT : ["jsvLock,jsvUnLock,jsvMathsOp,"+
+    return { EXPORT : ["jsvLock,jsvLockAgain,jsvUnLock,jsvMathsOp,jsvMathsOpSkipNames,"+
       "jsvNewFromFloat,jsvNewFromInteger,jsvNewFromString,jsvNewFromBool,"+
       "jsvGetFloat,jsvGetInteger,jsvGetBool,"+
       "jspeiFindInScopes,jspReplaceWith,", 536871028] };
@@ -27,7 +27,7 @@ Espruino.Core.Env = {
 
 Espruino.init();
 
-Espruino.callProcessor("transformForEspruino",'console.log("Hello");\nfunction a(b) { "compiled";return b+"World"; }\nconsole.log("World")', function(code) {
+Espruino.callProcessor("transformForEspruino",'x=42;\nfunction f() { "compiled";return 1; }', function(code) {
   console.log(code);
 });
 
