@@ -215,7 +215,7 @@
     "mov"  :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
              { base:"0100011000---___", regex : /(r[0-7]),(r[0-7])/, args:[reg(0),reg(3)] },
              { base:"0100011010---101", regex : /sp,(r[0-7])/, args:[reg(3)] }], // made up again
-    "movs" :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }],
+    "movs" :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }], // is this even in thumb?
     "movw" :[{ base:"11110-100100----0___----________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg4(8),thumb2_immediate_t3] }],
 
     ".word":[{ base:"--------------------------------", regex : /0x([0-9A-Fa-f]+)/, args:[function(v){v=parseInt(v,16);return (v>>16)|(v<<16);}] },

@@ -118,7 +118,12 @@
       "Identifier" : function(x, node) {
         var localOffset = x.getLocalOffset(node.name);
         if (localOffset !== undefined) {
+          // then it's a local variable
           x.out("  ldr r0, [r7, #"+(localOffset*4)+"]", "Get argument "+node.name);
+          /* using LockAgain here isn't perfect, but it works. Ideally we'd know that 
+           local variables don't need locking and unlocking, except when they are returned */
+          x.addTrampoline("jsvLockAgain");
+          x.out("  bl jsvLockAgain");
           x.out("  push {r0}");
           return stackValue(x);
         } else { 
@@ -174,6 +179,7 @@
             new Float64Array(b)[0] = data;
             data = String.fromCharCode.apply(null,new Uint8Array(b));
           } else {
+            if (data>=0 && data<255) return data; // if it can be stored in a singl 'mov' instruction, just do that
             var b = new ArrayBuffer(4);
             new Int32Array(b)[0] = data;
             data = String.fromCharCode.apply(null,new Uint8Array(b));
@@ -227,9 +233,9 @@
           if (isStackValue(arg)) {
             hasStackValues = true;
             arg.get(x, "r"+i);
-          } else if (typeof arg == "number")
-            x.out("  movs r"+i+", #"+arg);
-          else {
+          } else if (typeof arg == "number") {
+            x.out("  mov r"+i+", #"+arg);
+          } else {
             if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
             if (arg[0]=="*")
               x.out("  adr r"+i+", "+arg.substr(1)); // return pointer
