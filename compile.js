@@ -28,7 +28,8 @@ Espruino.Core.Env = {
 Espruino.init();
 
 //var c = 'x=42;\nfunction f() { "compiled";return 1; }';
-var c = "function f() {'compiled';iterations=0;while ((iterations<16) & ((Xr*Xr+Xi*Xi)<4)) { t=Xr*Xr - Xi*Xi + Cr;      Xi=2*Xr*Xi+Ci;      Xr=t;      iterations=iterations+1;    } return iterations;}";
+var c = 'i=4;\nfunction f() { "compiled";if (1); }';
+//var c = "function f() {'compiled';iterations=0;while ((iterations<16) & ((Xr*Xr+Xi*Xi)<4)) { t=Xr*Xr - Xi*Xi + Cr;      Xi=2*Xr*Xi+Ci;      Xr=t;      iterations=iterations+1;    } return iterations;}";
 
 Espruino.callProcessor("transformForEspruino",c, function(code) {
   console.log(code);

@@ -79,6 +79,8 @@
   }
 
   var handlers = {
+      "EmptyStatement" : function(x, node) {
+      },
       "BlockStatement" : function(x, node) {
         node.body.forEach(function(s) {
           var v = x.handle(s);
@@ -87,24 +89,21 @@
       },
       "IfStatement" : function(x, node) {
         var v = x.handle(node.test);
-        v.get(x, "r0");
         var vbool = x.call("jsvGetBool", v);
-        vbool.get(x,"r0");
-        x.out("  cmp r0, #0");        
+        vbool.pop(x,"r4");  
+        // DO NOT UNLOCK - it's a bool
         var lFalse = x.getNewLabel("_if_false");
+        x.out("  cmp r4, #0");       
         x.out("  bne "+lFalse);
-        vbool.free(x);
         x.handle(node.consequent);        
         if (node.alternate) {
           var lEnd =  x.getNewLabel("_if_end");
           x.out("  b "+lEnd);
           x.out(lFalse+":");
-          vbool.free(x);
           x.handle(node.alternale);
           x.out(lEnd+":");
         } else {
           x.out(lFalse+":");
-          vbool.free(x);
         }        
       },
       "WhileStatement" : function(x, node) {
@@ -113,18 +112,16 @@
         var lBody =  x.getNewLabel("_while_body");
         x.out(lTest+":");
         var v = x.handle(node.test);
-        v.get(x, "r0");
         var vbool = x.call("jsvGetBool", v);
-        vbool.get(x,"r0");
-        x.out("  cmp r0, #0");        
+        vbool.pop(x,"r4"); 
+        // DO NOT UNLOCK - it's a bool
+        x.out("  cmp r4, #0");          
         x.out("  bne "+lBody);
         x.out("  b "+lEnd, "Done in case jump is a large one"); 
         x.out(lBody+":");
-        vbool.free(x);
         x.handle(node.body);        
         x.out("  b "+lTest);
-        x.out(lEnd+":");
-        vbool.free(x);    
+        x.out(lEnd+":");  
       },
       "ReturnStatement" : function(x, node) {
         var v = x.handle(node.argument);
@@ -265,12 +262,13 @@
           if (line.trim().substr(-1)!=":") { // ignore labels
             var op = line.trim().split(" ")[0];
             if (op=="push") depth++;
-            if (op=="pop") depth++;
+            if (op=="pop") depth--;
           }
         });
         return depth;
       },
       "call": function(name /*, ... args ... */) {
+        var returnType = (name!="jspReplaceWith") ? "JsVar" : "void";
         var hasStackValues = false; 
         for (var i=arguments.length-2;i>=0;i--) {
           var arg = arguments[i+1];
@@ -293,8 +291,10 @@
 
         // free any values that were on the stack
         if (hasStackValues) {
-          x.out("  mov r4, r0"); // jsvUnLock will overwrite r0 - save as r4
-          resultReg = "r4";
+          if (returnType!="void") {
+            x.out("  mov r4, r0"); // jsvUnLock will overwrite r0 - save as r4
+            resultReg = "r4";
+          }
           for (var i=arguments.length-2;i>=0;i--) {
             var arg = arguments[i+1];
             if (isStackValue(arg))
@@ -302,8 +302,11 @@
           }
         }
 
-        x.out("  push {"+resultReg+"}");
-        return stackValue(x);
+        if (returnType != "void") { 
+          x.out("  push {"+resultReg+"}", returnType);
+          return stackValue(x); 
+        } else
+          return undefined;
       }
     };
     // r6 is for trampolining
@@ -328,6 +331,7 @@
       var v = x.handle(s);
       if (v) v.free(x);
     });  
+    x.out("  mov r0, #0", "No explicit return = return undefined");  
     x.out("end_of_fn:");  
     if (stackItems>0)
       x.out("  add sp, #"+(stackItems*4), "take local vars of the stack"); 
