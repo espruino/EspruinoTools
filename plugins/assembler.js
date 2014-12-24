@@ -97,8 +97,14 @@
       if (value[0]=="#") {      
         binValue = parseInt(value.substr(1));        
       } else {
+        var addValue = 0;
+        var maths = value.indexOf("+");
+        if (maths >= 0) { 
+          addValue = parseInt(value.substr(maths));
+          value = value.substr(0,maths);
+        }
         if (value in labels)
-          binValue = labels[value] - labels["PC"];
+          binValue = labels[value] + addValue - labels["PC"];
         else
           throw "Unknown label '"+value+"'";
       } 
@@ -134,13 +140,13 @@
   
   var ops = { 
     // Format 1: move shifted register
-    "lsl"  :[{ base:"00000-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)/, args:[reg(0),reg(3),uint(6,5,0)] }],
-    "lsr"  :[{ base:"00001-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)/, args:[reg(0),reg(3),uint(6,5,0)] }],
-    "asr"  :[{ base:"00010-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)/, args:[reg(0),reg(3),uint(6,5,0)] }],
+    "lsl"  :[{ base:"00000-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] }],
+    "lsr"  :[{ base:"00001-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] }],
+    "asr"  :[{ base:"00010-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] }],
     // 5.2 Format 2: add/subtract
     // 00011
     // 5.3 Format 3: move/compare/add/subtract immediate
-    "cmp"  :[{ base:"00101---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }], // move/compare/subtract immediate
+    "cmp"  :[{ base:"00101---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }], // move/compare/subtract immediate
     // 5.4 Format 4: ALU operations
     // 5.5 Format 5: Hi register operations/branch exchange
     // 5.6 Format 6: PC-relative load             
@@ -177,14 +183,14 @@
     "b"   :[{ base:"11100___________", regex : /^(.*)$/, args:[sint(0,11,1)] }], 
     // 5.19 Format 19: long branch with link
     "bl"  :[{ base:"11110___________11111___________", regex : /^(.*)$/, args:[bl_addr()] }], 
-    "bx"   :[{ base:"010001110----000", regex : /(lr|r[0-9]+)/, args:[reg4(3)] }], 
+    "bx"   :[{ base:"010001110----000", regex : /(lr|r[0-9]+)$/, args:[reg4(3)] }], 
     // .... 
 
     
-    "adr"  :[{ base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)/,args:[reg(8),uint(0,8,2)] }], // ADR pseudo-instruction to save address (actually ADD PC)
+    "adr"  :[{ base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)$/,args:[reg(8),uint(0,8,2)] }], // ADR pseudo-instruction to save address (actually ADD PC)
     "push" :[{ base:"1011010-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
     "pop"  :[{ base:"1011110-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
-    "add"  :[{ base:"00110---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
+    "add"  :[{ base:"00110---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
              { base:"10100---________", regex : /^(r[0-7]),pc,(#[0-9]+)$/,args:[reg(8),uint(0,8,2)] },
              { base:"10101---________", regex : /^(r[0-7]),sp,(#[0-9]+)$/, args:[reg(8),uint(0,8,2)] },
              { base:"101100000_______", regex : /^sp,(#[0-9]+)$/, args:[uint(0,7,2)] }
@@ -192,34 +198,35 @@
     "adds" :[{ base:"00011-0___---___", regex : /^(r[0-7]),(r[0-7]),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ],
     "adc.w":[{ base:"111010110100----________--------", regex : /^(r[0-7]),(r[0-7]),(r[0-7])$/,args:[reg(16),reg(8),reg(0)] }], // made this up. probably wrong
     "add.w":[{ base:"11110001--------________--------", regex : /^(r[0-7]),(r[0-7]),(#[0-9]+)$/,args:[reg(16),reg(8),uint(0,8,0)] }], // made this up. probably wrong
-    "sub"  :[{ base:"00111---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
+    "sub"  :[{ base:"00111---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
               /*{ base:"10100---________", regex : /^([^,]+),pc,(#[0-9]+)$/,args:[reg(8),uint(0,8,2)] },*/
              { base:"101100001_______", regex : /^sp,(#[0-9]+)$/, args:[uint(0,7,2)] },
              { base:"00011-1___---___", regex : /^([^,]+),([^,]+),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ],
    
-    "str"  :[{ base:"0101000---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset 
-             { base:"10010---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative store             
-             { base:"0110000000___---", regex : /(r[0-7]),\[(r[0-7])\]/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
-             { base:"0110000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
-    "strb" :[{ base:"0101010---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
-             { base:"0111000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
-    "ldr"  :[{ base:"01001---________", regex : /(r[0-7]),\[pc,(#[0-9]+)\]/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load             
-             { base:"10011---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative load             
-             { base:"01001---________", regex : /(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label)
-             { base:"0101100---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
-             { base:"0110100000___---", regex : /(r[0-7]),\[(r[0-7])\]/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
-             { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
+    "str"  :[{ base:"0101000---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset 
+             { base:"10010---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative store             
+             { base:"0110000000___---", regex : /(r[0-7]),\[(r[0-7])\]$/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
+             { base:"0110000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
+    "strb" :[{ base:"0101010---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"0111000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
+    "ldr"  :[{ base:"01001---________", regex : /(r[0-7]),\[pc,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load             
+             { base:"10011---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative load             
+             { base:"01001---________", regex : /(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label)
+             { base:"01001---________", regex : /(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*\+[0-9]+)$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label and maths - huge hack)
+             { base:"0101100---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"0110100000___---", regex : /(r[0-7]),\[(r[0-7])\]$/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
+             { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
     
-    "ldrb" :[{ base:"0101110---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset 
-             { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
-    "mov"  :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
-             { base:"0100011000---___", regex : /(r[0-7]),(r[0-7])/, args:[reg(0),reg(3)] },
-             { base:"0100011010---101", regex : /sp,(r[0-7])/, args:[reg(3)] }], // made up again
-    "movs" :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg(8),uint(0,8,0)] }], // is this even in thumb?
-    "movw" :[{ base:"11110-100100----0___----________", regex : /(r[0-7]),(#[0-9]+)/, args:[reg4(8),thumb2_immediate_t3] }],
+    "ldrb" :[{ base:"0101110---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset 
+             { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
+    "mov"  :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
+             { base:"0100011000---___", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] },
+             { base:"0100011010---101", regex : /sp,(r[0-7])$/, args:[reg(3)] }], // made up again
+    "movs" :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }], // is this even in thumb?
+    "movw" :[{ base:"11110-100100----0___----________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg4(8),thumb2_immediate_t3] }],
 
-    ".word":[{ base:"--------------------------------", regex : /0x([0-9A-Fa-f]+)/, args:[function(v){v=parseInt(v,16);return (v>>16)|(v<<16);}] },
-             { base:"--------------------------------", regex : /([0-9]+)/, args:[function(v){v=parseInt(v);return (v>>16)|(v<<16);}] }],
+    ".word":[{ base:"--------------------------------", regex : /0x([0-9A-Fa-f]+)$/, args:[function(v){v=parseInt(v,16);return (v>>16)|(v<<16);}] },
+             { base:"--------------------------------", regex : /([0-9]+)$/, args:[function(v){v=parseInt(v);return (v>>16)|(v<<16);}] }],
     "nop"  :[{ base:"1011111100000000", regex : "", args:[] }], // made up again
     "cpsie"  :[{ base:"1011011001100010", regex : /i/, args:[] }], // made up again
     "cpsid"  :[{ base:"1011011001110010", regex : /i/, args:[] }], // made up again

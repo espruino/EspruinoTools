@@ -52,7 +52,32 @@
   function isStackValue(x) {
     return (typeof x == "object") && ("type" in x) && (x.type=="stackValue");
   }
-  
+
+  function constValue(x, label, size) { // if size==0 its a pointer
+    return { 
+      type : "constValue",
+      get : function(x, register) { 
+        if (size==0) { // pointer
+          if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
+          x.out("  adr "+register+", "+label); 
+        } else {
+          for (var i=0;i<size;i++) {
+            if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
+            x.out("  ldr r"+(0|register.substr(1)+i)+", "+label+"+"+(i*4)); 
+          }
+        }
+      }, 
+      pop : function(x, register) { 
+        this.get(x, register);
+      }, 
+      free : function(x) { },
+    };
+  }
+
+  function isConstValue(x) {
+    return (typeof x == "object") && ("type" in x) && (x.type=="constValue");
+  }
+
   var handlers = {
       "BlockStatement" : function(x, node) {
         node.body.forEach(function(s) {
@@ -167,17 +192,16 @@
       },
       // Store binary data and return a pointer
       "addBinaryData": function(data) {
-        // TODO: what if this could have been stored directly in a thumb operation
-        // strings need zero terminating
-        var prefix = "";
+        var size = 1;
         if (typeof data == "string") {
           data += "\0";
-          prefix = "*"; // it's a pointer
+          size = 0; // pointer
         } else if (typeof data == "number" || typeof data == "boolean") {
           if (isFloat(data)) {
             var b = new ArrayBuffer(8);
             new Float64Array(b)[0] = data;
             data = String.fromCharCode.apply(null,new Uint8Array(b));
+            size = 2; // floats are 64 bit
           } else {
             if (data>=0 && data<255) return data; // if it can be stored in a singl 'mov' instruction, just do that
             var b = new ArrayBuffer(4);
@@ -191,11 +215,11 @@
         // check for dups, work out offset
         for (var n in constData) {
           if (data == constData[n]) 
-            return prefix+"const_"+n;
+            return constValue(x, "const_"+n, size);
           // add to offset - all needs to be word aligned
         }
         // otherwise add to array
-        return prefix+"const_"+(constData.push(data)-1);
+        return constValue(x, "const_"+(constData.push(data)-1), size);
       },
       "addTrampoline" : function(name) {        
         if (trampolines.indexOf(name) < 0)
@@ -233,14 +257,12 @@
           if (isStackValue(arg)) {
             hasStackValues = true;
             arg.get(x, "r"+i);
+          } else if (isConstValue(arg)) {
+            arg.get(x, "r"+i);
           } else if (typeof arg == "number") {
             x.out("  mov r"+i+", #"+arg);
           } else {
-            if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
-            if (arg[0]=="*")
-              x.out("  adr r"+i+", "+arg.substr(1)); // return pointer
-            else
-              x.out("  ldr r"+i+", "+arg);
+            throw new Error("Unknown arg type "+typeof arg);
           }
         }   
         if (exportNames.indexOf(name)>=0)
