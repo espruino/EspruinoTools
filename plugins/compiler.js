@@ -390,7 +390,7 @@
             //console.log(asm);
             //console.log(node);
             code = code.substr(0,node.start+offset) + asm + code.substr(node.end+offset);
-            offset += (node.end-node.start) + asm.length; // offset for future code snippets
+            offset += asm.length - (node.end-node.start); // offset for future code snippets
           }
         }
       }
