@@ -342,6 +342,9 @@
   /* Finds instances of 'E.asm' and replaces them */
   function findASMBlocks(code, callback){
     
+   /* if (!btoa)
+      var btoa = function(s) { return new Buffer(s).toString('base64'); };*/
+
     function match(str, type) {
       if (str!==undefined && tok.str!=str) {
         Espruino.Core.Notifications.error("Expecting '"+str+"' but got '"+tok.str+"'. Should have E.asm('arg spec', 'asmline1', ..., 'asmline2'");
@@ -386,12 +389,14 @@
           var endIndex = tok.endIdx;
           
           var machineCode = assembleBlock(asmLines);
-          
-          assembledCode +=
-                 "var ASM_BASE"+asmBlockCount+"=ASM_BASE+1/*thumb*/;\n"+
-                 "["+machineCode.join(",")+"].forEach(function(v) { poke16((ASM_BASE+=2)-2,v); });\n";                
+          var raw = "";
+          machineCode.forEach(function(short) {
+            var v = parseInt(short,16);
+            raw += String.fromCharCode(v&255,v>>8);
+          });
+          var base64 = btoa(raw);           
           code = code.substr(0,startIndex) + 
-                 'E.nativeCall(ASM_BASE'+asmBlockCount+', '+JSON.stringify(argSpec)+')'+
+                 'E.nativeCall(0, '+JSON.stringify(argSpec)+', atob('+JSON.stringify(base64)+'))'+
                  code.substr(endIndex);
           asmBlockCount++;
           
