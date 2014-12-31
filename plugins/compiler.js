@@ -136,7 +136,9 @@
           console.warn("Unhandled AssignmentExpression '"+node.operator+"'");
         var l = x.handle(node.left);
         var r = x.handle(node.right);
-        var v = x.call("jspReplaceWith", l, r);
+        // TODO: we can probably skip the SkipName if we've had a jsvMathsOpSkipNames already
+        var rs = x.call("jsvSkipName", r); // make sure we get rid of names (if there were any)
+        var v = x.call("jspReplaceWith", l, rs);
         return v;
       },      
       "BinaryExpression" : function(x, node) {
