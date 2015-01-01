@@ -138,8 +138,7 @@
         var r = x.handle(node.right);
         // TODO: we can probably skip the SkipName if we've had a jsvMathsOpSkipNames already
         var rs = x.call("jsvSkipName", r); // make sure we get rid of names (if there were any)
-        var v = x.call("jspReplaceWith", l, rs);
-        return v;
+        x.call("jspReplaceWith", l, rs);
       },      
       "BinaryExpression" : function(x, node) {
         var l = x.handle(node.left);
@@ -160,10 +159,10 @@
         } else throw new Error("Unknown literal type "+typeof node.value);
       },        
       "Identifier" : function(x, node) {
-        var localOffset = x.getLocalOffset(node.name);
-        if (localOffset !== undefined) {
+        var local = x.getLocal(node.name);
+        if (local !== undefined) {
           // then it's a local variable
-          x.out("  ldr r0, [r7, #"+(localOffset*4)+"]", "Get argument "+node.name);
+          x.out("  ldr r0, [r7, #"+(local.offset*4)+"]", "Get "+local.type+" "+node.name);
           /* using LockAgain here isn't perfect, but it works. Ideally we'd know that 
            local variables don't need locking and unlocking, except when they are returned */
           x.addTrampoline("jsvLockAgain");
@@ -175,6 +174,16 @@
           var name = x.addBinaryData(node.name);
           return x.call("jspeiFindInScopes", name);
         }
+      },
+      "VariableDeclaration" : function (x, node) {
+        node.declarations.forEach(function (node) {
+          if (node.init) {
+            var l = x.handle(node.id);
+            var r = x.handle(node.init);
+            var rs = x.call("jsvSkipName", r); // make sure we get rid of names (if there were any)
+            x.call("jspReplaceWith", l, rs); 
+          }
+        });
       }
   };
   
@@ -194,8 +203,8 @@
     var assembly = []; // assembly that is output
     var labelCounter = 0;
     var x = {    
-      "getLocalOffset" : function (name) { // get the offset of the local, or undefined
-        if (name in locals) return locals[name].offset;
+      "getLocal" : function (name) { // get the local, or undefined
+        if (name in locals) return locals[name];
         return undefined;
       },  
       "handle": function(node) {
@@ -311,6 +320,19 @@
           return undefined;
       }
     };
+
+    var localVariables = [];
+    acorn.walk.simple(node, { 
+      "Identifier" : function(n) {
+        console.log("Identifier "+n.name);
+      },
+      "VariableDeclaration" : function (n) {
+        n.declarations.forEach(function (n) {
+          console.log(n);
+          localVariables.push(n.id.name);
+        });
+    }});
+
     // r6 is for trampolining
     // r7 is a frame pointer
     x.out("  push {r6,r7,lr}", "Save registers that might get overwritten");  
@@ -322,11 +344,16 @@
     // Parse parameters and push onto stack    
     node.params.forEach(function( paramNode, idx) { 
       // FIXME: >4 arguments seems to shift them all by 1 somehow. Maybe the first one went on the stack and others in registers?
-      locals[paramNode.name] = { type : "param", offset : (idx<4) ? idx : idx+3/*because we pushed 3 items above*/ };
+      locals[paramNode.name] = { type : "param", offset : (idx<4) ? idx : idx+3/*because we pushed 3 items above*/+localVariables.length };
       if (idx<4) // only first 4 on stack
         x.out("  str r"+idx+", [r7, #"+(idx*4)+"]", "copy params onto stack");
       params.push("JsVar"); 
     }); 
+    // add 'locals' for the local Variables that we found
+    localVariables.forEach(function(name, idx) {
+      // FIXME: we need to either initialise this as a 'name' variable, or handle it differently for assignments
+      locals[name] = { type : "localVar", offset : idx + stackItems };
+    });
     // Serialise all statements
     node.body.body.forEach(function(s, idx) {
       if (idx==0) return; // we know this is the 'compiled' string
