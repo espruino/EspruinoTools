@@ -11,6 +11,12 @@
 **/
 "use strict";
 (function(){
+
+  var base64_encode;
+  if (typeof btoa == "undefined")
+    base64_encode = function(s) { return new Buffer(s).toString('base64'); };
+  else
+    base64_encode = btoa;
   
 /*  Thumb reference :
     http://ece.uwaterloo.ca/~ece222/ARM/ARM7-TDMI-manual-pt3.pdf
@@ -341,9 +347,6 @@
   
   /* Finds instances of 'E.asm' and replaces them */
   function findASMBlocks(code, callback){
-    
-   /* if (!btoa)
-      var btoa = function(s) { return new Buffer(s).toString('base64'); };*/
 
     function match(str, type) {
       if (str!==undefined && tok.str!=str) {
@@ -394,7 +397,7 @@
             var v = parseInt(short,16);
             raw += String.fromCharCode(v&255,v>>8);
           });
-          var base64 = btoa(raw);           
+          var base64 = base64_encode(raw);           
           code = code.substr(0,startIndex) + 
                  'E.nativeCall(0, '+JSON.stringify(argSpec)+', atob('+JSON.stringify(base64)+'))'+
                  code.substr(endIndex);
