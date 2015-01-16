@@ -205,7 +205,7 @@
       var timeout = setTimeout(function(){
         console.warn("No result found - just got "+JSON.stringify(receivedData));          
         nextStep(undefined);        
-      },500);   
+      },1000);   
     }    
    
     if(Espruino.Core.Serial.isConnected()){
