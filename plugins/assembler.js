@@ -236,6 +236,8 @@
     "nop"  :[{ base:"1011111100000000", regex : "", args:[] }], // made up again
     "cpsie"  :[{ base:"1011011001100010", regex : /i/, args:[] }], // made up again
     "cpsid"  :[{ base:"1011011001110010", regex : /i/, args:[] }], // made up again
+    "wfe"    :[{ base:"1011111100100000", regex : /i/, args:[] }],
+    "wfi"    :[{ base:"1011111100110000", regex : /i/, args:[] }],
   };
   
    
