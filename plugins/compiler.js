@@ -29,9 +29,9 @@
     return n === +n && n !== (n|0);
   }
   
-  function stackValue(x) {
+  function stackValue(x, opts) {
     var stackDepth = x.getStackDepth();
-    return { 
+    var s = { 
       type : "stackValue",
       get : function(x, register) { 
         var relativeDepth = x.getStackDepth()-stackDepth;
@@ -47,6 +47,10 @@
         x.out("  bl jsvUnLock"); 
       },
     };
+    if (opts)
+      for (var o in opts)
+        s[o] = opts[o];
+    return s;
   }
   
   function isStackValue(x) {
@@ -76,6 +80,31 @@
 
   function isConstValue(x) {
     return (typeof x == "object") && ("type" in x) && (x.type=="constValue");
+  }
+  
+  function setVariable(x,left,right) {    
+    if (left.type=="Identifier" && x.getLocal(left.name)!==undefined) {
+      var local = x.getLocal(left.name);
+      // it's a local variable. We treat these differently as we write straight to the stack
+      // get the RHS
+      var r = x.handle(right);
+      // Unlock the existing variable
+      x.addTrampoline("jsvUnLock");
+      x.out("  ldr r0, [r7, #"+(local.offset*4)+"]", "Get "+local.type+" "+local.name);      
+      x.out("  bl jsvUnLock", "Unlock Existing "+local.name);
+      // write RHS to LHS
+      r.pop(x, "r0");
+      x.out("  mov r1, r7");
+      x.out("  add r1, #"+(local.offset*4), "Get address of "+local.type+" "+local.name);
+      x.out("  str r0, [r1]", "Save to "+local.name);
+    } else {
+      // otherwise we don't really know - just try ReplaceWith
+      var l = x.handle(left);
+      var r = x.handle(right);
+      // TODO: we can probably skip the SkipName if we've had a jsvMathsOpSkipNames already
+      var rs = x.call("jsvSkipName", r); // make sure we get rid of names (if there were any)
+      x.call("jspReplaceWith", l, rs);
+    }
   }
 
   var handlers = {
@@ -134,11 +163,7 @@
       "AssignmentExpression" : function(x, node) {
         if (node.operator != "=")
           console.warn("Unhandled AssignmentExpression '"+node.operator+"'");
-        var l = x.handle(node.left);
-        var r = x.handle(node.right);
-        // TODO: we can probably skip the SkipName if we've had a jsvMathsOpSkipNames already
-        var rs = x.call("jsvSkipName", r); // make sure we get rid of names (if there were any)
-        x.call("jspReplaceWith", l, rs);
+        setVariable(x, node.left, node.right);
       },      
       "BinaryExpression" : function(x, node) {
         var l = x.handle(node.left);
@@ -162,13 +187,13 @@
         var local = x.getLocal(node.name);
         if (local !== undefined) {
           // then it's a local variable
-          x.out("  ldr r0, [r7, #"+(local.offset*4)+"]", "Get "+local.type+" "+node.name);
+          x.out("  ldr r0, [r7, #"+(local.offset*4)+"]", "Get "+local.type+" "+local.name);
           /* using LockAgain here isn't perfect, but it works. Ideally we'd know that 
            local variables don't need locking and unlocking, except when they are returned */
-          x.addTrampoline("jsvLockAgain");
-          x.out("  bl jsvLockAgain");
+          x.addTrampoline("jsvLockAgainSafe");
+          x.out("  bl jsvLockAgainSafe");
           x.out("  push {r0}");
-          return stackValue(x);
+          return stackValue(x, { valueType : local.type });
         } else { 
           // else search for the global variable
           var name = x.addBinaryData(node.name);
@@ -178,10 +203,7 @@
       "VariableDeclaration" : function (x, node) {
         node.declarations.forEach(function (node) {
           if (node.init) {
-            var l = x.handle(node.id);
-            var r = x.handle(node.init);
-            var rs = x.call("jsvSkipName", r); // make sure we get rid of names (if there were any)
-            x.call("jspReplaceWith", l, rs); 
+            setVariable(x, node.id, node.init);
           }
         });
       }
@@ -324,36 +346,43 @@
     var localVariables = [];
     acorn.walk.simple(node, { 
       "Identifier" : function(n) {
-        console.log("Identifier "+n.name);
+        //console.log("Identifier "+n.name);
       },
       "VariableDeclaration" : function (n) {
         n.declarations.forEach(function (n) {
-          console.log(n);
+          //console.log(n);
           localVariables.push(n.id.name);
         });
     }});
 
     // r6 is for trampolining
     // r7 is a frame pointer
-    x.out("  push {r6,r7,lr}", "Save registers that might get overwritten");  
-    var stackItems = node.params.length;
-    if (stackItems>4) stackItems = 4; // only first 4 are in registers
+    x.out("  push {r6,r7,lr}", "Save registers that might get overwritten");
+    
+    // only first 4 are in registers, the rest are already on the stack
+    var regsOnStack = (node.params.length>4) ? 4 : node.params.length;
+    var stackItems = regsOnStack + localVariables.length;
     if (stackItems>0)
-      x.out("  sub sp, #"+(stackItems*4), "add space for local vars of the stack"); 
+      x.out("  sub sp, #"+(stackItems*4), "add space for "+regsOnStack+" params and "+localVariables.length+" local vars on the stack"); 
     x.out("  add r7, sp, #0", "copy current stack pointer to r7"); 
     // Parse parameters and push onto stack    
     node.params.forEach(function( paramNode, idx) { 
       // FIXME: >4 arguments seems to shift them all by 1 somehow. Maybe the first one went on the stack and others in registers?
-      locals[paramNode.name] = { type : "param", offset : (idx<4) ? idx : idx+3/*because we pushed 3 items above*/+localVariables.length };
+      locals[paramNode.name] = { type : "param", offset : (idx<4) ? idx : idx+3/*because we pushed 3 items above*/+localVariables.length, name : paramNode.name };
       if (idx<4) // only first 4 on stack
-        x.out("  str r"+idx+", [r7, #"+(idx*4)+"]", "copy params onto stack");
+        x.out("  str r"+idx+", [r7, #"+(idx*4)+"]", "copy param "+paramNode.name+" onto stack");
       params.push("JsVar"); 
     }); 
     // add 'locals' for the local Variables that we found
     localVariables.forEach(function(name, idx) {
-      // FIXME: we need to either initialise this as a 'name' variable, or handle it differently for assignments
-      locals[name] = { type : "localVar", offset : idx + stackItems };
+      var local = { type : "localVar", offset : idx + regsOnStack, name : name };
+      locals[name] = local;      
+      x.out("  mov r1, r7", "---------------------- Initialise "+local.name);
+      x.out("  add r1, #"+(local.offset*4), "Get address of "+local.type+" "+local.name);
+      x.out("  mov r0, #0", "Load undefined");
+      x.out("  str r0, [r1]", "Set "+local.name+" to undefined");
     });
+    //console.log(locals);
     // Serialise all statements
     node.body.body.forEach(function(s, idx) {
       if (idx==0) return; // we know this is the 'compiled' string
@@ -362,8 +391,19 @@
     });  
     x.out("  mov r0, #0", "No explicit return = return undefined");  
     x.out("end_of_fn:");  
+    // add 'locals' for the local Variables that we found
+    x.out("  push {r0}", "save return value");
+    for (var name in locals) {
+      var local = locals[name];
+      if (local.type == "localVar") {
+        x.out("  ldr r0, [r7, #"+(local.offset*4)+"]", "Get "+local.type+" "+local.name);
+        x.addTrampoline("jsvUnLock");
+        x.out("  bl jsvUnLock", "Unlock Existing "+local.name);
+      }
+    }
+    x.out("  pop {r0}", "restore return value");
     if (stackItems>0)
-      x.out("  add sp, #"+(stackItems*4), "take local vars of the stack"); 
+      x.out("  add sp, #"+(stackItems*4), "take local vars of the stack");
     x.out("  pop {r6,r7,lr}", "Restore registers that might get overwritten");
     x.out("  bx lr"); 
     // add trampoline functions
@@ -413,6 +453,7 @@
             try {
               var asm = compileFunction(node);
             } catch (err) {
+              console.warn(err.stack);
               Espruino.Core.Notifications.warning("<b>In 'compiled' function:</b><br/>"+err.toString());
             }
             if (asm) {
@@ -426,6 +467,7 @@
         }
       });
     } catch (err) {
+      console.log(err);
       console.warn("Acorn parse for plugins/compiler.js failed. Your code is probably broken.");
     }
     //console.log(code);
