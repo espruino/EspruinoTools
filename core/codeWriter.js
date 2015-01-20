@@ -24,10 +24,13 @@
 
   function writeToEspruino(code) {  
     code = reformatCode(code);
+    if (code === undefined) return; // it should already have errored
     
     var realSendSerial = function(data) {
+
       console.log("Sending... "+data);
-      Espruino.Core.Serial.write("echo(0);\n" + data + "\necho(1);\n");
+      var full = "echo(0);\n" + data + "\necho(1);\n";
+      Espruino.Core.Serial.write(full);
     };
     var sendSerial = realSendSerial;
     
@@ -35,7 +38,7 @@
     if (Espruino.Config.RESET_BEFORE_SEND) {
       sendSerial = function(data) { 
         // reset espruino
-        Espruino.Core.Serial.write("reset();\n");
+        Espruino.Core.Serial.write("\x03reset();\n");
         // wait for the reset
         setTimeout(function() {
           realSendSerial(data);
@@ -141,6 +144,14 @@
       tok = lex.next();               
     }
     //console.log(resultCode);
+    if (brackets>0) {
+      Espruino.Core.Notifications.error("You haven more open brackets than close brackets. Please see the hints in the Editor window.");
+      return undefined;
+    }
+    if (brackets<0) {
+      Espruino.Core.Notifications.error("You haven more close brackets than open brackets. Please see the hints in the Editor window.");
+      return undefined;
+    }
     return resultCode;
   };
   
