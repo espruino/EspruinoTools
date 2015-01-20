@@ -94,9 +94,7 @@
       x.out("  bl jsvUnLock", "Unlock Existing "+local.name);
       // write RHS to LHS
       r.pop(x, "r0");
-      x.out("  mov r1, r7");
-      x.out("  add r1, #"+(local.offset*4), "Get address of "+local.type+" "+local.name);
-      x.out("  str r0, [r1]", "Save to "+local.name);
+      x.out("  str r0, [r7, #"+(local.offset*4)+"]", "Save to variable "+local.name);
     } else {
       // otherwise we don't really know - just try ReplaceWith
       var l = x.handle(left);
@@ -377,10 +375,8 @@
     localVariables.forEach(function(name, idx) {
       var local = { type : "localVar", offset : idx + regsOnStack, name : name };
       locals[name] = local;      
-      x.out("  mov r1, r7", "---------------------- Initialise "+local.name);
-      x.out("  add r1, #"+(local.offset*4), "Get address of "+local.type+" "+local.name);
-      x.out("  mov r0, #0", "Load undefined");
-      x.out("  str r0, [r1]", "Set "+local.name+" to undefined");
+      x.out("  mov r0, #0", "Load 0 = undefined");
+      x.out("  str r0, [r7, #"+(local.offset*4)+"]", "Initialise "+local.name+" to undefined");
     });
     //console.log(locals);
     // Serialise all statements
