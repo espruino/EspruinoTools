@@ -43,20 +43,16 @@ Gordon Williams (gw@pur3.co.uk)
     });
   };
 
-  var writeSerialDirect = function(str) {
-    esp.write(chunk);
-  };
-
   var closeSerial=function(callback) {
-    esp.close();
+    connection.close();
   };
    
   var isConnected = function() {
     return connection !== undefined;
   };
 
-  // Throttled serial write
   var writeSerial = function(data, showStatus) {
+    connection.write(data);
   };
   
   // ----------------------------------------------------------

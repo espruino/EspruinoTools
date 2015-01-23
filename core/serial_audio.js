@@ -1,5 +1,11 @@
 (function() {
 
+// Fix up prefixing
+if (typeof window == "undefined") return; // not running in a web browser
+window.AudioContext = window.AudioContext || window.webkitAudioContext;
+if (!window.AudioContext) return; // no audio available
+navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
 var dataToSend = "";
 var soundDebugFn = undefined;
 
@@ -7,9 +13,6 @@ var soundInputPolarity = -1;
 var soundOutputPolarity = -1;
 
   function init() {
-// Fix up prefixing
-window.AudioContext = window.AudioContext || window.webkitAudioContext;
-navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 var context = new AudioContext();
 
 if (!navigator.getUserMedia) {

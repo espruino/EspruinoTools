@@ -22,7 +22,7 @@
     });
   }
 
-  function writeToEspruino(code) {  
+  function writeToEspruino(code, callback) {  
     code = reformatCode(code);
     if (code === undefined) return; // it should already have errored
     
@@ -31,6 +31,8 @@
       console.log("Sending... "+data);
       var full = "echo(0);\n" + data + "\necho(1);\n";
       Espruino.Core.Serial.write(full);
+
+      if (callback) setTimeout(callback, 1000); // TODO: proper callback when send finished?
     };
     var sendSerial = realSendSerial;
     
