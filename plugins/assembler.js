@@ -146,14 +146,34 @@
   
   var ops = { 
     // Format 1: move shifted register
-    "lsl"  :[{ base:"00000-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] }],
-    "lsr"  :[{ base:"00001-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] }],
-    "asr"  :[{ base:"00010-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] }],
+    "lsl"  :[{ base:"00000-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
+             { base:"0100000010___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d << s
+    "lsr"  :[{ base:"00001-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
+             { base:"0100000011___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d >> s
+    "asr"  :[{ base:"00010-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
+             { base:"0100000100___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d >>> s
     // 5.2 Format 2: add/subtract
     // 00011
     // 5.3 Format 3: move/compare/add/subtract immediate
-    "cmp"  :[{ base:"00101---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }], // move/compare/subtract immediate
+    "cmp"  :[{ base:"00101---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
+             { base:"0100001010___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 test d-s
     // 5.4 Format 4: ALU operations
+    "and"  :[{ base:"0100000000___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }],
+    "eor"  :[{ base:"0100000001___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }],
+    // lsl is above
+    // lsr is above
+    // asr is above
+    "adc"  :[{ base:"0100000101___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d + s + carry
+    "sbc"  :[{ base:"0100000110___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d - s - !carry
+    "ror"  :[{ base:"0100000111___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // rotate right
+    "tst"  :[{ base:"0100001000___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // test
+    "neg"  :[{ base:"0100001001___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // - s
+    // cmp is above
+    "cmn"  :[{ base:"0100001011___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // test d+s
+    "orr"  :[{ base:"0100001100___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // |
+    "mul"  :[{ base:"0100001101___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // s*d
+    "bic"  :[{ base:"0100001110___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d & ~s
+    "mvn"  :[{ base:"0100001111___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // ~s
     // 5.5 Format 5: Hi register operations/branch exchange
     // 5.6 Format 6: PC-relative load             
     //  done (below)
