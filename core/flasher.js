@@ -286,65 +286,76 @@
     };
     reader(FLASH_OFFSET);
   };    
+
+  function flashBinaryToDevice(binary, callback) {
+    if (typeof binary == "string") {
+      var a = new ArrayBuffer(binary.length);
+      for (var i=0;i<binary.length;i++)
+        a[i] = binary.charCodeAt(i);
+      binary = a;
+    }
+    // add serial listener
+    dataReceived = undefined;
+    Espruino.Core.Serial.startListening(function (readData) {
+      var bufView=new Uint8Array(readData);
+      //console.log("Got "+bufView.length+" bytes");
+      for (var i=0;i<bufView.length;i++) bytesReceived.push(bufView[i]);
+      if (dataReceived!==undefined) {
+        for (var i=0;i<bytesReceived.length;i++) {
+          if (dataReceived===undefined) console.log("OH NO!");
+          dataReceived(bytesReceived[i]);
+        }
+        bytesReceived = [];
+      }
+    });
+    var hadSlowWrite = Espruino.Core.Serial.isSlowWrite();
+    Espruino.Core.Serial.setSlowWrite(false, true/*force*/);
+    var oldHandler = Espruino.Core.Terminal.setInputDataHandler(function() {
+      // ignore keyPress from terminal during flashing
+    });      
+    var finish = function(err) {
+      Espruino.Core.Serial.setSlowWrite(hadSlowWrite);
+      Espruino.Core.Terminal.setInputDataHandler(oldHandler);
+      callback(err);
+    };
+    // initialise
+    initialiseChip(function (err) {
+      if (err) { finish(err); return; }
+      eraseChip(function (err) {
+        if (err) { finish(err); return; }
+        writeAllData(binary, function (err) {
+          if (err) { finish(err); return; }
+          finish();
+        });
+      });
+      /*readAllData(binary.byteLength, function(err,chipData) {
+        if (err) {
+          finish(err);              
+          return;
+        }
+        var errors = 0;
+        var needsErase = false;
+        var binaryData = new Uint8Array(binary, 0, binary.byteLength);
+        for (var i=FLASH_OFFSET;i<binary.byteLength;i++) {
+          if (binaryData[i]!=chipData[i]) {
+            if (chipData[i]!=0xFF) needsErase = true;
+            console.log(binaryData[i]+" vs "+data[i]);
+            errors++;
+          }
+        }
+        console.log(errors+" differences, "+(needsErase?"needs erase":"doesn't need erase"));
+      });*/
+    });
+  }
   
   function flashDevice(url, callback) {
     getBinary(url, function (err, binary) {
       if (err) { callback(err); return; }
       console.log("Downloaded "+binary.byteLength+" bytes");
-      // add serial listener
-      dataReceived = undefined;
-      Espruino.Core.Serial.startListening(function (readData) {
-        var bufView=new Uint8Array(readData);
-        //console.log("Got "+bufView.length+" bytes");
-        for (var i=0;i<bufView.length;i++) bytesReceived.push(bufView[i]);
-        if (dataReceived!==undefined) {
-          for (var i=0;i<bytesReceived.length;i++) {
-            if (dataReceived===undefined) console.log("OH NO!");
-            dataReceived(bytesReceived[i]);
-          }
-          bytesReceived = [];
-        }
-      });
-      var hadSlowWrite = Espruino.Core.Serial.isSlowWrite();
-      Espruino.Core.Serial.setSlowWrite(false, true/*force*/);
-      var oldHandler = Espruino.Core.Terminal.setInputDataHandler(function() {
-        // ignore keyPress from terminal during flashing
-      });      
-      var finish = function(err) {
-        Espruino.Core.Serial.setSlowWrite(hadSlowWrite);
-        Espruino.Core.Terminal.setInputDataHandler(oldHandler);
-        callback(err);
-      };
-      // initialise
-      initialiseChip(function (err) {
-        if (err) { finish(err); return; }
-        eraseChip(function (err) {
-          if (err) { finish(err); return; }
-          writeAllData(binary, function (err) {
-            if (err) { finish(err); return; }
-            finish();
-          });
-        });
-        /*readAllData(binary.byteLength, function(err,chipData) {
-          if (err) {
-            finish(err);              
-            return;
-          }
-          var errors = 0;
-          var needsErase = false;
-          var binaryData = new Uint8Array(binary, 0, binary.byteLength);
-          for (var i=FLASH_OFFSET;i<binary.byteLength;i++) {
-            if (binaryData[i]!=chipData[i]) {
-              if (chipData[i]!=0xFF) needsErase = true;
-              console.log(binaryData[i]+" vs "+data[i]);
-              errors++;
-            }
-          }
-          console.log(errors+" differences, "+(needsErase?"needs erase":"doesn't need erase"));
-        });*/
-      });
+      flashBinaryToDevice(binary, callback);
     });
   };
+
 
   function resetDevice(callback) {
     // add serial listener
@@ -404,6 +415,7 @@
   Espruino.Core.Flasher = {
     init : init,
     flashDevice : flashDevice,
+    flashBinaryToDevice : flashBinaryToDevice,
     resetDevice : resetDevice
   };
 }());

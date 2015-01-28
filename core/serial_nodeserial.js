@@ -34,8 +34,12 @@ Gordon Williams (gw@pur3.co.uk)
       openCallback();
     });
     connection.on('data', function(data) {
-      if (readListener !== undefined) 
-        readListener(data.toString());
+      if (readListener !== undefined) {
+        var a = new Uint8Array(data.length);
+        for (var i=0;i<data.length;i++) 
+          a[i] = data[i];
+        readListener(a.buffer);
+      }
     });
     connection.on('close', function() {
       disconnectCallback();
@@ -52,7 +56,13 @@ Gordon Williams (gw@pur3.co.uk)
   };
 
   var writeSerial = function(data, showStatus) {
-    connection.write(data);
+    // convert to an array - if we put a string into
+    // a Buffer (expected by nodeserial) then I think
+    // it gets interpreted as UTF8
+    var a = new Buffer(data.length);
+    for (var i=0;i<data.length;i++)
+      a[i] = data.charCodeAt(i);
+    connection.write(a);
   };
   
   // ----------------------------------------------------------
