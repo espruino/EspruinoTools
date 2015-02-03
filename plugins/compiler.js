@@ -44,7 +44,8 @@
         x.out("  pop {"+register+"}"); 
       }, 
       free : function(x) { 
-        // make sure we 
+        if (x.getStackDepth() != stackDepth) 
+          throw new Error("Freed stackValue"+(opts.name?" "+opts.name:"")+" is not on the top of the stack ("+x.getStackDepth()+" vs "+stackDepth+")");
         x.addTrampoline("jsvUnLock");
         x.out("  pop {r0}"); 
         x.out("  bl jsvUnLock"); 
@@ -254,6 +255,26 @@
             setVariable(x, node.id, node.init);
           }
         });
+      },
+      "CallExpression" : function (x, node) {
+        console.log(node);        
+        var args = [];
+        for (var i=node.arguments.length-1;i>=0;i--) {
+          args.push(x.call("jsvSkipName", x.handle(node.arguments[i])));
+        }
+        var funcName = x.handle(node.callee);
+        var func = x.call("jsvSkipName", funcName);        
+        x.out("  add r0, sp, #4");
+        x.out("  push {r0}", "Save stack pointer"); // sp now contains a pointer to all arguments
+        var argPtr = stackValue(x, {name:"argPtr"}); 
+        var res = x.call("jspeFunctionCall", func, 0/*funcName*/, 0/*this*/, 0/*isParsing*/, node.arguments.length/*argCount*/, argPtr/* argPtr */);
+        x.out("  pop {r4}", "save return value - freeing Called function args");
+        // TODO: unlock/free everything
+        for (var i=args.length-1;i>=0;i--) {
+          args[i].free(x);
+        }
+        x.out("  push {r4}", "restore return value");
+        return stackValue(x, {name:res.name}); // don't send back 'res' as its place on the stack has now changed
       }
   };
   
@@ -350,23 +371,35 @@
       },
       "call": function(name /*, ... args ... */) {
         var returnType = (name!="jspReplaceWith") ? "JsVar" : "void";
-        var hasStackValues = false;         
+        var hasStackValues = false;        
+        var argsOnStack = 0; 
         for (var i=arguments.length-2;i>=0;i--) {
           var arg = arguments[i+1];
+          var destReg = i<4 ? "r"+i : "r0";
           if (isStackValue(arg)) {
             hasStackValues = true;
-            arg.get(x, "r"+i);
+            arg.get(x, destReg);
           } else if (isConstValue(arg)) {
-            arg.get(x, "r"+i);
+            arg.get(x, destReg);
           } else if (typeof arg == "number") {
-            x.out("  mov r"+i+", #"+arg);
+            x.out("  mov "+destReg+", #"+arg);
           } else {
             throw new Error("Unknown arg type "+typeof arg);
+          }
+          if (i>=4) {
+            x.out("  push {r0}", "Add argument "+i+" to stack");
+            argsOnStack++;
           }
         }   
         if (exportNames.indexOf(name)>=0)
           x.addTrampoline(name);
         x.out("  bl "+name);
+
+        while (argsOnStack) {
+          x.out("  pop {r1}","pop argument off stack");
+          argsOnStack--;
+        }
+          
 
         var resultReg = "r0";
 
