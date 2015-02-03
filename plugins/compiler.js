@@ -181,10 +181,9 @@
         return x.handle(node.expression);
       },
       "UpdateExpression" : function(x, node) {
-        console.log(node);
         var op;
         if (node.operator != "++") op="+";
-        else if (node.operator != "--") op="+";
+        else if (node.operator != "--") op="-";
         else
           console.warn("Unhandled UpdateExpression '"+node.operator+"'");
         var arg = x.handle(node.argument);
@@ -193,9 +192,26 @@
         setVariable(x, node.argument, v);
       },      
       "AssignmentExpression" : function(x, node) {
-        if (node.operator != "=")
+        var op;
+        if (node.operator == "+=") op = "+";
+        if (node.operator == "-=") op = "-";
+        if (node.operator == "*=") op = "*";
+        if (node.operator == "/=") op = "/";
+        if (node.operator == "%=") op = "%";
+        if (node.operator == "&=") op = "&";
+        if (node.operator == "^=") op = "^";
+        if (node.operator == "|=") op = "|";
+
+        if (node.operator == "=") {
+          setVariable(x, node.left, node.right);
+        } else if (op) {
+          var l = x.handle(node.left);
+          var r = x.handle(node.right);
+          var v = x.call("jsvMathsOpSkipNames", l, r, op.charCodeAt(0));
+          setVariable(x, node.left, v);
+        } else {
           console.warn("Unhandled AssignmentExpression '"+node.operator+"'");
-        setVariable(x, node.left, node.right);
+        }
       },  
       "BinaryExpression" : function(x, node) {
         var l = x.handle(node.left);
