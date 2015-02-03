@@ -32,8 +32,9 @@ Espruino.Core.Env = {
 
 Espruino.init();
 
-var c = 'function f(a,b) { "compiled";var s;return b; }';
-//var c = 'x=42;\nfunction f() { "compiled";return 1; }';
+//var c = 'function f() { "compiled";var a = 0; for (var i=0;i<10;i++) a++; return a;}';
+//var c = 'function f(a,b,c,d,e) { "compiled";var f,g;return e; }';
+var c = 'function f() { "compiled";x++; }';
 //var c = '"Hello";function f() { "compiled";return 1; }"There";function g() { "compiled";return 2; }"World"';
 //var c = "function f() {'compiled';iterations=0;while ((iterations<16) & ((Xr*Xr+Xi*Xi)<4)) { t=Xr*Xr - Xi*Xi + Cr;      Xi=2*Xr*Xi+Ci;      Xr=t;      iterations=iterations+1;    } return iterations;}";
 

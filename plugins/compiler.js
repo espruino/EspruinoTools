@@ -33,9 +33,12 @@
     var stackDepth = x.getStackDepth();
     var s = { 
       type : "stackValue",
+      handled : true,
       get : function(x, register) { 
-        var relativeDepth = x.getStackDepth()-stackDepth;
-        x.out("  ldr "+register+", [sp, #"+(relativeDepth*4)+"]"); 
+        var currDepth = x.getStackDepth();
+        var relativeDepth = currDepth-stackDepth;
+        x.out("  ldr "+register+", [sp, #"+(relativeDepth*4)+"]",
+              "current depth = "+currDepth+", value depth = "+stackDepth+(opts.name?", "+opts.name:"")); 
       }, 
       pop : function(x, register) { 
         x.out("  pop {"+register+"}"); 
@@ -60,6 +63,7 @@
   function constValue(x, label, size) { // if size==0 its a pointer
     return { 
       type : "constValue",
+      handled : true,
       get : function(x, register) { 
         if (size==0) { // pointer
           if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
@@ -87,7 +91,7 @@
       var local = x.getLocal(left.name);
       // it's a local variable. We treat these differently as we write straight to the stack
       // get the RHS
-      var r = x.handle(right);
+      var r = right.handled?right:x.handle(right);
       // Unlock the existing variable
       x.addTrampoline("jsvUnLock");
       x.out("  ldr r0, [r7, #"+(local.offset*4)+"]", "Get "+local.type+" "+local.name);      
@@ -98,9 +102,8 @@
     } else {
       // otherwise we don't really know - just try ReplaceWith
       var l = x.handle(left);
-      var r = x.handle(right);
-      // TODO: we can probably skip the SkipName if we've had a jsvMathsOpSkipNames already
-      var rs = x.call("jsvSkipName", r); // make sure we get rid of names (if there were any)
+      var r = right.handled?right:x.handle(right);
+      var rs = r.mightHaveName ? x.call("jsvSkipName", r) : r; // make sure we get rid of names (if there were any)
       x.call("jspReplaceWith", l, rs);
     }
   }
@@ -150,6 +153,25 @@
         x.out("  b "+lTest);
         x.out(lEnd+":");  
       },
+      "ForStatement" : function(x, node) {
+        x.handle(node.init);      
+        var lTest = x.getNewLabel("_for_test");
+        var lEnd =  x.getNewLabel("_for_end");
+        var lBody =  x.getNewLabel("_for_body");
+        x.out(lTest+":");
+        var v = x.handle(node.test);
+        var vbool = x.call("jsvGetBool", v);
+        vbool.pop(x,"r4"); 
+        // DO NOT UNLOCK - it's a bool
+        x.out("  cmp r4, #0");          
+        x.out("  bne "+lBody);
+        x.out("  b "+lEnd, "Done in case jump is a large one"); 
+        x.out(lBody+":");
+        x.handle(node.body);  
+        x.handle(node.update);
+        x.out("  b "+lTest);
+        x.out(lEnd+":");  
+      },
       "ReturnStatement" : function(x, node) {
         var v = x.handle(node.argument);
         if (v) v.pop(x,"r0");
@@ -158,11 +180,23 @@
       "ExpressionStatement" : function(x, node) {
         return x.handle(node.expression);
       },
+      "UpdateExpression" : function(x, node) {
+        console.log(node);
+        var op;
+        if (node.operator != "++") op="+";
+        else if (node.operator != "--") op="+";
+        else
+          console.warn("Unhandled UpdateExpression '"+node.operator+"'");
+        var arg = x.handle(node.argument);
+        var one = x.call("jsvNewFromInteger", 1);
+        var v = x.call("jsvMathsOpSkipNames", arg, one, op.charCodeAt(0));
+        setVariable(x, node.argument, v);
+      },      
       "AssignmentExpression" : function(x, node) {
         if (node.operator != "=")
           console.warn("Unhandled AssignmentExpression '"+node.operator+"'");
         setVariable(x, node.left, node.right);
-      },      
+      },  
       "BinaryExpression" : function(x, node) {
         var l = x.handle(node.left);
         var r = x.handle(node.right);
@@ -191,7 +225,7 @@
           x.addTrampoline("jsvLockAgainSafe");
           x.out("  bl jsvLockAgainSafe");
           x.out("  push {r0}");
-          return stackValue(x, { valueType : local.type });
+          return stackValue(x, { valueType : local.type, mightHaveName : true, name : "Variable "+local.name });
         } else { 
           // else search for the global variable
           var name = x.addBinaryData(node.name);
@@ -274,8 +308,8 @@
           trampolines.push(name);
       },
       "out": function(data, comment) {
-        console.log("] "+data + (comment?("\t\t; "+comment):""));
         assembly.push(data);
+        console.log(this.getStackDepth()+"] "+data + (comment?("\t\t; "+comment):""));
       },
       "getCodeSize": function() { // get the current size of the code
         var s = 0;
@@ -300,7 +334,7 @@
       },
       "call": function(name /*, ... args ... */) {
         var returnType = (name!="jspReplaceWith") ? "JsVar" : "void";
-        var hasStackValues = false; 
+        var hasStackValues = false;         
         for (var i=arguments.length-2;i>=0;i--) {
           var arg = arguments[i+1];
           if (isStackValue(arg)) {
@@ -334,8 +368,9 @@
         }
 
         if (returnType != "void") { 
-          x.out("  push {"+resultReg+"}", returnType);
-          return stackValue(x); 
+          var doesntHaveName = ["jsvMathsOpSkipNames","jsvSkipName"].indexOf(name)>=0;
+          x.out("  push {"+resultReg+"}", returnType);          
+          return stackValue(x, { name : "result of "+name, mightHaveName : !doesntHaveName }); 
         } else
           return undefined;
       }
