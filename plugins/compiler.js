@@ -183,8 +183,8 @@
       },
       "UpdateExpression" : function(x, node) {
         var op;
-        if (node.operator != "++") op="+";
-        else if (node.operator != "--") op="-";
+        if (node.operator == "++") op="+";
+        else if (node.operator == "--") op="-";
         else
           console.warn("Unhandled UpdateExpression '"+node.operator+"'");
         var arg = x.handle(node.argument);
