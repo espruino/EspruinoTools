@@ -45,10 +45,12 @@
       }, 
       free : function(x) { 
         if (x.getStackDepth() != stackDepth) 
-          throw new Error("Freed stackValue"+(opts.name?" "+opts.name:"")+" is not on the top of the stack ("+x.getStackDepth()+" vs "+stackDepth+")");
-        x.addTrampoline("jsvUnLock");
-        x.out("  pop {r0}"); 
-        x.out("  bl jsvUnLock"); 
+          throw new Error("Freed stackValue"+(s.name?" "+s.name:"")+" is not on the top of the stack ("+x.getStackDepth()+" vs "+stackDepth+")");
+        x.out("  pop {r0}", (s.name?"freeing "+s.name+" ":"") + "type "+s.variableType); 
+        if (s.variableType=="JsVar") {
+          x.addTrampoline("jsvUnLock");
+          x.out("  bl jsvUnLock"); 
+        }
       },
     };
     if (opts)
@@ -242,11 +244,22 @@
           x.addTrampoline("jsvLockAgainSafe");
           x.out("  bl jsvLockAgainSafe");
           x.out("  push {r0}");
-          return stackValue(x, { valueType : local.type, mightHaveName : true, name : "Variable "+local.name });
+          return stackValue(x, { variableType : "JsVar", valueType : local.type, mightHaveName : true, name : "Variable "+local.name });
         } else { 
           // else search for the global variable
           var name = x.addBinaryData(node.name);
-          return x.call("jspeiFindInScopes", name);
+          return x.call("jspGetNamedVariable", name);
+        }
+      },
+      "MemberExpression" : function(x, node) {
+        console.log(node);
+        var obj = x.call("jsvSkipName", x.handle(node.object));
+        if (node.property.type=="Identifier") {
+          var propName = x.addBinaryData(node.property.name);
+          return x.call("jspGetNamedField", obj, propName, 1);
+        } else {
+          var propName = x.handle(node.property);
+          return x.call("jspGetVarNamedField", obj, propName, 1);
         }
       },
       "VariableDeclaration" : function (x, node) {
@@ -257,16 +270,16 @@
         });
       },
       "CallExpression" : function (x, node) {
-        console.log(node);        
         var args = [];
         for (var i=node.arguments.length-1;i>=0;i--) {
           args.push(x.call("jsvSkipName", x.handle(node.arguments[i])));
         }
         var funcName = x.handle(node.callee);
-        var func = x.call("jsvSkipName", funcName);        
+        var func = x.call("jsvSkipName", funcName);   
+        // funcName is now UnLocked     
         x.out("  add r0, sp, #4");
         x.out("  push {r0}", "Save stack pointer"); // sp now contains a pointer to all arguments
-        var argPtr = stackValue(x, {name:"argPtr"}); 
+        var argPtr = stackValue(x, {name:"argPtr", }); 
         var res = x.call("jspeFunctionCall", func, 0/*funcName*/, 0/*this*/, 0/*isParsing*/, node.arguments.length/*argCount*/, argPtr/* argPtr */);
         x.out("  pop {r4}", "save return value - freeing Called function args");
         // TODO: unlock/free everything
@@ -274,7 +287,7 @@
           args[i].free(x);
         }
         x.out("  push {r4}", "restore return value");
-        return stackValue(x, {name:res.name}); // don't send back 'res' as its place on the stack has now changed
+        return stackValue(x, {variableType : res.variableType, name:res.name}); // don't send back 'res' as its place on the stack has now changed
       }
   };
   
@@ -384,7 +397,7 @@
           } else if (typeof arg == "number") {
             x.out("  mov "+destReg+", #"+arg);
           } else {
-            throw new Error("Unknown arg type "+typeof arg);
+            throw new Error("x.call: Unknown arg type "+typeof arg+" for arg "+i);
           }
           if (i>=4) {
             x.out("  push {r0}", "Add argument "+i+" to stack");
@@ -419,7 +432,7 @@
         if (returnType != "void") { 
           var doesntHaveName = ["jsvMathsOpSkipNames","jsvSkipName"].indexOf(name)>=0;
           x.out("  push {"+resultReg+"}", returnType);          
-          return stackValue(x, { name : "result of "+name, mightHaveName : !doesntHaveName }); 
+          return stackValue(x, { name : "result of "+name, mightHaveName : !doesntHaveName, variableType : returnType }); 
         } else
           return undefined;
       }

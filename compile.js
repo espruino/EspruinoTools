@@ -26,15 +26,19 @@ Espruino.Core.Env = {
     return { EXPORT : ["jsvLock,jsvLockAgainSafe,jsvUnLock,jsvMathsOp,jsvMathsOpSkipNames,"+
       "jsvNewFromFloat,jsvNewFromInteger,jsvNewFromString,jsvNewFromBool,"+
       "jsvGetFloat,jsvGetInteger,jsvGetBool,jsvSkipName,"+
-      "jspeiFindInScopes,jspReplaceWith,", 536871028] };
+      "jspeiFindInScopes,jspReplaceWith,jspeFunctionCall,"+
+      "jspGetNamedVariable,jspGetNamedField,jspGetVarNamedField,"+
+      "jsvNewWithFlags,"+
+      "", 536871028] };
   }
 };
 
 Espruino.init();
 
-//var c = 'function f() { "compiled";var a = 0; for (var i=0;i<10;i++) a++; return a;}';
+var c = 'function f() { "compiled";a[2]; }';
+//var c = 'd=digitalWrite;function f() { "compiled";d(13,13); }';
+//var c = 'function f() { "compiled";var a = 0; for (var i=0;i<1024;i++) a++; return a;}';
 //var c = 'function f(a,b,c,d,e) { "compiled";var f,g;return e; }';
-var c = 'function f() { "compiled";x++; }';
 //var c = '"Hello";function f() { "compiled";return 1; }"There";function g() { "compiled";return 2; }"World"';
 //var c = "function f() {'compiled';iterations=0;while ((iterations<16) & ((Xr*Xr+Xi*Xi)<4)) { t=Xr*Xr - Xi*Xi + Cr;      Xi=2*Xr*Xi+Ci;      Xr=t;      iterations=iterations+1;    } return iterations;}";
 
