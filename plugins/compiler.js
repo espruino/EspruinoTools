@@ -136,7 +136,7 @@
           var lEnd =  x.getNewLabel("_if_end");
           x.out("  b "+lEnd);
           x.out(lFalse+":");
-          x.handle(node.alternale);
+          x.handle(node.alternate);
           x.out(lEnd+":");
         } else {
           x.out(lFalse+":");
@@ -255,7 +255,6 @@
         }
       },
       "MemberExpression" : function(x, node) {
-        console.log(node);
         var obj = x.call("jsvSkipName", x.handle(node.object));
         if (node.property.type=="Identifier") {
           var propName = x.addBinaryData(node.property.name);
