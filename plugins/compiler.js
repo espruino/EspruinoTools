@@ -43,6 +43,9 @@
       pop : function(x, register) { 
         x.out("  pop {"+register+"}"); 
       }, 
+      isOnTopOfStack : function(x) {
+        return x.getStackDepth() == stackDepth;
+      },
       free : function(x) { 
         if (x.getStackDepth() != stackDepth) 
           throw new Error("Freed stackValue"+(s.name?" "+s.name:"")+" is not on the top of the stack ("+x.getStackDepth()+" vs "+stackDepth+")");
@@ -422,11 +425,26 @@
             x.out("  mov r4, r0"); // jsvUnLock will overwrite r0 - save as r4
             resultReg = "r4";
           }
+          var stackValues = [];
           for (var i=arguments.length-2;i>=0;i--) {
             var arg = arguments[i+1];
             if (isStackValue(arg))
-              arg.free(x);
+              stackValues.push(arg);
           }
+          // unpack stack values in the right order
+          var ok = true;
+          while (ok && stackValues) { 
+            ok = false;
+            for (var i in stackValues) {
+              if (stackValues[i].isOnTopOfStack(x)) {
+                stackValues[i].free(x);
+                delete stackValues[i];
+                ok = true;
+                break;
+              }
+            }
+          }
+          if (!stackValues) throw new Error("Unable to free stack value as not on top of stack: "+stackValues[0].name);
         }
 
         if (returnType != "void") { 
