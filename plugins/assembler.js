@@ -365,7 +365,7 @@
     } catch (err) {
       console.log("Assembler failed: "+err);
       Espruino.Core.Notifications.error("Assembler failed: "+err);
-      return;
+      return undefined;
     }
           
     return machineCode;
@@ -419,6 +419,7 @@
           
           var machineCode = assembleBlock(asmLines);
           //console.log(machineCode);
+          if (machineCode===undefined) return; // There was an error - just leave and don't try to flash
           var raw = "";
           machineCode.forEach(function(short) {
             var v = parseInt(short,16);
