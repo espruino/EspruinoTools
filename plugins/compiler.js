@@ -232,7 +232,7 @@
         if (node.operator=="===") op = 262; // LEX_TYPEEQUALL - see jsutils.h
         if (node.operator=="!=") op = 263; // LEX_NEQUAL - see jsutils.h
         if (node.operator=="!==") op = 264; // LEX_NTYPEEQUALL - see jsutils.h
-        if (node.operator.length==1 && "&|^".indexOf(node.operator)>=0)
+        if (node.operator.length==1 && "&|^<>".indexOf(node.operator)>=0)
           op = node.operator.charCodeAt(0);
         if (op===undefined) throw new Error("Unhandled BinaryExpression op "+node.operator);
         var v = x.call("jsvMathsOpSkipNames", l, r, op);
