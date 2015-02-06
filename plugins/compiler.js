@@ -105,6 +105,7 @@
       // write RHS to LHS
       r.pop(x, "r0");
       x.out("  str r0, [r7, #"+(local.offset*4)+"]", "Save to variable "+local.name);
+      x.out("  nop", "in case the first thing we try and do is load this variable (is this needed?)");
     } else {
       // otherwise we don't really know - just try ReplaceWith
       var l = x.handle(left);
@@ -129,8 +130,11 @@
         vbool.pop(x,"r4");  
         // DO NOT UNLOCK - it's a bool
         var lFalse = x.getNewLabel("_if_false");
+        var lTrue = x.getNewLabel("_if_true");
         x.out("  cmp r4, #0");       
-        x.out("  bne "+lFalse);
+        x.out("  beq "+lTrue);
+        x.out("  b "+lFalse); // do this so we can get a longer jump out of it
+        x.out(lTrue+":");
         x.handle(node.consequent);        
         if (node.alternate) {
           var lEnd =  x.getNewLabel("_if_end");
@@ -385,7 +389,13 @@
         return depth;
       },
       "call": function(name /*, ... args ... */) {
-        var returnType = (name!="jspReplaceWith") ? "JsVar" : "void";
+        var returnType = {
+          "jspReplaceWith":"void",
+          "jsvGetBool":"bool",
+          "jsvGetInteger":"integer",
+          "jsvGetFloat":"double"
+        };
+        if (returnType===undefined) returnType="JsVar";
         var hasStackValues = false;        
         var argsOnStack = 0; 
         for (var i=arguments.length-2;i>=0;i--) {
@@ -492,6 +502,7 @@
       x.out("  mov r0, #0", "Load 0 = undefined");
       x.out("  str r0, [r7, #"+(local.offset*4)+"]", "Initialise "+local.name+" to undefined");
     });
+      x.out("  nop", "in case the first thing we try and do is load this variable (is this needed?)");
     //console.log(locals);
     // Serialise all statements
     node.body.body.forEach(function(s, idx) {
