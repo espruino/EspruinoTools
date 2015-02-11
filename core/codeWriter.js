@@ -6,7 +6,7 @@
  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
  ------------------------------------------------------------------
-  An Example Plugin
+  The plugin that actually writes code out to Espruino
  ------------------------------------------------------------------
 **/
 "use strict";
@@ -50,17 +50,9 @@
     
     // We want to make sure we've got a prompt before sending. If not,
     // this will issue a Ctrl+C
-    var sendSerialAfterPrompt = function(data) {
-      Espruino.Core.Utils.getEspruinoPrompt(function() {
-        sendSerial(data);
-      });
-    };
-    
-    if(Espruino.Config.SEND_MINIFIED === true){
-      Espruino.Plugins.Minify.MinifyCode(code,sendSerialAfterPrompt);
-    } else {
-      sendSerialAfterPrompt(code);
-    }      
+    Espruino.Core.Utils.getEspruinoPrompt(function() {
+      sendSerial(code);
+    });
   };
   
   /// Parse and fix issues like `if (false)\n foo` in the root scope
