@@ -289,7 +289,10 @@
       if (line=="") return;
       if (line.substr(-1)==":") {
         // it's a label
-        newLabels[line.substr(0,line.length-1)] = addr;
+        var labelName = line.substr(0,line.length-1);
+        if (newLabels[labelName] !== undefined)
+          throw "Label '"+labelName+"' was already defined";
+        newLabels[labelName] = addr;
         return;
       }
       

@@ -77,7 +77,7 @@
         } else {
           for (var i=0;i<size;i++) {
             if (x.getCodeSize()&2) x.out("  nop"); // need to align this for the ldr instruction
-            x.out("  ldr r"+(0|register.substr(1)+i)+", "+label+"+"+(i*4)); 
+            x.out("  ldr r"+((0|register.substr(1))+i)+", "+label+"+"+(i*4)); 
           }
         }
       }, 
@@ -224,7 +224,7 @@
         }
       },  
       "BinaryExpression" : function(x, node) {
-        console.log(node);
+        //console.log(node);
         var l = x.handle(node.left);
         var r = x.handle(node.right);
         var op;
@@ -232,10 +232,10 @@
         if (node.operator=="===") op = 262; // LEX_TYPEEQUALL - see jsutils.h
         if (node.operator=="!=") op = 263; // LEX_NEQUAL - see jsutils.h
         if (node.operator=="!==") op = 264; // LEX_NTYPEEQUALL - see jsutils.h
-        if (node.operator.length==1 && "&|^<>".indexOf(node.operator)>=0)
+        if (node.operator.length==1 && "&|^<>-+*/".indexOf(node.operator)>=0)
           op = node.operator.charCodeAt(0);
         if (op===undefined) throw new Error("Unhandled BinaryExpression op "+node.operator);
-        var v = x.call("jsvMathsOpSkipNames", l, r, op);
+        var v = x.call("jsvMathsOpSkipNames", l, r, x.addBinaryData(op));
         return v;
       },
       "Literal" : function(x, node) {
@@ -335,7 +335,7 @@
         return undefined;
       },
       "getNewLabel" : function(helper) {
-         return "label_"+labelCounter+helper;
+         return "label_"+(labelCounter++)+helper;
       },
       // Store binary data and return a pointer
       "addBinaryData": function(data) {
@@ -373,8 +373,32 @@
           trampolines.push(name);
       },
       "out": function(data, comment) {
-        assembly.push(data);
         console.log(this.getStackDepth()+"] "+data + (comment?("\t\t; "+comment):""));
+        var thisOp = data.trim().split(" ")[0];
+        var lastOp = (assembly.length>0) ? assembly[assembly.length-1].trim().split(" ")[0] : "";
+
+        if (lastOp=="push" && thisOp=="pop") {
+          var from = assembly[assembly.length-1].trim().split(" ")[1];
+          var to = data.trim().split(" ")[1];
+          console.log("Found Push then Pop - "+from+" to "+to);
+          if (from==to) {
+            console.log("Removing...");
+            assembly.pop();
+            return;
+          } else if (from.length==4 && to.length==4) {
+            console.log("Replacing with MOV...");
+            assembly[assembly.length-1] = "mov "+to.substr(1,2)+","+from.substr(1,2);
+            return;
+          } else {
+            console.log("Adding NOP");
+            assembly.push("nop");
+          }
+        } else if (["push","str"].indexOf(lastOp)>=0 && ["pop","ldr"].indexOf(thisOp)>=0) { 
+          console.log("Found store then load. Adding NOPs just in case");
+          assembly.push("nop");
+          assembly.push("nop"); // need a 2nd so alignment stays correct
+        }
+        assembly.push(data);        
       },
       "getCodeSize": function() { // get the current size of the code
         var s = 0;
@@ -587,9 +611,8 @@
               console.warn(err.stack);
               Espruino.Core.Notifications.warning("<b>In 'compiled' function:</b><br/>"+err.toString());
             }
-            if (asm) {
-              asm = asm;
-              //console.log(asm);
+            if (asm) {                
+              console.log(asm);
               //console.log(node);
               code = code.substr(0,node.start+offset) + asm + code.substr(node.end+offset);
               offset += asm.length - (node.end-node.start); // offset for future code snippets
