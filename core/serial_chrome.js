@@ -97,7 +97,12 @@ Author: Gordon Williams (gw@pur3.co.uk)
     var buf=new ArrayBuffer(str.length);
     var bufView=new Uint8Array(buf);
     for (var i=0; i<str.length; i++) {
-      bufView[i]=str.charCodeAt(i);
+      var ch = str.charCodeAt(i);
+      if (ch>=256) {
+        console.warn("Attempted to send non-8 bit character - code "+ch);
+        ch = "?".charCodeAt(0);
+      }
+      bufView[i] = ch;
     }
     return buf;
   };

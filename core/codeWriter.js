@@ -57,6 +57,15 @@
   
   /// Parse and fix issues like `if (false)\n foo` in the root scope
   function reformatCode(code) {      
+    // First off, try and fix funky characters
+    for (var i=0;i<code.length;i++) {
+      var ch = code.charCodeAt(i);
+      if ((ch<32 || ch>255) && ch!=10/*LF*/ && ch!=13/*CR*/) {
+        console.warn("Funky character code "+ch+" at position "+i+". Replacing with ?");
+        code = code.substr(0,i)+"?"+code.substr(i+1);
+      }
+    }     
+
     var resultCode = "";
     /** we're looking for:
      *   `a = \n b`
@@ -93,8 +102,6 @@
       var tokenString = code.substring(tok.startIdx, tok.endIdx);
       //console.log("prev "+JSON.stringify(previousString)+"   next "+tokenString);
       
-      if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;
-      
       if (brackets>0 || // we have brackets - sending the special newline means Espruino doesn't have to do a search itself - faster. 
           statement || // statement was before brackets - expecting something else 
           statementBeforeBrackets ||  // we have an 'if'/etc
@@ -106,10 +113,9 @@
         //console.log("Possible"+JSON.stringify(previousString));
         previousString = previousString.replace(/\n/g, "\x1B\x0A");
       }
-      
-      if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;      
 
-      
+      if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;      
+      if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;      
       
       if (brackets==0) {
         if (tok.str=="for" || tok.str=="if" || tok.str=="while" || tok.str=="function" || tok.str=="throw") {

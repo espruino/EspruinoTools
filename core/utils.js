@@ -123,7 +123,8 @@
   };
   
   /** Try and get a prompt from Espruino - if we don't see one, issue Ctrl-C
-   * and hope it comes back. */
+   * and hope it comes back. Calls callback with first argument true if it
+     had to Ctrl-C out */
   function getEspruinoPrompt(callback) {
     var  receivedData = "";
 
@@ -139,11 +140,13 @@
       }        
     });      
     // timeout in case something goes wrong...
+    var hadToBreak = false;
     var timeout = setTimeout(function() {          
       console.log("Got "+JSON.stringify(receivedData));          
       // if we haven't had the prompt displayed for us, Ctrl-C to break out of what we had
       console.log("No Prompt found, got "+JSON.stringify(receivedData[receivedData.length-1])+" - issuing Ctrl-C to try and break out");
       Espruino.Core.Serial.write('\x03');
+      hadToBreak = true;
       nextStep();
     },500);        
     // when we're done...
@@ -154,7 +157,7 @@
       // start the previous reader listening again
       Espruino.Core.Serial.startListening(prevReader);          
       // call our callback
-      callback();
+      if (callback) callback(hadToBreak);
     };
     // send a newline, and we hope we'll see '=undefined\r\n>'
     Espruino.Core.Serial.write('\n');      
