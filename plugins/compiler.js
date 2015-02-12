@@ -259,7 +259,7 @@
            local variables don't need locking and unlocking, except when they are returned */
           x.addTrampoline("jsvLockAgainSafe");
           x.out("  bl jsvLockAgainSafe");
-          x.out("  push {r0}");
+          x.out("  push {r0}", "Identifier "+local.name);
           return stackValue(x, { variableType : "JsVar", valueType : local.type, mightHaveName : true, name : "Variable "+local.name });
         } else { 
           // else search for the global variable
@@ -398,12 +398,13 @@
         return depth;
       },
       "call": function(name /*, ... args ... */) {
-        var returnType = {
+        var returnTypes = {
           "jspReplaceWith":"void",
           "jsvGetBool":"bool",
           "jsvGetInteger":"integer",
           "jsvGetFloat":"double"
         };
+        var returnType = returnTypes[name];
         if (returnType===undefined) returnType="JsVar";
         var hasStackValues = false;        
         var argsOnStack = 0; 
