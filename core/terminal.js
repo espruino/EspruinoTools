@@ -411,6 +411,7 @@
       getInputLine : getInputLine,
       getCurrentLine : getCurrentLine,
       focus : focus, // Give this focus
+      clearTerminal : clearTerminal, // Clear the contents of the terminal
       
       setExtraText : setExtraText,
       clearExtraText : clearExtraText,
