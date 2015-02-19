@@ -60,7 +60,7 @@
     // First off, try and fix funky characters
     for (var i=0;i<code.length;i++) {
       var ch = code.charCodeAt(i);
-      if ((ch<32 || ch>255) && ch!=10/*LF*/ && ch!=13/*CR*/) {
+      if ((ch<32 || ch>255) && ch!=9/*Tab*/ && ch!=10/*LF*/ && ch!=13/*CR*/) {
         console.warn("Funky character code "+ch+" at position "+i+". Replacing with ?");
         code = code.substr(0,i)+"?"+code.substr(i+1);
       }
