@@ -103,6 +103,10 @@
         nextCh();
         while (ch!==undefined && ch!=q) {
           s+=ch;
+          if (ch=="\\") {
+            nextCh();
+            // FIXME: handle hex/etc correctly here
+          }
           value += ch;
           nextCh();
         };        
