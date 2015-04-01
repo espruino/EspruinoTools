@@ -34,9 +34,6 @@
     });
   }
 
-  // TODO: use Espruino.Core.Env.getData().info.builtin_modules
-  var BUILT_IN_MODULES = ["http","fs","CC3000","WIZnet"]; // TODO: get these from board.js (hopefully)
-
   /** Find any instances of require(...) in the code string and return a list */
   var getModulesRequired = function(code) {
     var modules = [];
@@ -52,7 +49,11 @@
       } else if (state==2 && (tok.type=="STRING")) {
         state=0;
         var module = tok.value;
-        if (BUILT_IN_MODULES.indexOf(module)<0 && modules.indexOf(module)<0)
+        var d = Espruino.Core.Env.getData();
+        var built_in = false;
+        if ("info" in d && "builtin_modules" in d.info)
+          built_in = d.info.builtin_modules.indexOf(module)>=0;
+        if (!built_in && modules.indexOf(module)<0)
           modules.push(module);
       } else
         state = 0;
