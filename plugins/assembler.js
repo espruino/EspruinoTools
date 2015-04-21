@@ -430,7 +430,7 @@
           });
           var base64 = base64_encode(raw);           
           code = code.substr(0,startIndex) + 
-                 'E.nativeCall(0, '+JSON.stringify(argSpec)+', atob('+JSON.stringify(base64)+'))'+
+                 'E.nativeCall(1, '+JSON.stringify(argSpec)+', atob('+JSON.stringify(base64)+'))'+
                  code.substr(endIndex);
           asmBlockCount++;
           
