@@ -67,7 +67,7 @@
 
         console.log("FIRMWARE: Current "+tCurrent+", Available "+tAvailable);
       
-        if (vAvailable > vCurrent && env.BOARD=="ESPRUINOBOARD") {
+        if (vAvailable > vCurrent && (env.BOARD=="ESPRUINOBOARD" || env.BOARD.substr(0,4)=="PICO")) {
           console.log("New Firmware "+tAvailable+" available");
 
           if (Espruino.Core.App) Espruino.Core.App.addIcon({
