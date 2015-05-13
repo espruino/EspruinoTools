@@ -222,7 +222,8 @@
         }
         // work out data to send
         var sData = [ data.length-1 ];
-        for (var i in data) sData.push(data[i]&0xFF);
+        // for (var i in data) doesn't just do 0..data.length-1 in node!
+        for (var i=0;i<data.length;i++) sData.push(data[i]&0xFF);
         // send data
         sendData(sData, function(err) {
           if (err) { 
@@ -395,8 +396,8 @@
         sendData([(addr>>24)&0xFF,(addr>>16)&0xFF,(addr>>8)&0xFF,addr&0xFF], function(err) {
           if (err) return callback(err);
           // work out data to send
-          var sData = [ data.length-1 ];
-          for (var i in data) sData.push(data[i]&0xFF);
+          // for (var i in data) doesn't just do 0..data.length-1 in node!
+          for (var i=0;i<data.length;i++) sData.push(data[i]&0xFF);
           var s = "";
           var chksum = 0;
           for (var i in sData) {
