@@ -11,6 +11,8 @@
 **/
 "use strict";
 (function(){
+  if(typeof process !== "undefined") return; // don't load this in NodeJS
+  
   var onInputData = function(d){}; // the handler for character data from user 
 
   var displayTimeout = null;
