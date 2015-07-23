@@ -25,33 +25,11 @@ Author: Gordon Williams (gw@pur3.co.uk)
     console.log("Chrome does NOT have post-M33 serial API");
     return;
   }  
-
-  function init() {
-    Espruino.Core.Config.add("BAUD_RATE", {
-      section : "Communications",
-      name : "Baud Rate",
-      description : "When connecting over serial, this is the baud rate that is used. 9600 is the default for Espruino",
-      type : {9600:9600,14400:14400,19200:19200,28800:28800,38400:38400,57600:57600,115200:115200},
-      defaultValue : 9600, 
-    });
-  }  
   
   var connectionInfo;
-  var readListener;
   var connectedPort; // unused?
   var connectionDisconnectCallback;
-
-  // For throttled write
-  var slowWrite = true;
-  var writeData = undefined;
-  var writeInterval = undefined;
-
-  
-  var startListening=function(callback) {
-    var oldListener = readListener;
-    readListener = callback;
-    return oldListener;
-  };
+  var connectionReadCallback;
 
   var getPorts=function(callback) {
     chrome.serial.getDevices(function(devices) {
@@ -71,7 +49,8 @@ Author: Gordon Williams (gw@pur3.co.uk)
     });
   };
   
-  var openSerial=function(serialPort, openCallback, disconnectCallback) {
+  var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
+    connectionReadCallback = receiveCallback;
     connectionDisconnectCallback = disconnectCallback;
     chrome.serial.connect(serialPort, {bitrate: parseInt(Espruino.Config.BAUD_RATE)}, 
       function(cInfo) {
@@ -89,10 +68,6 @@ Author: Gordon Williams (gw@pur3.co.uk)
     });
   };
 
-  var writeSerialDirect = function(str) {
-    chrome.serial.send(connectionInfo.connectionId, str2ab(str), function() {}); 
-  };
-
   var str2ab=function(str) {
     var buf=new ArrayBuffer(str.length);
     var bufView=new Uint8Array(buf);
@@ -108,112 +83,32 @@ Author: Gordon Williams (gw@pur3.co.uk)
   };
  
  
-  var closeSerial=function(callback) {
-   if (writeInterval!==undefined) 
-     clearInterval(writeInterval);
-   writeInterval = undefined;
-   writeData = undefined;
-
-   connectionDisconnectCallback = undefined;
-   if (connectionInfo) {
-     chrome.serial.disconnect(connectionInfo.connectionId, 
-      function(result) {
-        connectionInfo=null;
-        Espruino.callProcessor("disconnected");
-        if (callback) callback(result);
-      });
-    }
+  var closeSerial=function() {
+    chrome.serial.disconnect(connectionInfo.connectionId, connectionDisconnectCallback);
+    connectionReadCallback = undefined;
+    connectionDisconnectCallback = undefined;
+    connectionInfo=null;
   };
    
-  var isConnected = function() {
-    return connectionInfo!=null && connectionInfo.connectionId>=0;
-  };
-
-  // Throttled serial write
-  var writeSerial = function(data, showStatus) {
-    if (!isConnected()) return; // throw data away
-    if (showStatus===undefined) showStatus=true;
-    
-    /*var d = [];
-    for (var i=0;i<data.length;i++) d.push(data.charCodeAt(i));
-    console.log("Write "+data.length+" bytes - "+JSON.stringify(d));*/
-    
-    /* Here we queue data up to write out. We do this slowly because somehow 
-    characters get lost otherwise (compared to if we used other terminal apps
-    like minicom) */
-    if (writeData == undefined)
-      writeData = data;
-    else
-      writeData += data;    
-    
-    var blockSize = slowWrite ? 30 : 512; // not sure how, but v33 serial API seems to lose stuff if we don't sent it at once
-
-    showStatus &= writeData.length>blockSize;
-    if (showStatus) {
-      Espruino.Core.Status.setStatus("Sending...", writeData.length);
-      console.log("---> "+JSON.stringify(data));
-    }
-
-    if (writeInterval===undefined) {
-      function sender() {
-        if (writeData!=undefined) {
-          var d = undefined;
-          if (writeData.length>blockSize) {
-            d = writeData.substr(0,blockSize);
-            writeData = writeData.substr(blockSize);
-          } else {
-            d = writeData;
-            writeData = undefined; 
-          }          
-          writeSerialDirect(d);
-          if (showStatus) 
-            Espruino.Core.Status.incrementProgress(d.length);
-        } 
-        if (writeData==undefined && writeInterval!=undefined) {
-          clearInterval(writeInterval);
-          writeInterval = undefined;
-          if (showStatus) 
-            Espruino.Core.Status.setStatus("Sent");
-        }
-      }
-      sender(); // send data instantly
-      // if there was any more left, do it after a delay
-      if (writeData!=undefined) {
-        writeInterval = setInterval(sender, 100);
-      } else {
-        if (showStatus)
-          Espruino.Core.Status.setStatus("Sent");
-      }
-    }
+  var writeSerial = function(data, callback) {
+    chrome.serial.send(connectionInfo.connectionId, str2ab(data), callback); 
   };
   
   // ----------------------------------------------------------
   chrome.serial.onReceive.addListener(function(receiveInfo) {
-    //var bytes = new Uint8Array(receiveInfo.data);
-    if (readListener!==undefined) readListener(receiveInfo.data);
+    if (connectionReadCallback!==undefined) 
+      connectionReadCallback(receiveInfo.data);
   });
 
   chrome.serial.onReceiveError.addListener(function(errorInfo) {
-    console.log("RECEIVE ERROR:",JSON.stringify(errorInfo));
-    connectionDisconnectCallback();
+    console.error("RECEIVE ERROR:", JSON.stringify(errorInfo));
+    closeSerial();
   });
 
-  Espruino.Core.Serial = {
-    "init" : init,
+  Espruino.Core.Serial.devices.push({
     "getPorts": getPorts,
     "open": openSerial,
-    "isConnected": isConnected,
-    "startListening": startListening,
     "write": writeSerial,
     "close": closeSerial,
-	"isSlowWrite": function() { return slowWrite; },
-	"setSlowWrite": function(isOn, force) { 
-        if ((!force) && Espruino.Config.SERIAL_THROTTLE_SEND) {
-          console.log("ForceThrottle option is set - set Slow Write = true");
-          isOn = true;
-        } else
-  	    console.log("Set Slow Write = "+isOn);
-	  slowWrite = isOn; 
-	},
-  };
+  });
 })();
