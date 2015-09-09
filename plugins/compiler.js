@@ -44,10 +44,16 @@
     if (!Espruino.Config.COMPILATION)
       return callback(code);
 
-    var offset = 0;
+    var board = Espruino.Core.Env.getBoardData();
+    if (board == undefined) {
+      Espruino.Core.Notifications.error("Current board not known - please connect to the Espruino board first");
+      return callback(code);
+    }
+
     var tasks = 0;
     try {
       var ast = acorn.parse(code, { ecmaVersion : 6 });
+      var nodes = [];
       ast.body.forEach(function(node) {
         if (node.type=="FunctionDeclaration") {
           if (node.body.type=="BlockStatement" &&
@@ -55,34 +61,41 @@
               node.body.body[0].type=="ExpressionStatement" &&
               node.body.body[0].expression.type=="Literal" && 
               node.body.body[0].expression.value=="compiled") {
-            var board = Espruino.Core.Env.getBoardData();
             if (typeof board.EXPORTS != "object") {
               Espruino.Core.Notifications.error("Compiler not active as no process.env.EXPORTS available.<br/>Is your firmware up to date?");
               return callback(code);
             }
-
-            tasks++;
-            $.post(Espruino.Config.COMPILATION_URL, {
-                  js : code.substring(node.start, node.end),
-                  exports : JSON.stringify(board.EXPORTS)
-                }, function(newCode) {
-                      if (newCode) {                
-                        //console.log(asm);
-                        //console.log(node);
-                        code = code.substr(0,node.start+offset) + newCode + code.substr(node.end+offset);
-                        offset += newCode.length - (node.end-node.start); // offset for future code snippets
-                      }
-                      tasks--;
-                      if (tasks==0)
-                        callback(code);                  
-                }).fail(function() {
-                  Espruino.Core.Notifications.error( "Error contacting server. Unable to compile code right now." );
-                  tasks--;
-                  if (tasks==0) callback(code);
-                });
+            nodes.push(node);
           }
         }
       });
+      nodes.forEach(function (node) {        
+        tasks++;
+        $.post(Espruino.Config.COMPILATION_URL, {
+              js : code.substring(node.start, node.end),
+              exports : JSON.stringify(board.EXPORTS)
+            }, function(newCode) {
+                  if (newCode) {                
+                    //console.log(asm);
+                    //console.log(node);
+                    code = code.substr(0,node.start) + newCode + code.substr(node.end);
+                    var offs = newCode.length - (node.end-node.start); // offset for future code snippets
+                    for (var i in nodes)
+                      if (nodes[i].start > node.start) {
+                        nodes[i].start += offs;
+                        nodes[i].end += offs;
+                      } 
+                  }
+                  tasks--;
+                  if (tasks==0)
+                    callback(code);                  
+            }).fail(function() {
+              Espruino.Core.Notifications.error( "Error contacting server. Unable to compile code right now." );
+              tasks--;
+              if (tasks==0) callback(code);
+            });
+      });
+
     } catch (err) {
       console.log(err);
       Espruino.Core.Notifications.error("Acorn parse for plugins/compiler.js failed.<br/>Check the editor window for syntax errors");
@@ -95,3 +108,4 @@
     init : init,
   };
 }());
+
