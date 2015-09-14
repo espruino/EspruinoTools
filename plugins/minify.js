@@ -215,7 +215,8 @@
         output_format: "text",
         output_info: output_info,
         js_code: code,
-        language : "ECMASCRIPT6" // so no need to mess with binary numbers now. \o/
+        language : "ECMASCRIPT6", // so no need to mess with binary numbers now. \o/
+        language_out : "ECMASCRIPT5" // ES6 output uses some now features now that Espruino doesn't like
       });      
       $.post(minifyUrl, minifyObj, function(minifiedCode) {      
         code = minifiedCode;          
