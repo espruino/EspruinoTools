@@ -44,7 +44,7 @@
                "WHITESPACE_ONLY":"Closure (online) - Whitespace Only",
                "SIMPLE_OPTIMIZATIONS":"Closure (online) - Simple Optimizations",
                "ADVANCED_OPTIMIZATIONS":"Closure (online) - Advanced Optimizations (not recommended)"},
-      defaultValue : "WHITESPACE_ONLY"
+      defaultValue : "ESPRIMA"
     });
 
     
