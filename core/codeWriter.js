@@ -40,7 +40,7 @@
     if (Espruino.Config.RESET_BEFORE_SEND) {
       sendSerial = function(data) { 
         // reset espruino
-        Espruino.Core.Serial.write("\x03reset();\n");
+        Espruino.Core.Serial.write("\x03\x03reset();\n");
         // wait for the reset
         setTimeout(function() {
           realSendSerial(data);
