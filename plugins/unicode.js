@@ -20,57 +20,35 @@
   }
 
   function escapeUnicode(code, callback) {
-    var lex = Espruino.Core.Utils.getLexer(code);
     var newCode = [];
-
-    // Lexer doesn't emit white space tokens, so we'll scan source
-    // and push substring portions of original code one after one.
-    // Once we stumble upon string literal we'll escape it and push
-    // that result
     var idx = 0;
 
-    for (var tok = lex.next(); tok !== undefined; tok = lex.next()) {
-      if (tok.type === 'STRING') {
-        newCode.push(escapeStringToken(tok.str));
-      } else {
-        newCode.push(code.substring(idx, tok.endIdx));
+    for (var i = 0; i < code.length; ++i) {
+      if (code.charCodeAt(i) >= 128) {
+        newCode.push(code.substring(idx, i));
+        newCode.push(escapeChar(code[i]));
+        idx = i + 1;
       }
-
-      idx = tok.endIdx;
     }
+
+    newCode.push(code.substring(idx, code.length));
 
     newCode = newCode.join('');
     callback(newCode);
   }
 
-  function escapeStringToken(str) {
-    var len = str.length;
-    var result;
-
-    // open quote
-    result = str.charAt(0);
-
-    for (var i = 1; i < len - 1; ++i) {
-      if (str.charCodeAt(i) < 128) {
-        // skip ASCII chars since UTF-8 leave them as is
-        result += str.charAt(i);
-      } else {
-        // encode non-ASCII char into UTF-8 sequence and
-        // add it in form of \xHH codes
-        utf8.encode(str.charAt(i)).split('').forEach(function(c) {
-          var code = c.charCodeAt(0);
-          result += "\\x";
-          if (code < 0x10) {
-            result += '0';
-          }
-
-          result += code.toString(16).toUpperCase();
-        });
+  function escapeChar(c) {
+    // encode char into UTF-8 sequence in form of \xHH codes
+    var result = '';
+    utf8.encode(c).split('').forEach(function(c) {
+      var code = c.charCodeAt(0);
+      result += "\\x";
+      if (code < 0x10) {
+        result += '0';
       }
-    }
 
-    // closing quote
-    result += str.charAt(len - 1);
+      result += code.toString(16).toUpperCase();
+    });
 
     return result;
   }
