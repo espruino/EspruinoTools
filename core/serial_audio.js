@@ -3,29 +3,32 @@
 // Fix up prefixing
 if (typeof window == "undefined") return; // not running in a web browser
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
-if (!window.AudioContext) return; // no audio available
+if (!window.AudioContext) {
+  console.log("No window.AudioContext - serial_audio disabled");
+  return; // no audio available
+}
 navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+if (!navigator.getUserMedia) {
+  console.log("No navigator.getUserMedia - serial_audio disabled");
+  return; // no audio available
+}
 
 var dataToSend = "";
+var writtenCallback = undefined;
 var soundDebugFn = undefined;
 
 var soundInputPolarity = -1;
 var soundOutputPolarity = -1;
 
-  function init() {
 var context = new AudioContext();
 
-if (!navigator.getUserMedia) {
-  alert("Error: getUserMedia not supported!");
-  return;
-}
-
+var userMediaStream;
 var inputNode = context.createScriptProcessor(4096, 1/*in*/, 1/*out*/);
 window.dontGarbageCollectMePlease = inputNode;
-console.log("Audio Sample rate : "+context.sampleRate);
+console.log("serial_audio: Audio Sample rate : "+context.sampleRate);
 var BAUD = 9600;
 var bitTime = context.sampleRate / BAUD; // intentionally a float
-console.log("Baud", BAUD, "Bit time", bitTime);
+console.log("serial_audio: Audio Serial Baud", BAUD, "Bit time", bitTime);
 
 // Used when getting data from sound
 var inSamples = undefined; // data received
@@ -84,11 +87,16 @@ inputNode.onaudioprocess = function(e) {
 
     // ---------------------------------------------------------------------
     // -------------------------------------------- Output 
-    if (outSample===undefined && dataToSend.length&& i>100) { 
+    if (outSample===undefined && dataToSend.length && i>100) { 
       outSample = (dataToSend.charCodeAt(0)<<1) | 512;
       // Start bit of 0, data, then stop bit of 1
       dataToSend = dataToSend.substr(1);
       outSampleCounter = 0;      
+      
+      if (!dataToSend.length && writtenCallback) {
+        writtenCallback();
+        writtenCallback = undefined;
+      }
     }
     if (outSample!==undefined) {
       dataout[i] = (outSample &(1<<Math.floor(outSampleCounter/bitTime))) ? soundOutputPolarity : -soundOutputPolarity;
@@ -123,94 +131,89 @@ inputNode.onaudioprocess = function(e) {
   }
 
   // call our listener if we've got characters in
-  if (charactersRead && readListener) {
+  if (charactersRead && connectionReadCallback) {
     setTimeout(function() {
-      readListener(charactersRead);
+      connectionReadCallback(charactersRead);
     }, 10);
   }
 };
 
-navigator.getUserMedia({
-  video:false,
-  audio:{
-    mandatory:[],
-    optional:[{ echoCancellation:false },{sampleRate:44100}]
-  }
-}, function(stream) {
-  var inputStream = context.createMediaStreamSource(stream);
-  inputStream.connect(inputNode);
-  inputNode.connect(context.destination);
-}, function(e) {
-  alert('Error getting audio');
-  console.log(e);
-});
-  }  
-  
   var connected = false;
-  var readListener;
+  var connectionDisconnectCallback;
+  var connectionReadCallback;
 
-  
-  var startListening=function(callback) {
-    var oldListener = readListener;
-    readListener = callback;
-    return oldListener;
-  };
+  function init() {
+    Espruino.Core.Config.add("SERIAL_AUDIO", {
+      section : "Communications",
+      name : "Connect over Audio",
+      description : "Allow connection to Espruino using the headphone jack. Whether inversion is needed depends on your computer. Most are non-inverted, but some are fully-inverted. Choosing the wrong one won't hard your board, it just won't work.",
+      type : { "0":"Disabled", "PP":"Normal Signal Polarity", "NN":"Fully Inverted", "NP":"Input Inverted", "PN":"Output Inverted" },
+      defaultValue : "0", 
+    });
+  }  
 
   var getPorts=function(callback) {
-    callback(["Audio"]);
+    if (Espruino.Config.SERIAL_AUDIO != 0)
+      callback(['Audio']);
+    else
+      callback();
   };
   
-  var openSerial=function(serialPort, openCallback, disconnectCallback) {
-    connected = true;
-    Espruino.callProcessor("connected", undefined, function() {       
-      openCallback("Hello");
-    });          
-  };
+  var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
+    connectionReadCallback = receiveCallback;
+    connectionDisconnectCallback = disconnectCallback;
 
- 
-  var closeSerial=function(callback) {
-    connected = false;
-    Espruino.callProcessor("disconnected");
-    if (callback!==undefined) callback();
+    soundInputPolarity = (Espruino.Config.SERIAL_AUDIO[0]=="N") ? -1 : 1;
+    soundOutputPolarity = (Espruino.Config.SERIAL_AUDIO[1]=="N") ? -1 : 1;
+    
+    navigator.getUserMedia({
+        video:false,
+        audio:{
+          mandatory:[],
+          optional:[{ echoCancellation:false },{sampleRate:44100}]
+        }
+      }, function(stream) {
+        userMediaStream = stream;
+        var inputStream = context.createMediaStreamSource(stream);
+        inputStream.connect(inputNode);
+        inputNode.connect(context.destination);
+        connected = true;    
+        openCallback("Hello");
+      }, function(e) {
+        console.log('serial_audio: getUserMedia error', e);
+        openCallback(undefined);
+    });
   };
-   
-  var isConnected = function() {
-    return connected;
+ 
+  var closeSerial=function() {
+    connected = false;
+    userMediaStream.stop();
+    connectionDisconnectCallback();
   };
 
   // Throttled serial write
-  var writeSerial = function(data, showStatus) {
-    if (!isConnected()) return; // throw data away
+  var writeSerial = function(data, callback) {
+    if (!connected) return; // throw data away
     dataToSend += data;
+    writtenCallback = callback;
   };
   
   // ----------------------------------------------------------
 
-  Espruino.Core.Serial = {
+  Espruino.Core.Serial.devices.push({
     "init" : init,
     "getPorts": getPorts,
     "open": openSerial,
-    "isConnected": isConnected,
-    "startListening": startListening,
     "write": writeSerial,
     "close": closeSerial,
-	"isSlowWrite": function() { return slowWrite; },
-	"setSlowWrite": function(isOn, force) { 
-        if ((!force) && Espruino.Config.SERIAL_THROTTLE_SEND) {
-          console.log("ForceThrottle option is set - set Slow Write = true");
-          isOn = true;
-        } else
-  	    console.log("Set Slow Write = "+isOn);
-	  slowWrite = isOn; 
-	},
-   "setSoundDebugFunction": function(fn) { 
-     soundDebugFn = fn; 
-   },
-  "setSoundPolarity": function(rxPol, txPol) {  // either 1 or -1
-     soundInputPolarity = rxPol;
-     soundOutputPolarity = txPol;
-   },
-  };
+    "setSoundDebugFunction": function(fn) { 
+      soundDebugFn = fn; 
+    },
+    "setSoundPolarity": function(rxPol, txPol) {  // either 1 or -1
+      soundInputPolarity = rxPol;
+      soundOutputPolarity = txPol;
+    },
+  });
 })();
 
 

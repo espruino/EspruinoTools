@@ -27,14 +27,10 @@ Author: Gordon Williams (gw@pur3.co.uk)
   } 
   
   var connectionInfo;
-  var readListener;
+  var connectionReadCallback;
+  var connectionDisconnectCallback;
   var connectionChecker;
   var connectedPort;
-
-  // For throttled write
-  var slowWrite = true;
-  var writeData = undefined;
-  var writeInterval = undefined;
 
   /** When connected, this is called every so often to check on the state
    of the serial port. If it detects a disconnection it calls the disconnectCallback
@@ -50,23 +46,11 @@ Author: Gordon Williams (gw@pur3.co.uk)
       }
    });
   };
-  
-  var startListening=function(callback) {
-    if (!connectionInfo || !connectionInfo.connectionId) {
-      throw "You must call openSerial first!";
-    }
-    var oldListener = readListener;
-    readListener=callback;
-    onCharRead();
-    return oldListener;
-  };
 
   var onCharRead=function(readInfo) {
-    if (!readListener || !connectionInfo) {
-      return;
-    }
+    if (!connectionInfo) return;
     if (readInfo && readInfo.bytesRead>0 && readInfo.data) {
-      if (readListener) readListener(readInfo.data);
+      connectionReadCallback(readInfo.data);
     }
     chrome.serial.read(connectionInfo.connectionId, 1024, onCharRead);
   };
@@ -75,7 +59,8 @@ Author: Gordon Williams (gw@pur3.co.uk)
     chrome.serial.getPorts(callback);
   };
   
-  var openSerial=function(serialPort, openCallback, disconnectCallback) {
+  var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
+    connectionReadCallback = receiveCallback;
     connectionDisconnectCallback = disconnectCallback;
     chrome.serial.open(serialPort, {bitrate: 9600}, 
       function(cInfo) {
@@ -84,21 +69,15 @@ Author: Gordon Williams (gw@pur3.co.uk)
           if (openCallback) openCallback(undefined);
         } else {
           connectionInfo=cInfo;
-          console.log(cInfo);
           connectedPort = serialPort;
+          onCharRead();
+          
           connectionChecker = setInterval(checkConnection, 500);          
           Espruino.callProcessor("connected", undefined, function() {
             openCallback(cInfo);
           });
         }        
     });
-  };
-
-  var writeSerialDirect = function(str) {
-    chrome.serial.write(connectionInfo.connectionId, str2ab(str), onWrite); 
-  };
-  
-  var onWrite=function(obj) {
   };
 
   var str2ab=function(str) {
@@ -111,96 +90,26 @@ Author: Gordon Williams (gw@pur3.co.uk)
   };
  
  
-  var closeSerial=function(callback) {
-   connectionDisconnectCallback = undefined;
+  var closeSerial=function() {
    if (connectionChecker) {
      clearInterval(connectionChecker);
      connectedPort = undefined;
      connectionChecker = undefined;
    }
-   if (connectionInfo) {
-     chrome.serial.close(connectionInfo.connectionId, 
-      function(result) {
-        connectionInfo=null;
-        Espruino.callProcessor("disconnected");
-        if (callback) callback(result);
-      });
-    }
-  };
-   
-  var isConnected = function() {
-    return connectionInfo!=null && connectionInfo.connectionId>=0;
+   chrome.serial.close(connectionInfo.connectionId, connectionDisconnectCallback);
+   connectionReadCallback = undefined;
+   connectionDisconnectCallback = undefined;
+   connectionInfo=null;
   };
 
-  // Throttled serial write
-  var writeSerial = function(data, showStatus) {
-    if (!isConnected()) return; // throw data away
-    if (showStatus===undefined) showStatus=true;
-    
-    /*var d = [];
-    for (var i=0;i<data.length;i++) d.push(data.charCodeAt(i));
-    console.log("Write "+data.length+" bytes - "+JSON.stringify(d));*/
-    
-    /* Here we queue data up to write out. We do this slowly because somehow 
-    characters get lost otherwise (compared to if we used other terminal apps
-    like minicom) */
-    if (writeData == undefined)
-      writeData = data;
-    else
-      writeData += data;    
-    
-    var blockSize = slowWrite ? 30 : 1024;
-
-    showStatus &= writeData.length>blockSize;
-    if (showStatus) {
-      Espruino.Core.Status.setStatus("Sending...", writeData.length);
-      console.log("Sending "+JSON.stringify(data));
-    }
-
-    if (writeInterval==undefined) {
-      function sender() {
-        if (writeData!=undefined) {
-          var d = undefined;
-          if (writeData.length>blockSize) {
-            d = writeData.substr(0,blockSize);
-            writeData = writeData.substr(blockSize);
-          } else {
-            d = writeData;
-            writeData = undefined; 
-          }          
-          writeSerialDirect(d);
-          if (showStatus) 
-            Espruino.Core.Status.incrementProgress(d.length);
-        } 
-        if (writeData==undefined && writeInterval!=undefined) {
-          clearInterval(writeInterval);
-          writeInterval = undefined;
-          if (showStatus) 
-            Espruino.Core.Status.setStatus("Sent");
-        }
-      }
-      sender(); // send data instantly
-      // if there was any more left, do it after a delay
-      if (writeData!=undefined) {
-        writeInterval = setInterval(sender, 60);
-      } else {
-        if (showStatus)
-          Espruino.Core.Status.setStatus("Sent");
-      }
-    }
+  var writeSerial = function(data, callback) {
+    chrome.serial.write(connectionInfo.connectionId, str2ab(data), callback); 
   };
 
-  Espruino.Core.Serial = {
+  Espruino.Core.Serial.devices.push({
     "getPorts": getPorts,
     "open": openSerial,
-    "isConnected": isConnected,
-    "startListening": startListening,
     "write": writeSerial,
-    "close": closeSerial,
-	"isSlowWrite": function() { return slowWrite; },
-	"setSlowWrite": function(isOn) { 
-	  console.log("Set Slow Write = "+isOn);
-	  slowWrite = isOn; 
-	}	
-  };
+    "close": closeSerial
+  });
 })();
