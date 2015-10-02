@@ -146,7 +146,7 @@ inputNode.onaudioprocess = function(e) {
     Espruino.Core.Config.add("SERIAL_AUDIO", {
       section : "Communications",
       name : "Connect over Audio",
-      description : "Allow connection to Espruino using the headphone jack. Whether inversion is needed depends on your computer. Most are non-inverted, but some are fully-inverted. Choosing the wrong one won't hard your board, it just won't work.",
+      descriptionHTML : 'Allow connection to Espruino (at 9600 baud) using the headphone jack. See <a href="http://www.espruino.com/Headphone" target="_blank">espruino.com/Headphone</a>',
       type : { "0":"Disabled", "PP":"Normal Signal Polarity", "NN":"Fully Inverted", "NP":"Input Inverted", "PN":"Output Inverted" },
       defaultValue : "0", 
     });
