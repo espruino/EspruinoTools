@@ -64,7 +64,7 @@
     currentDevice.open(serialPort, function(cInfo) {
       // CONNECT
       if (!cInfo) {
-        Espruino.Core.Notifications.error("Unable to connect");
+//        Espruino.Core.Notifications.error("Unable to connect");
         console.error("Unable to open device (connectionInfo="+cInfo+")");
         connectCallback(undefined);
       } else {

@@ -17,14 +17,18 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
 **/
 
 (function() {
-  if (typeof chrome === 'undefined' || chrome.sockets===undefined) return;
+  if (typeof chrome === 'undefined' || chrome.sockets===undefined) {
+    console.log("No chrome.sockets - serial_socket disabled");
+    return;
+  }
 
   function init() {
-    Espruino.Core.Config.add("TCP_PORT", {
+    Espruino.Core.Config.add("SERIAL_TCPIP", {
       section : "Communications",
-      name : "TCP port",
-      description : "When connecting to a TCP socket, use this port",
-      defaultValue : 10191, 
+      name : "Connect over TCP Address",
+      description : "When connecting, add a menu item to connect to a given TCP/IP address (eg. `192.168.1.2` or `192.168.1.2:23`). Leave blank to disable.",
+      type : "string",
+      defaultValue : "", 
     });
   }  
   
@@ -34,17 +38,30 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
   var connectionReadCallback;  
 
   var getPorts = function(callback) {
-    callback(['TCP port ' + parseInt(Espruino.Config.TCP_PORT)]);
+    if (Espruino.Config.SERIAL_TCPIP.trim() != "")
+      callback(['TCP/IP: ' + Espruino.Config.SERIAL_TCPIP]);
+    else
+      callback();
   };
   
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
+
+    var host = Espruino.Config.SERIAL_TCPIP.trim();
+    var port = 23;
+    if (host.indexOf(":") >= 0) {
+      var i = host.indexOf(":");
+      port = parseInt(host.substr(i+1).trim());
+      host = host.substr(0,i).trim();
+      if (host=="") host="localhost";
+    }
+
     connectionReadCallback = receiveCallback;
     connectionDisconnectCallback = disconnectCallback;
     chrome.sockets.tcp.create({}, function(createInfo) {
       chrome.sockets.tcp.connect(createInfo.socketId,
-          'localhost', parseInt(Espruino.Config.TCP_PORT), function (result) {
+          host, port, function (result) {
         if (result < 0) {
-          console.log("Failed to open socket on port " + parseInt(Espruino.Config.TCP_PORT));
+          console.log("Failed to open socket " + host+":"+port);
           openCallback(undefined);
         } else {
           connectionInfo = { socketId: createInfo.socketId };
@@ -65,7 +82,6 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
  
  
   var closeSerial = function() {
-    connectionDisconnectCallback = undefined;
     if (connectionInfo) {
       chrome.sockets.tcp.disconnect(connectionInfo.socketId,
         function () {
@@ -77,7 +93,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
   };
 
   var writeSerial = function(data, callback) {
-    chrome.sockets.tcp.send(connectionInfo.socketId, str2ab(str), callback);
+    chrome.sockets.tcp.send(connectionInfo.socketId, str2ab(data), callback);
   };
 
   // ----------------------------------------------------------
