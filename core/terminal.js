@@ -389,6 +389,11 @@
   function focus() {
     $("#terminalfocus").focus(); 
   };
+
+  // Is the terminal actually visible, or is it so small it can't be seen?
+  function isVisible() {
+    return ($("#terminal").width() > 20) && ($("#terminal").height() > 20); 
+  }
   
   /// Get the Nth from latest terminal line (and the line number of it). 0=current line
   function getInputLine(n) {
@@ -412,6 +417,7 @@
       
       getInputLine : getInputLine,
       getCurrentLine : getCurrentLine,
+      isVisible : isVisible, // Is the terminal actually visible, or is it so small it can't be seen?
       focus : focus, // Give this focus
       clearTerminal : clearTerminal, // Clear the contents of the terminal
       
