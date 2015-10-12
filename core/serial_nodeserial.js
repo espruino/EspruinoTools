@@ -9,7 +9,8 @@ Gordon Williams (gw@pur3.co.uk)
 
   var getPorts=function(callback) {
     serialport.list(function(err, ports) {
-      callback(ports.map(function(port) {
+      if (ports===undefined) callback([]);
+      else callback(ports.map(function(port) {
         // port.pnpId could be handy
         return port.comName;
       }));
