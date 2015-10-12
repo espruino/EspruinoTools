@@ -41,15 +41,31 @@
         console.log("GET chrome.storage.sync = "+JSON.stringify(value));
         callback(value);
       });
+    } else if (typeof document != "undefined") {
+      var data = {};
+      var cookie = document.cookie;
+      if (cookie!==undefined && cookie.indexOf("CONFIG=")>=0) {
+        cookie = cookie.substring(cookie.indexOf("CONFIG=")+7);
+        cookie = cookie.substring(0,cookie.indexOf(";"));
+        try { 
+          var json = atob(cookie);
+          data = JSON.parse(json); 
+        } catch (e) { 
+          console.log("Got ", e, " while reading info");
+        }
+      }
+      callback(data);
     } else {
       callback({});
-    }
+    } 
   }
 
   function _set(data) {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       console.log("SET chrome.storage.sync = "+JSON.stringify(data));
       chrome.storage.sync.set({ CONFIGS : data });    
+    } else if (typeof document != "undefined") {
+      document.cookie = "CONFIG="+btoa(JSON.stringify(data));
     }
   }
   
