@@ -57,6 +57,16 @@
   
   /// Parse and fix issues like `if (false)\n foo` in the root scope
   function reformatCode(code) {      
+     var APPLY_LINE_MUMBERS = false;
+     var ENV = Espruino.Core.Env.getData(); 
+     if (ENV) {
+       if (ENV.VERSION_MAJOR && ENV.VERSION_MINOR) {
+         if (ENV.VERSION_MAJOR>1 ||
+             ENV.VERSION_MINOR>=81.86)
+           APPLY_LINE_MUMBERS = true;
+       }
+     }
+    
     // First off, try and fix funky characters
     for (var i=0;i<code.length;i++) {
       var ch = code.charCodeAt(i);
@@ -134,8 +144,18 @@
           if (tok.str==";") varDeclaration = false;
           statement = false;
           statementBeforeBrackets = false;
-        }          
+        }
+        
+        /* For functions defined at the global scope, we want to shove
+         * an escape code before them that tells Espruino what their
+         * line number is */
+        if (APPLY_LINE_MUMBERS && tok.str=="function" && tok.lineNumber) {
+          // Esc [ 1234 d
+          // This is the 'set line number' command that we're abusing :)
+          previousString += "\x1B\x5B"+tok.lineNumber+"d";
+        }
       }
+      
       // add our stuff back together
       resultCode += previousString + tokenString;
       // next

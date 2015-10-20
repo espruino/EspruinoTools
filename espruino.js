@@ -30,6 +30,10 @@ var Espruino;
    *   getModule            - Called with data={moduleName:"foo", moduleCode:undefined} - moduleCode should be filled in if the module can be found
    *   getURL               - Called with data={url:"http://....", data:undefined) - data should be filled in if the URL is handled (See Espruino.Core.Utils.getURL to use this)
    *   terminalClear        - terminal has been cleared
+   *   terminalPrompt       - we've received a '>' character (eg, `>` or `debug>`). The argument is the current line's contents.
+   *   terminalNewLine      - When we get a new line on the terminal, this gets called with the last line's contents
+   *   debugMode            - called with true or false when debug mode is entered or left
+   *   editorHover          - called with { node : htmlNode, showTooltip : function(htmlNode) } when something is hovered over
    **/  
   var processors = {};
   

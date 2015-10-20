@@ -23,7 +23,7 @@
     Espruino.addProcessor("connected", queryBoardProcess);
   }
   
-  function queryBoardProcess(data, callback) {
+  function queryBoardProcess(data, callback) {    
     Espruino.Core.Utils.executeExpression("process.env", function(result) {
       var json = {};
       if (result!==undefined) {
@@ -37,6 +37,14 @@
       for (var k in json) {
         boardData[k] = json[k];
         environmentData[k] = json[k];
+      }
+      if (environmentData.VERSION) {
+        var v = environmentData.VERSION;
+        var vIdx = v.indexOf("v");
+        if (vIdx>=0) {
+          environmentData.VERSION_MAJOR = parseInt(v.substr(0,vIdx));
+          environmentData.VERSION_MINOR = parseFloat(v.substr(vIdx+1));
+        }
       }
       
       Espruino.callProcessor("environmentVar", environmentData, function(data) { 

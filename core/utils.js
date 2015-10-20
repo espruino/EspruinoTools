@@ -54,10 +54,12 @@
     var chQuotes = "\"'";
     var ch = str[0];
     var idx = 1;
+    var lineNumber = 1;
     var nextCh = function() { ch = str[idx++]; };
     var isIn = function(s,c) { return s.indexOf(c)>=0; } ;
     var nextToken = function() {
       while (isIn(chWhiteSpace,ch)) {
+        if (ch=="\n") lineNumber++;
         nextCh();
       }
       if (ch==undefined) return undefined; 
@@ -78,7 +80,7 @@
           nextCh();
           return nextToken();
         }
-        return {type:"CHAR", str:"/", value:"/", startIdx:idx-2, endIdx:idx-1};
+        return {type:"CHAR", str:"/", value:"/", startIdx:idx-2, endIdx:idx-1, lineNumber:lineNumber};
       }
       var s = "";        
       var type, value;
@@ -118,13 +120,26 @@
         nextCh();
       }
       if (value===undefined) value=s;
-      return {type:type, str:s, value:value, startIdx:startIdx, endIdx:idx-1};
+      return {type:type, str:s, value:value, startIdx:startIdx, endIdx:idx-1, lineNumber:lineNumber};
     };
     
     return {
       next : nextToken
     };
   };
+  
+  /** Count brackets in a string - will be 0 if all are closed */ 
+  function countBrackets(str) {
+    var lex = getLexer(str);
+    var brackets = 0;
+    var tok = lex.next();
+    while (tok!==undefined) {
+      if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;      
+      if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;
+      tok = lex.next();
+    }
+    return brackets;
+  }
   
   /** Try and get a prompt from Espruino - if we don't see one, issue Ctrl-C
    * and hope it comes back. Calls callback with first argument true if it
@@ -207,7 +222,7 @@
         callback(result);
       };
       // string adds to stop the command tag being detected in the output
-      Espruino.Core.Serial.write('echo(0);\nconsole.log("<<"+"<<<"+JSON.stringify('+expressionToExecute+')+">>>"+">>");\n');
+      Espruino.Core.Serial.write('\x03echo(0);\nconsole.log("<<"+"<<<"+JSON.stringify('+expressionToExecute+')+">>>"+">>");\n');
       //
       var timeout = setTimeout(function(){
         console.warn("No result found - just got "+JSON.stringify(receivedData));          
@@ -269,6 +284,7 @@
       escapeHTML : escapeHTML,
       getSubString : getSubString,
       getLexer : getLexer,
+      countBrackets : countBrackets,
       getEspruinoPrompt : getEspruinoPrompt,
       executeExpression : executeExpression,
       versionToFloat : versionToFloat,

@@ -73,9 +73,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
           onCharRead();
           
           connectionChecker = setInterval(checkConnection, 500);          
-          Espruino.callProcessor("connected", undefined, function() {
-            openCallback(cInfo);
-          });
+          openCallback(cInfo);
         }        
     });
   };

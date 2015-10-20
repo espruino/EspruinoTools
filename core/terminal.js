@@ -252,6 +252,7 @@
           if (termCursorX>0) termCursorX--;
         } break;
         case 10 : { // line feed
+          Espruino.callProcessor("terminalNewLine", termText[termCursorY]);
           termCursorX = 0; termCursorY++;
           while (termCursorY >= termText.length) termText.push("");
         } break;
@@ -263,13 +264,20 @@
         } break;
         case 19 : break; // XOFF
         case 17 : break; // XON
-        default : {
+        default : {          
           // Else actually add character
           termText[termCursorY] = trimRight(
               Espruino.Core.Utils.getSubString(termText[termCursorY],0,termCursorX) + 
               String.fromCharCode(ch) + 
               Espruino.Core.Utils.getSubString(termText[termCursorY],termCursorX+1));
           termCursorX++;
+          // check for the 'prompt', eg '>' or 'debug>'
+          // if we have it, send a 'terminalPrompt' message
+          if (ch == ">".charCodeAt(0)) {
+            var prompt = termText[termCursorY];
+            if (prompt==">" || prompt=="debug>")
+              Espruino.callProcessor("terminalPrompt", prompt);
+          }
         }
       }
    } else if (termControlChars[0]==27) {
@@ -397,7 +405,8 @@
     return ($("#terminal").width() > 20) && ($("#terminal").height() > 20); 
   }
   
-  /// Get the Nth from latest terminal line (and the line number of it). 0=current line
+  /** Get the Nth from latest terminal line (and the line number of it). 0=current line.
+   * By terminal line we mean a line starting with '>' */  
   function getInputLine(n) {
     if (n===undefined) n=0;
     var startLine = termText.length-1;
@@ -412,12 +421,21 @@
       text += "\n"+termText[line++].substr(1);
     return { line : startLine, text : text };
   };
+  
+  /** Get the Nth from latest line of text in the terminal (unlike getInputLine) */  
+  function getTerminalLine(n) {
+    if (n===undefined) n=0;
+    var line = termText.length-(1+n);
+    if (line<0) return undefined;
+    return termText[line];
+  };
 
 
   Espruino.Core.Terminal = {
       init : init,
       
       getInputLine : getInputLine,
+      getTerminalLine : getTerminalLine,
       getCurrentLine : getCurrentLine,
       isVisible : isVisible, // Is the terminal actually visible, or is it so small it can't be seen?
       focus : focus, // Give this focus
