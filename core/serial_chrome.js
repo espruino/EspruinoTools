@@ -82,7 +82,8 @@ Author: Gordon Williams (gw@pur3.co.uk)
  
  
   var closeSerial=function() {
-    chrome.serial.disconnect(connectionInfo.connectionId, connectionDisconnectCallback);
+    if (connectionInfo)
+      chrome.serial.disconnect(connectionInfo.connectionId, connectionDisconnectCallback);
     connectionReadCallback = undefined;
     connectionDisconnectCallback = undefined;
     connectionInfo=null;
