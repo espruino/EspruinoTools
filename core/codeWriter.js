@@ -62,7 +62,7 @@
      if (ENV) {
        if (ENV.VERSION_MAJOR && ENV.VERSION_MINOR) {
          if (ENV.VERSION_MAJOR>1 ||
-             ENV.VERSION_MINOR>=81.86)
+             ENV.VERSION_MINOR>=81.086)
            APPLY_LINE_MUMBERS = true;
        }
      }
