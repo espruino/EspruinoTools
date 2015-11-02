@@ -54,7 +54,12 @@
         var vIdx = v.indexOf("v");
         if (vIdx>=0) {
           environmentData.VERSION_MAJOR = parseInt(v.substr(0,vIdx));
-          environmentData.VERSION_MINOR = parseFloat(v.substr(vIdx+1));
+          var minor = v.substr(vIdx+1);
+          var dot = minor.indexOf(".");
+          if (dot>=0)
+            environmentData.VERSION_MINOR = parseInt(minor.substr(0,dot)) + parseInt(minor.substr(dot+1))*0.001;
+          else
+            environmentData.VERSION_MINOR = parseFloat(minor);
         }
       }
       

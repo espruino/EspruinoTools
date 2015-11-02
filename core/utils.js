@@ -221,8 +221,17 @@
         // run the callback
         callback(result);
       };
-      // string adds to stop the command tag being detected in the output
-      Espruino.Core.Serial.write('\x03echo(0);\nconsole.log("<<"+"<<<"+JSON.stringify('+expressionToExecute+')+">>>"+">>");\n');
+
+      // Ensure that we have some chars on input line so that next Ctrl-C
+      // character will clear the line and will not cause interrupt
+      Espruino.Core.Serial.write('O_o'); 
+      // Write main expression after small delay to ensure that 'O_o'
+      // was already read by the board.
+      setTimeout(function() {
+        // string adds to stop the command tag being detected in the output
+        Espruino.Core.Serial.write('\x03echo(0);\nconsole.log("<<"+"<<<"+JSON.stringify('+expressionToExecute+')+">>>"+">>");\n');
+      }, 20);
+
       //
       var timeout = setTimeout(function(){
         console.warn("No result found - just got "+JSON.stringify(receivedData));          
