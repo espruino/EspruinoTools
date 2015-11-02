@@ -18,12 +18,23 @@
   var boardData = {};
   
   function init() {
-    
+    Espruino.Core.Config.add("ENV_ON_CONNECT", {
+      section : "Communications",
+      name : "Requst board details on connect",
+      description : 'Just after the board is connected, should we query `process.env` to find out which board we\'re connected to? '+
+                    'This enables the Web IDE\'s code completion, compiler features, and firmware update notice.',
+      type : "boolean",
+      defaultValue : true, 
+    });    
     
     Espruino.addProcessor("connected", queryBoardProcess);
   }
   
   function queryBoardProcess(data, callback) {    
+    if (!Espruino.Config.ENV_ON_CONNECT) {
+      return callback(data);
+    }
+
     Espruino.Core.Utils.executeExpression("process.env", function(result) {
       var json = {};
       if (result!==undefined) {
