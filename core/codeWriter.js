@@ -20,6 +20,13 @@
       type : "boolean",
       defaultValue : true
     });
+    Espruino.Core.Config.add("STORE_LINE_NUMBERS", {
+      section : "Communications",
+      name : "Store line numbers",
+      description : "Should Espruino store line numbers for each function? This uses one extra variable per function, but allows you to get source code debugging in the Web IDE",
+      type : "boolean",
+      defaultValue : true
+    });
   }
 
   function writeToEspruino(code, callback) {  
@@ -62,8 +69,10 @@
      if (ENV) {
        if (ENV.VERSION_MAJOR && ENV.VERSION_MINOR) {
          if (ENV.VERSION_MAJOR>1 ||
-             ENV.VERSION_MINOR>=81.086)
-           APPLY_LINE_MUMBERS = true;
+             ENV.VERSION_MINOR>=81.086) {
+           if (Espruino.Config.STORE_LINE_NUMBERS)
+             APPLY_LINE_MUMBERS = true;
+         }
        }
      }
     
