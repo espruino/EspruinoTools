@@ -71,11 +71,15 @@
           return nextToken();
         } else if (ch=="*") {
           nextCh();
-          var last = nextCh();
+          if (ch=="\n") lineNumber++;
+          var last = ch;
+          nextCh();
+          if (ch=="\n") lineNumber++;
           // multiline comment          
           while (ch!==undefined && !(last=="*" && ch=="/")) {
             last = ch;
             nextCh();
+            if (ch=="\n") lineNumber++;
           }
           nextCh();
           return nextToken();
