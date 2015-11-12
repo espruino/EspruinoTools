@@ -52,14 +52,17 @@
     var chAlphaNum = chAlpha+chNum;
     var chWhiteSpace=" \t\n\r";
     var chQuotes = "\"'";
-    var ch = str[0];
-    var idx = 1;
+    var ch;
+    var idx = 0;
     var lineNumber = 1;
-    var nextCh = function() { ch = str[idx++]; };
+    var nextCh = function() { 
+      ch = str[idx++]; 
+      if (ch=="\n") lineNumber++;
+    };
+    nextCh();
     var isIn = function(s,c) { return s.indexOf(c)>=0; } ;
     var nextToken = function() {
-      while (isIn(chWhiteSpace,ch)) {
-        if (ch=="\n") lineNumber++;
+      while (isIn(chWhiteSpace,ch)) {        
         nextCh();
       }
       if (ch==undefined) return undefined; 
@@ -71,15 +74,12 @@
           return nextToken();
         } else if (ch=="*") {
           nextCh();
-          if (ch=="\n") lineNumber++;
           var last = ch;
           nextCh();
-          if (ch=="\n") lineNumber++;
           // multiline comment          
           while (ch!==undefined && !(last=="*" && ch=="/")) {
             last = ch;
             nextCh();
-            if (ch=="\n") lineNumber++;
           }
           nextCh();
           return nextToken();
