@@ -56,11 +56,11 @@
   };
   
   var openSerial=function(serialPort, connectCallback, disconnectCallback) {
-    if (!serialPort in portToDevice) {
+    if (!(serialPort in portToDevice)) {
       console.error("Port "+JSON.stringify(serialPort)+" not found");
       return connectCallback(undefined);
     }
-    currentDevice = portToDevice[serialPort];    
+    currentDevice = portToDevice[serialPort];
     currentDevice.open(serialPort, function(cInfo) {
       // CONNECT
       if (!cInfo) {

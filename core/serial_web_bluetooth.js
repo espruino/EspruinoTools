@@ -89,7 +89,7 @@ var txDataQueue = undefined;
       setTimeout(function() {
         openCallback("All ok");
       }, 500);
-    }).catch(error => {
+    }).catch(function(error) {
       console.log('BT> ERROR: ' + error);
       if (btServer) {
         // we should have this, but chromebook doesn't seem to 
