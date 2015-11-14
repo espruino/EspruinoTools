@@ -60,7 +60,11 @@
       console.error("Port "+JSON.stringify(serialPort)+" not found");
       return connectCallback(undefined);
     }
-    currentDevice = portToDevice[serialPort];    
+    currentDevice = portToDevice[serialPort];
+    if (!currentDevice) {
+      console.error("Could not get device for port "+JSON.stringify(serialPort));
+      return connectCallback(undefined);
+    }
     currentDevice.open(serialPort, function(cInfo) {
       // CONNECT
       if (!cInfo) {
