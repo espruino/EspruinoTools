@@ -133,7 +133,11 @@ inputNode.onaudioprocess = function(e) {
   // call our listener if we've got characters in
   if (charactersRead && connectionReadCallback) {
     setTimeout(function() {
-      connectionReadCallback(charactersRead);
+      // send an arraybuffer, not a string
+      var arr = new Uint8Array(charactersRead.length);
+      for (var i=0;i<charactersRead.length;i++)
+        arr[i] = charactersRead.charCodeAt(i);
+      connectionReadCallback(arr.buffer);
     }, 10);
   }
 };

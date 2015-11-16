@@ -1,7 +1,7 @@
 (function() {
   
   // List of ports and the devices they map to
-  var portToDevice = [];
+  var portToDevice = undefined;
   var currentDevice = undefined;
   
   // called when data received
@@ -56,6 +56,16 @@
   };
   
   var openSerial=function(serialPort, connectCallback, disconnectCallback) {
+    /* If openSerial is called, we need to have called getPorts first
+      in order to figure out which one of the serial_ implementations
+      we must call into. */
+    if (portToDevice === undefined) {
+      portToDevice = []; // stop recursive calls if something errors 
+      return getPorts(function() {
+        openSerial(serialPort, connectCallback, disconnectCallback);
+      });
+    }
+
     if (!(serialPort in portToDevice)) {
       console.error("Port "+JSON.stringify(serialPort)+" not found");
       return connectCallback(undefined);
@@ -77,6 +87,7 @@
       }        
     }, function(data) {
       // RECEIEVE DATA
+      if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers");
       if (readListener) readListener(data);
     }, function() {
       // DISCONNECT

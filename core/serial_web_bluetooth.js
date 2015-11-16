@@ -74,9 +74,8 @@ var txDataQueue = undefined;
       console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
         var characteristic = event.target;
-        var data = ab2str(characteristic.value);
-        console.log("BT> RX:"+JSON.stringify(data));
-        receiveCallback(data);
+        console.log("BT> RX:"+JSON.stringify(ab2str(characteristic.value)));
+        receiveCallback(characteristic.value);
       });
       return rxCharacteristic.startNotifications();
     }).then(function() {
