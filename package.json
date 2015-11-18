@@ -1,0 +1,37 @@
+{
+  "name": "espruino",
+  "version": "0.0.1",
+  "description": "Command Line interface and library for Communications with Espruino JavaScript Microcontrollers",
+  "main": "index.js",
+  "bin": {
+    "espruinotool": "./bin/espruinotool.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/espruino/EspruinoTools.git"
+  },
+  "dependencies": {
+    "fs" : "",
+    "vm" : "",
+    "serialport": "~1.2.5",
+    "jquery": "~2.1.1",
+    "node-jsdom": "",
+    "xmlhttprequest": "~1.7.0",
+    "acorn": "~0.6.0"
+  },
+  "keywords": [
+    "espruino",
+    "microcontroller",
+    "uc",
+    "embedded"
+  ],
+  "author": "Gordon Williams <gw@pur3.co.uk> (http://espruino.com)",
+  "license": "Apache",
+  "bugs": {
+    "url": "https://github.com/espruino/EspruinoTools/issues"
+  },
+  "homepage": "https://github.com/espruino/EspruinoTools#readme"
+}
