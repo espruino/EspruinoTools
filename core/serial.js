@@ -40,6 +40,9 @@
     // get all devices    
     var responses = 0;
     var devices = Espruino.Core.Serial.devices; 
+    if (!devices || devices.length==0) {
+      return callback(ports);
+    }
     devices.forEach(function (device) {
       device.getPorts(function(devicePorts) {
         if (devicePorts) {

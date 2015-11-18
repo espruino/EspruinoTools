@@ -6,8 +6,10 @@ use these files normally in the Web IDE */
 function loadJS(filePath) {
   console.log("Found "+filePath);
   var contents = fs.readFileSync(filePath, {encoding:"utf8"});
-  //return eval(contents);
-  return require("vm").runInThisContext(contents, filePath );
+  return eval(contents);
+  /* the code below would be better, but it doesn't seem to work when running
+   CLI - works fine when running as a module. */ 
+  //return require("vm").runInThisContext(contents, filePath );
 }
 function loadDir(dir) {
   var files = fs.readdirSync(dir);
@@ -77,7 +79,11 @@ exports.sendFile = function(port, filename, callback) {
   var code = fs.readFileSync(filename, {encoding:"utf8"});
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
-    Espruino.Core.Serial.open(port, function() {
+    Espruino.Core.Serial.open(port, function(status) {
+      if (status === undefined) {
+        console.error("Unable to connect!");
+        return callback();
+      }
       Espruino.callProcessor("transformForEspruino", code, function(code) {
         Espruino.Core.CodeWriter.writeToEspruino(code, function() {
           setTimeout(function() {
@@ -96,7 +102,11 @@ exports.expr = function(port, expr, callback) {
   var exprResult = undefined;
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
-    Espruino.Core.Serial.open(port, function() {
+    Espruino.Core.Serial.open(port, function(status) {
+      if (status === undefined) {
+        console.error("Unable to connect!");
+        return callback();
+      }
       Espruino.Core.Utils.executeExpression(expr, function(result) { 
         setTimeout(function() {
           Espruino.Core.Serial.close();
@@ -115,7 +125,11 @@ exports.flash = function(port, filename, callback) {
   var code = fs.readFileSync(filename, {encoding:"utf8"});
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
-    Espruino.Core.Serial.open(port, function() {
+    Espruino.Core.Serial.open(port, function(status) {
+      if (status === undefined) {
+        console.error("Unable to connect!");
+        return callback();
+      }
       Espruino.Core.Flasher.flashBinaryToDevice(fs.readFileSync(filename, {encoding:"binary"}), function(err) {
         console.log(err ? "Error!" : "Success!");
         setTimeout(function() {

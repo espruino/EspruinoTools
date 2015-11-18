@@ -112,7 +112,11 @@ function connect(port, exitCallback) {
      exitTimeout = setTimeout(exitCallback, 500);
    }   
   });
-  Espruino.Core.Serial.open(port, function() {
+  Espruino.Core.Serial.open(port, function(status) {
+    if (status === undefined) {
+      console.error("Unable to connect!");
+      return exitCallback();
+    }
     if (!args.quiet) log("Connected");
     // figure out what code we need to send
     var code = "";
