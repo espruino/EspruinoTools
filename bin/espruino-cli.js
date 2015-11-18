@@ -63,15 +63,17 @@ function setupConfig(Espruino) {
 
 //header
 if (!args.quiet) {
+ var pjson = require('./package.json');
+ console.log(pjson.version);
  log(
-   "espruinotool\n"+
-   "--------------\n"+
+   "Espruino Command-line Tool "+pjson.version+"\n"+
+   "-------------------------------------\n"+
    "");
 }
 
 //Help
 if (args.help) {
- ["USAGE: espruinotool ...options... [file_to_upload.js]",
+ ["USAGE: espruino ...options... [file_to_upload.js]",
   "",
   "  -h,--help               : Show this message",
   "  -v,--verbose            : Verbose",

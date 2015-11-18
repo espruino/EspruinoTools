@@ -6,10 +6,10 @@ This repository contains a set of tools for the [Espruino JavaScript Interpreter
 Command-line
 ------------
 
-When installed as a Node module with `npm install -g espruino` you get a command-line tool called `espruinotool`:
+When installed as a Node module with `npm install -g espruino` you get a command-line tool called `espruino`:
 
 ```
-USAGE: espruinotool ...options... [file_to_upload.js]
+USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help               : Show this message
   -v,--verbose            : Verbose
@@ -27,10 +27,10 @@ For instance:
 
 ```
 # Write a program to Espruino (IF Espruino is the only serial port reported)
-espruinotool myprogram.js
+espruino myprogram.js
 
 # Otherwise you'll want to specify the exact port first
-espruinotool -p /dev/ttyACM0 myprogram.js
+espruino -p /dev/ttyACM0 myprogram.js
 ```
 
 
