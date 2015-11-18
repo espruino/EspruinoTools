@@ -59,6 +59,16 @@ esp.expr(port, expr, callback(result));
 esp.flash(port, filename, callback);
 ```
 
+For example, to get the current temperature of the board you can do:
+
+```
+require('espruino').expr('/dev/ttyACM0', 'E.getTemperature()', function(temp) {
+        console.log('Current temperature is '+temp); 
+});
+```
+
+**Note:** this module is currently a bit noisy - it prints a lot of debug
+information to `console.log` when working.
 
 Internals
 ---------
@@ -77,6 +87,18 @@ To Do
 
 While [EspruinoTools](http://www.github.com/espruino/EspruinoTools) has been in use in the Web IDE for a while, the command-line tool still needs a lot of work.
 
+Main things that need attention at the moment are:
+
+* The local filesystem should be checked for modules that are referenced from Espruino's code, maybe `modules` folder to avoid confusion with node.
+* Remove usage of `console.log` and replace it with something else that can be easily disabled when used as a module
+* Proper 'terminal mode' where you can interact with Espruino directly from the command-line
+
+Cool stuff would be:
+
+* Add a command-line option (`-w`?) to watch a file and re-upload it when it has changed
+* Add an option to expose the serial connection via WebSockets. Something [like the online Web IDE](http://espruino.github.io/EspruinoWebIDE/) could the communicate directly.
+* Support for Nordic UART via [bleat](https://www.npmjs.com/package/bleat)
+* Support for [using the Espruino JS->C compiler](https://github.com/gfwilliams/EspruinoCompiler) offline, if `arm-node-eabi-gcc` is installed.
 
 
 Contributing

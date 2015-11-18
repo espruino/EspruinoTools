@@ -1,7 +1,7 @@
 {
   "name": "espruino",
-  "version": "0.0.4",
-  "description": "Command Line interface and library for Communications with Espruino JavaScript Microcontrollers",
+  "version": "0.0.5",
+  "description": "Command Line Interface and library for Communications with Espruino JavaScript Microcontrollers",
   "main": "index.js",
   "bin": {
     "espruinotool": "./bin/espruinotool.js"
