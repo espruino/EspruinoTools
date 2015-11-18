@@ -3,7 +3,7 @@ Espruino Tools
 
 This repository contains a set of tools for the [Espruino JavaScript Interpreter](http://www.espruino.com).
 
-While it is used directly by the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE), there's are also simple command-lune and `node.js` interfaces.
+While it is used directly by the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE), there's are also simple command-line and `node.js` interfaces.
 
 
 Command-line
