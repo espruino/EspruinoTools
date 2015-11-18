@@ -1,7 +1,10 @@
 Espruino Tools
-=============
+==============
 
-This repository contains a set of tools for the [Espruino JavaScript Interpreter](http://www.espruino.com). Mainly, it is used by the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE) although hopefully it is portable enough to be used by other tools such as command-line interfaces.
+This repository contains a set of tools for the [Espruino JavaScript Interpreter](http://www.espruino.com).
+
+While it is used directly by the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE), there's are also simple command-lune and `node.js` interfaces.
+
 
 Command-line
 ------------
@@ -31,15 +34,24 @@ espruino myprogram.js
 
 # Otherwise you'll want to specify the exact port first
 espruino -p /dev/ttyACM0 myprogram.js
+
+# Load a file into two Espruino boards
+espruino -p /dev/ttyACM1 /dev/ttyACM2 mycode.js
+
+# Load a file into Espruino and save
+espruino -p /dev/ttyACM0 mycode.js -e "save()"
+
+# Execute a single command on the default serial device
+espruino -e "digitalWrite(LED1,1);"
 ```
 
 
 NPM Module
 ----------
 
-This is the NPM module [`espruino`](https://www.npmjs.com/package/espruino)
+This is the NPM module [`espruino`](https://www.npmjs.com/package/espruino). 
 
-It contains the following functions:
+Once installed with `npm install -g espruino` it contains the following functions:
 
 ```
 var esp = require("espruino");
@@ -67,17 +79,19 @@ require('espruino').expr('/dev/ttyACM0', 'E.getTemperature()', function(temp) {
 });
 ```
 
-**Note:** this module is currently a bit noisy - it prints a lot of debug
+**Note:** this module is currently prints a lot of debug
 information to `console.log` when working.
+
 
 Internals
 ---------
 
 This isn't well documented right now, but basically:
 
-* You have a bunch of source files that are automatically run
+* You have a bunch of source files that are automatically loaded by `index.js`
 * These add things to `Espruino.Core` or `Espruino.Plugins`
-* You then call into those to do what you want
+* They also register themselves as `processors` with `Espruino.addProcessor`. For instance you might register for `"transformForEspruino"` in which case you can do something to the JS code before it's finally sent to Espruino. 
+* You then call into `Espruino.Core.X` or `Espruino.Plugins.Y` to do what you want
 
 It's not ideal for node.js, but was designed to run in the Web browser for the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE)
 
@@ -116,7 +130,22 @@ Please be aware that the Espruino Web IDE (and even [a truly online version of t
 ### Code Outline
 
  * Core functionality goes in `core`, Plugins go in `plugins`. See `plugins/_examplePlugin.js` for an example layout
+ * Serial port handlers are a special case - they just add themselves to the `Espruino.Core.Serial.devices` array when loaded.
  * Plugins/core need to implement in init function, which is called when the document (and settings) have loaded.
  * Plugins can respond to specific events using `Espruino.addProcessor`. For instance you can use `Espruino.addProcessor("transformForEspruino", function (data,callback) { .. })` and can modify code before it is sent to Espruino. Events types are documented at the top of `espruino.js`
  * Config is stored in `Espruino.Config.FOO` and is changed with `Espruino.Config.set("FOO", value)`. `Espruino.Core.Config.add` can be used to add an option to the Settings menu.
 
+
+RELATED
+-------
+
+There are other tools available to program Espruino:
+
+* (Recommended) The [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE) (Google Chrome)
+* [Online version of the Web IDE](http://espruino.github.io/EspruinoWebIDE/) (any browser - limited to serial over audio or Web Bluetooth)
+* [espruino-cli](https://www.npmjs.org/package/espruino-cli) (node.js)
+* [node-espruino](https://www.npmjs.com/package/node-espruino) (node.js)
+* [grunt-espruino](https://www.npmjs.com/package/grunt-espruino) (node.js)
+* [espruino](https://github.com/olliephillips/espruingo) (Go)
+
+*Note:* while other tools exist, this EspruinoTools module and the Web IDE which uses it are maintained alongside the Espruino firmware, and tend to have support for various features and edge cases that other tools might not.
