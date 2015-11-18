@@ -32,16 +32,19 @@
     }); 
 
     Espruino.addProcessor("flashComplete", function(env, callback) {
-
-      var icon = Espruino.Core.App.findIcon("update");
-      if(icon) icon.remove();
+      if (Espruino.Core.App) {
+        var icon = Espruino.Core.App.findIcon("update");
+        if(icon) icon.remove();
+      }
 
       callback(env);
     }); 
 
     Espruino.addProcessor("disconnected", function(env, callback) {
-      var icon = Espruino.Core.App.findIcon("update");
-      if(icon) icon.remove();
+      if (Espruino.Core.App) {
+        var icon = Espruino.Core.App.findIcon("update");
+        if(icon) icon.remove();
+      }
       
       callback(env);
     });

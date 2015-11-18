@@ -38,7 +38,7 @@ Gordon Williams (gw@pur3.co.uk)
   };
 
   var closeSerial=function(callback) {
-    connection.close();
+    connection.close(callback);
   };
    
   var writeSerial = function(data, callback) {
