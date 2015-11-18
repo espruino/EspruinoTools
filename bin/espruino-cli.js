@@ -63,11 +63,11 @@ function setupConfig(Espruino) {
 
 //header
 if (!args.quiet) {
- var pjson = require('./package.json');
+ var pjson = require(__dirname+'/../package.json');
  console.log(pjson.version);
  log(
    "Espruino Command-line Tool "+pjson.version+"\n"+
-   "-------------------------------------\n"+
+   "-----------------------------------\n"+
    "");
 }
 
