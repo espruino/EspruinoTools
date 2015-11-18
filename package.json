@@ -1,6 +1,6 @@
 {
   "name": "espruino",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Command Line interface and library for Communications with Espruino JavaScript Microcontrollers",
   "main": "index.js",
   "bin": {
@@ -22,6 +22,7 @@
     "xmlhttprequest": "~1.7.0",
     "acorn": "~0.6.0"
   },
+  "devDependencies": {},
   "keywords": [
     "espruino",
     "microcontroller",
