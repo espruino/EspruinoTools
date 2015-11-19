@@ -120,6 +120,7 @@ Main things that need attention at the moment are:
 Cool stuff would be:
 
 * Add a command-line option (`-w`?) to watch a file and re-upload it when it has changed
+* Allow the final code that's sent to Espruino to be written to a file (useful when there's Compilation/assembly/modules/minification involved).
 * Add an option to expose the serial connection via WebSockets. Something [like the online Web IDE](http://espruino.github.io/EspruinoWebIDE/) could the communicate directly.
 * Support for Nordic UART via [bleat](https://www.npmjs.com/package/bleat)
 * Support for [using the Espruino JS->C compiler](https://github.com/gfwilliams/EspruinoCompiler) offline, if `arm-node-eabi-gcc` is installed.
