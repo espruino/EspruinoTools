@@ -24,11 +24,21 @@ USAGE: espruino ...options... [file_to_upload.js]
   -e command              : Evaluate the given expression on Espruino
                               If no file to upload is specified but you use -e,
                               Espruino will not be reset
+
+If no file, command, or firmware update is specified, this will act
+as a terminal for communicating directly with Espruino. Press Ctrl-C
+twice to exit.
 ```
 
 For instance:
 
 ```
+# Connect to Espruno and act as a terminal app  (IF Espruino is the only serial port reported)
+espruino
+
+# Connect to Espruino on the specified port, act as a terminal
+espruino -p /dev/ttyACM0 
+
 # Write a program to Espruino (IF Espruino is the only serial port reported)
 espruino myprogram.js
 
@@ -105,7 +115,6 @@ Main things that need attention at the moment are:
 
 * The local filesystem should be checked for modules that are referenced from Espruino's code, maybe `modules` folder to avoid confusion with node.
 * Remove usage of `console.log` and replace it with something else that can be easily disabled when used as a module
-* Proper 'terminal mode' where you can interact with Espruino directly from the command-line
 
 Cool stuff would be:
 

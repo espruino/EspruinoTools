@@ -86,12 +86,17 @@ if (args.help) {
   "                              If no file to upload is specified but you use -e,",
   "                              Espruino will not be reset", 
   "",
+  "If no file, command, or firmware update is specified, this will act",
+  "as a terminal for communicating directly with Espruino. Press Ctrl-C",
+  "twice to exit.",
+  "",
   "Please report bugs via https://github.com/espruino/EspruinoTool/issues",
   ""].
    forEach(function(l) {log(l);});  
  process.exit(1);
 }
 
+/* Connect and send file/expression/etc */
 function connect(port, exitCallback) {
   if (!args.quiet) log("Connecting to '"+port+"'");
   var currentLine = "";
@@ -149,18 +154,94 @@ function connect(port, exitCallback) {
     //
     // ---------------------- 
    }, function() {
-     log("Disconnected");
+     log("Disconnected.");
+   });
+}
+
+/* Connect and enter terminal mode */
+function terminal(port, exitCallback) {
+  if (!args.quiet) log("Connecting to '"+port+"'");
+  var hadCtrlC = false;
+  var hadCR = false;
+  process.stdin.setRawMode(true);
+  Espruino.Core.Serial.startListening(function(data) {
+    data = new Uint8Array(data);
+    process.stdout.write(String.fromCharCode.apply(null, data));
+    /* If Espruino responds after a Ctrl-C with anything other
+     than a blank prompt, make sure the next Ctrl-C will exit */
+    for (var i=0;i<data.length;i++) {
+      var ch = data[i];
+      if (ch==8) hadCR = true; 
+      else {
+        if (hadCtrlC && (ch!=62 /*>*/ || !hadCR)) {
+          //process.stdout.write("\nCTRLC RESET BECAUSE OF "+JSON.stringify(String.fromCharCode.apply(null, data))+"  "+hadCR+" "+ch+"\n");
+          hadCtrlC = false;
+        }
+        hadCR = false; 
+      }
+    }
+  });
+  Espruino.Core.Serial.open(port, function(status) {
+    if (status === undefined) {
+      console.error("Unable to connect!");
+      return exitCallback();
+    }
+    if (!args.quiet) log("Connected");
+    process.stdin.on('readable', function() {
+      var chunk = process.stdin.read();
+      if (chunk !== null) {
+        chunk = chunk.toString();
+        Espruino.Core.Serial.write(chunk);
+        // Check for two Ctrl-C in a row (without Espruino doing anything inbetween)
+        for (var i=0;i<chunk.length;i++) {
+          var ch = chunk.charCodeAt(i);
+          if (ch==3) {
+            if (hadCtrlC) {
+              process.stdout.write("\r\n");
+              exitCallback();
+            } else {
+              setTimeout(function() {
+                if (hadCtrlC) process.stdout.write("\nPress Ctrl-C again to exit\n>");
+              }, 200);
+            }
+            hadCtrlC = true;
+          }          
+        }
+      }
+    });
+
+    process.stdin.on('end', function() {
+      console.log("STDIN ended. exiting...");
+      exitCallback();
+    });
+
+   }, function() {
+     log("\nDisconnected.");
+     exitCallback();
    });
 }
 
 function main() {
   setupConfig(Espruino);
 
-  if (Espruino.Core.Serial === undefined) {
-    console.error("No serial driver found");
-    return;
+  if (args.ports.length == 0) {
+    log("Searching for serial ports...");
+    Espruino.Core.Serial.getPorts(function(ports) {
+      console.log(ports);
+      if (ports.length>0) {
+        log("Using first port, "+ports[0]);
+        arg.ports = [ports[0]];
+      } else
+        throw new Error("No Ports Found");        
+    });
   }
-  if (args.ports.length > 0) {
+
+  if (!args.file && !args.updateFirmware && !args.expr) {
+    if (args.ports.length != 1)
+      throw new Error("Can only have one port when using terminal mode");        
+    terminal(args.ports[0], function() { process.exit(0); });
+  } else {
+    
     //closure for stepping through each port 
     //and connect + upload (use timeout callback [iterate] for proceeding)
     (function (ports, connect) {
@@ -172,15 +253,6 @@ function main() {
       }
       iterate();
     })(args.ports, connect); 
-  } else {    
-    log("Searching for serial ports...");
-    Espruino.Core.Serial.getPorts(function(ports) {
-      console.log(ports);
-      if (ports.length>0) 
-        connect(ports[0], function() { process.exit(0); });
-      else
-        throw new Error("No Ports Found");        
-    });
   }
 }
 
