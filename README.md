@@ -19,6 +19,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   -q,--quiet              : Quiet - apart from Espruino output
   -m,--minify             : Minify the code before sending it
   -p,--port /dev/ttyX     : Specify port(s) to connect to
+  -o out.js               : Write the actual JS code sent to Espruino to a file
   -f firmware.bin         : Update Espruino's firmware to the given file
                               Espruino must be in bootloader mode
   -e command              : Evaluate the given expression on Espruino

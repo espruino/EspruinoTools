@@ -12,9 +12,17 @@ console.log = function() {
 var args = {
  ports: []
 };
-var isNextInvalid = function(next) {
- return !next || next.indexOf("-") !== -1 || next.indexOf(".js") !== -1;
+
+var isNextValidPort = function(next) {
+ return next && next.indexOf("-") == -1 && next.indexOf(".js") == -1;
 }
+var isNextValidJS = function(next) {
+ return next && next.indexOf("-") == -1 && next.indexOf(".js") >= 0;
+}
+var isNextValid = function(next) {
+ return next && next.indexOf("-") == -1;
+}
+
 for (var i=2;i<process.argv.length;i++) {
  var arg = process.argv[i];
  var next = process.argv[i+1];
@@ -27,17 +35,20 @@ for (var i=2;i<process.argv.length;i++) {
    else if (arg=="-p" || arg=="--port") { 
      args.ports.push(next); 
      var j = (++i) + 1;
-     while (!isNextInvalid(process.argv[j])) {
+     while (isNextValidPort(process.argv[j])) {
        args.ports.push(process.argv[j++]);
        i++;
      }
-     if (isNextInvalid(next)) throw new Error("Expecting a port argument to -p, --port"); 
+     if (!isNextValidPort(next)) throw new Error("Expecting a port argument to -p, --port"); 
    } else if (arg=="-e") { 
      i++; args.expr = next; 
-     if (isNextInvalid(next)) throw new Error("Expecting an expression argument to -e"); 
+     if (!isNextValid(next)) throw new Error("Expecting an expression argument to -e"); 
+   } else if (arg=="-o") { 
+     i++; args.outputJS = next; 
+     if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o"); 
    } else if (arg=="-f") { 
      i++; args.updateFirmware = next; 
-     if (isNextInvalid(next)) throw new Error("Expecting a filename argument to -f"); 
+     if (!isNextValid(next)) throw new Error("Expecting a filename argument to -f"); 
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -49,7 +60,7 @@ for (var i=2;i<process.argv.length;i++) {
 if (process.argv.length==2) 
  args.help = true;
 //Extra argument stuff
-args.espruinoPrefix = args.quiet?"":"--]";
+args.espruinoPrefix = args.quiet?"":"--] ";
 args.espruinoPostfix = "";
 if (args.color) {
  args.espruinoPrefix = "\033[32m";
@@ -80,6 +91,7 @@ if (args.help) {
   "  -q,--quiet              : Quiet - apart from Espruino output",
   "  -m,--minify             : Minify the code before sending it",
   "  -p,--port /dev/ttyX     : Specify port(s) to connect to",
+  "  -o out.js               : Write the actual JS code sent to Espruino to a file",
   "  -f firmware.bin         : Update Espruino's firmware to the given file",
   "                              Espruino must be in bootloader mode",
   "  -e command              : Evaluate the given expression on Espruino",
@@ -147,6 +159,10 @@ function connect(port, exitCallback) {
     // send code over here...
     if (code)
       Espruino.callProcessor("transformForEspruino", code, function(code) {
+        if (args.outputJS) {
+          log("Writing output to "+args.outputJS);
+          require("fs").writeFileSync(args.outputJS, code); 
+        }
         Espruino.Core.CodeWriter.writeToEspruino(code, function() {
           exitTimeout = setTimeout(exitCallback, 500);
         }); 
@@ -221,27 +237,12 @@ function terminal(port, exitCallback) {
    });
 }
 
-function main() {
-  setupConfig(Espruino);
-
-  if (args.ports.length == 0) {
-    log("Searching for serial ports...");
-    Espruino.Core.Serial.getPorts(function(ports) {
-      console.log(ports);
-      if (ports.length>0) {
-        log("Using first port, "+ports[0]);
-        arg.ports = [ports[0]];
-      } else
-        throw new Error("No Ports Found");        
-    });
-  }
-
+function startConnect() {
   if (!args.file && !args.updateFirmware && !args.expr) {
     if (args.ports.length != 1)
       throw new Error("Can only have one port when using terminal mode");        
     terminal(args.ports[0], function() { process.exit(0); });
   } else {
-    
     //closure for stepping through each port 
     //and connect + upload (use timeout callback [iterate] for proceeding)
     (function (ports, connect) {
@@ -254,6 +255,23 @@ function main() {
       iterate();
     })(args.ports, connect); 
   }
+}
+
+function main() {
+  setupConfig(Espruino);
+
+  if (args.ports.length == 0) {
+    console.log("Searching for serial ports...");
+    Espruino.Core.Serial.getPorts(function(ports) {
+      console.log("PORTS:\n  "+ports.join("\n  "));
+      if (ports.length>0) {
+        log("Using first port, "+ports[0]);
+        args.ports = [ports[0]];
+        startConnect();
+      } else
+        throw new Error("No Ports Found");        
+    });
+  } else startConnect();
 }
 
 // Start up
