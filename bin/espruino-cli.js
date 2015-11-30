@@ -43,6 +43,9 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="-e") { 
      i++; args.expr = next; 
      if (!isNextValid(next)) throw new Error("Expecting an expression argument to -e"); 
+   } else if (arg=="-b") {
+     i++; args.baudRate = parseInt(next);
+     if (!isNextValid(next) || isNaN(args.baudRate)) throw new Error("Expecting a numeric argument to -b"); 
    } else if (arg=="-o") { 
      i++; args.outputJS = next; 
      if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o"); 
@@ -56,9 +59,6 @@ for (var i=2;i<process.argv.length;i++) {
    args.file = arg;
  }
 }
-//if nothing, show help and exit
-if (process.argv.length==2) 
- args.help = true;
 //Extra argument stuff
 args.espruinoPrefix = args.quiet?"":"--] ";
 args.espruinoPostfix = "";
@@ -69,7 +69,10 @@ if (args.color) {
 //this is called after Espruino tools are loaded, and
 //sets up configuration as requested by the command-line options
 function setupConfig(Espruino) {
- if (args.minify) Espruino.Config.MINIFICATION_LEVEL = "SIMPLE_OPTIMIZATIONS";
+ if (args.minify) 
+   Espruino.Config.MINIFICATION_LEVEL = "SIMPLE_OPTIMIZATIONS";
+ if (args.baudRate && !isNaN(args.baudRate))
+   Espruino.Config.BAUD_RATE = args.baudRate;
 }
 
 //header
@@ -91,6 +94,8 @@ if (args.help) {
   "  -q,--quiet              : Quiet - apart from Espruino output",
   "  -m,--minify             : Minify the code before sending it",
   "  -p,--port /dev/ttyX     : Specify port(s) to connect to",
+  "  -b baudRate             : Set the baud rate of the serial connection",
+  "                              No effect when using USB, default: 9600",
   "  -o out.js               : Write the actual JS code sent to Espruino to a file",
   "  -f firmware.bin         : Update Espruino's firmware to the given file",
   "                              Espruino must be in bootloader mode",
