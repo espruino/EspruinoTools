@@ -1,6 +1,6 @@
 {
   "name": "espruino",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Command Line Interface and library for Communications with Espruino JavaScript Microcontrollers",
   "main": "index.js",
   "bin": {
@@ -14,11 +14,11 @@
     "url": "git+https://github.com/espruino/EspruinoTools.git"
   },
   "dependencies": {
-    "serialport": "~1.2.5",
-    "jquery": "~2.1.1",
+    "serialport": ">=1.2.5",
+    "jquery": ">=2.1.1",
     "node-jsdom": "",
-    "xmlhttprequest": "~1.7.0",
-    "acorn": "~0.6.0"
+    "xmlhttprequest": ">=1.7.0",
+    "acorn": ">=0.6.0"
   },
   "devDependencies": {},
   "keywords": [
