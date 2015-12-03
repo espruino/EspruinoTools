@@ -82,8 +82,8 @@
     }
 
     var loadProcessedModule = function (moduleCode) {
-      // add the module
-      loadedModuleData.push("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
+      // add the module to the beginning of our array
+      loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
       // if we needed to load something, wait until we have all promises complete before resolving our promise!
       if(newPromises.length > 0) {
         $.when.apply(null,newPromises).then(function(){ dfd.resolve(); });
@@ -155,7 +155,7 @@
    those modules are loaded into the module cache beforehand
    (by inserting the relevant 'addCached' commands into 'code' */
   function loadModules(code, callback){
-    var loadedModuleData = ["Modules.removeAllCached();"];
+    var loadedModuleData = [];
     var requires = getModulesRequired(code);
     if (requires.length == 0) {
       // no modules needed - just return
@@ -167,7 +167,7 @@
       });
       // When all promises are complete
       $.when.apply(null,promises).then(function(){ 
-        callback(loadedModuleData.join("\n") + "\n" + code); 
+        callback("Modules.removeAllCached();" + loadedModuleData.join("\n") + "\n" + code); 
       });
     }
   };
