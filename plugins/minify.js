@@ -97,6 +97,13 @@
 
   // Use the 'offline' Esprima compile
   function minifyCodeEsprima(code,callback) {
+    if ((typeof esprima == "undefined") ||
+        (typeof esmangle == "undefined") ||
+        (typeof escodegen == "undefined")) {
+      console.warn("esprima/esmangle/escodegen not defined - not minifying")
+      return callback(code);
+    }
+
     var code, syntax, option, str, before, after;
     var options = {};
     options["mangle"] = Espruino.Config.MINIFICATION_Mangle;
@@ -120,9 +127,14 @@
         }
     } catch (e) {
       Espruino.Core.Notifications.error(e.toString());
+      console.error(e.stack);
+      callback(code);
     } finally { }
   }
   function obfuscate(syntax,options) {
+    // hack for random changes between version we have included for Web IDE and node.js version
+    if (typeof esmangle.require == "undefined")
+      esmangle.require = esmangle.pass.require;
     var result = esmangle.optimize(syntax, createPipeline(options));
     if (options.mangle) { result = esmangle.mangle(result);}
     return result;
