@@ -104,19 +104,19 @@
         if (e.keyCode == 'C'.charCodeAt(0)) ch = String.fromCharCode(3); // control C
       }
       if (e.altKey) {
-        if (e.keyCode == 13) ch = String.fromCharCode(27)+String.fromCharCode(10); // Alt enter
+        if (e.keyCode == 13) ch = String.fromCharCode(27,10); // Alt enter
       }
       if (e.keyCode == 8) ch = "\x08"; // backspace
       if (e.keyCode == 9) ch = "\x09"; // tab
-      if (e.keyCode == 46) ch = String.fromCharCode(27)+String.fromCharCode(91)+String.fromCharCode(51)+String.fromCharCode(126); // delete
-      if (e.keyCode == 38) ch = String.fromCharCode(27)+String.fromCharCode(91)+String.fromCharCode(65); // up
-      if (e.keyCode == 40) ch = String.fromCharCode(27)+String.fromCharCode(91)+String.fromCharCode(66); // down
-      if (e.keyCode == 39) ch = String.fromCharCode(27)+String.fromCharCode(91)+String.fromCharCode(67); // right
-      if (e.keyCode == 37) ch = String.fromCharCode(27)+String.fromCharCode(91)+String.fromCharCode(68); // left
-      if (e.keyCode == 36) ch = String.fromCharCode(27)+String.fromCharCode(79)+String.fromCharCode(72); // home
-      if (e.keyCode == 35) ch = String.fromCharCode(27)+String.fromCharCode(79)+String.fromCharCode(70); // end
-      if (e.keyCode == 33) ch = String.fromCharCode(27)+String.fromCharCode(91)+String.fromCharCode(53)+String.fromCharCode(126); // page up
-      if (e.keyCode == 34) ch = String.fromCharCode(27)+String.fromCharCode(91)+String.fromCharCode(54)+String.fromCharCode(126); // page down
+      if (e.keyCode == 46) ch = String.fromCharCode(27,91,51,126); // delete
+      if (e.keyCode == 38) ch = String.fromCharCode(27,91,65); // up
+      if (e.keyCode == 40) ch = String.fromCharCode(27,91,66); // down
+      if (e.keyCode == 39) ch = String.fromCharCode(27,91,67); // right
+      if (e.keyCode == 37) ch = String.fromCharCode(27,91,68); // left
+      if (e.keyCode == 36) ch = String.fromCharCode(27,79,72); // home
+      if (e.keyCode == 35) ch = String.fromCharCode(27,79,70); // end
+      if (e.keyCode == 33) ch = String.fromCharCode(27,91,53,126); // page up
+      if (e.keyCode == 34) ch = String.fromCharCode(27,91,54,126); // page down
 
       if (ch!=undefined) {
         e.preventDefault();
