@@ -47,7 +47,7 @@
    * It'll return {type:"type", str:"chars that were parsed", value:"string", startIdx: Index in string of the start, endIdx: Index in string of the end}, until EOF when it returns undefined */
   function getLexer(str) {
     // Nasty lexer - no comments/etc
-    var chAlpha="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    var chAlpha="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$";
     var chNum="0123456789";
     var chAlphaNum = chAlpha+chNum;
     var chWhiteSpace=" \t\n\r";
