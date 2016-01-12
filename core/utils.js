@@ -188,7 +188,8 @@
   
   /** Return the value of executing an expression on the board */
   function executeExpression(expressionToExecute, callback) {
-    var  receivedData = "";
+    var receivedData = "";
+    var hadDataSinceTimeout = false;
     
     function getProcessInfo(expressionToExecute, callback) {      
       var prevReader = Espruino.Core.Serial.startListening(function (readData) {
@@ -208,10 +209,11 @@
           // try and strip out the echo 0 too...
           receivedData = receivedData.replace("echo(0);","");       
           // Now stop time timeout
-          clearTimeout(timeout);
+          clearInterval(timeout);
           // Do the next stuff
           nextStep(result);
-        }
+        } else if (startProcess >= 0)
+          hadDataSinceTimeout = true;
       });
       
       // when we're done...
@@ -236,11 +238,17 @@
         Espruino.Core.Serial.write('\x03echo(0);\nconsole.log("<<"+"<<<"+JSON.stringify('+expressionToExecute+')+">>>"+">>");\n');
       }, 20);
 
-      //
-      var timeout = setTimeout(function(){
+      var maxTimeout = 20; // 10 secs
+      var timeout = setInterval(function onTimeout(){
+        // if we're still getting data, keep waiting for up to 10 secs
+        if (hadDataSinceTimeout && (maxTimeout--)>0) {
+          hadDataSinceTimeout = false;
+          return;
+        }
+        clearInterval(timeout);
         console.warn("No result found - just got "+JSON.stringify(receivedData));          
         nextStep(undefined);        
-      },1000);   
+      }, 1000);   
     }    
    
     if(Espruino.Core.Serial.isConnected()){

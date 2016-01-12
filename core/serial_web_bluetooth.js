@@ -26,11 +26,13 @@ function str2ab(str) {
 
 
 var btServer = undefined;
+var btChecker;
 var connectionDisconnectCallback;
 
 var txCharacteristic;
 var rxCharacteristic;
 var txDataQueue = undefined;
+var txInProgress = false;
 
   function init() {
     Espruino.Core.Config.add("WEB_BLUETOOTH", {
@@ -53,16 +55,25 @@ var txDataQueue = undefined;
     connectionDisconnectCallback = disconnectCallback;
 
     var btService;
-
+        
     navigator.bluetooth.requestDevice({filters:[{services:[ NORDIC_SERVICE ]}]}).then(function(device) {
       console.log('BT>  Device Name:       ' + device.name);
-      console.log('BT>  Device InstanceID: ' + device.instanceID);
+      console.log('BT>  Device ID: '         + device.id);
       console.log('BT>  Device Paired:     ' + device.paired);
       console.log('BT>  Device Class:      ' + device.deviceClass);
       console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
       return device.connectGATT();
     }).then(function(server) {
       console.log("BT> Connected");
+      // Check for disconnects
+      btChecker = setInterval(function() {
+        if (!btServer.connected) {
+          clearInterval(btChecker);
+          btChecker = undefined;
+          console.log("BT> Disconnected");
+          disconnectCallback();
+        }
+      }, 1000);
       btServer = server;  
       return server.getPrimaryService(NORDIC_SERVICE);
     }).then(function(service) {
@@ -85,14 +96,19 @@ var txDataQueue = undefined;
       console.log("BT> TX characteristic:"+JSON.stringify(txCharacteristic));          
     }).then(function() {
       txDataQueue = undefined;
+      txInProgress = false;
+      Espruino.Core.Serial.setSlowWrite(false, true); // hack - leave throttling up to this implementation
       setTimeout(function() {
         openCallback("All ok");
       }, 500);
     }).catch(function(error) {
       console.log('BT> ERROR: ' + error);
-      if (btServer) {
-        // we should have this, but chromebook doesn't seem to 
-      if (btServer.disconnect) btServer.disconnect();
+      if (btChecker) {
+        clearInterval(btChecker);
+        btChecker = undefined;
+      }
+      if (btServer) {        
+        if (btServer.disconnect) btServer.disconnect(); // Chromebook doesn't have disconnect?
         btServer = undefined;
         txCharacteristic = undefined;
         rxCharacteristic = undefined;
@@ -103,8 +119,11 @@ var txDataQueue = undefined;
  
   var closeSerial=function() {
     if (btServer) {
-      // we should have this, but chromebook doesn't seem to 
-      if (btServer.disconnect) btServer.disconnect();
+      if (btChecker) {
+        clearInterval(btChecker);
+        btChecker = undefined;
+      }
+      if (btServer.disconnect) btServer.disconnect(); // Chromebook doesn't have disconnect?
       btServer = undefined;
       txCharacteristic = undefined;
       rxCharacteristic = undefined;
@@ -115,30 +134,41 @@ var txDataQueue = undefined;
   // Throttled serial write
   var writeSerial = function(data, callback) {
     if (!txCharacteristic) return; 
-
-    if (typeof txDataQueue != "undefined") {
+    if (typeof txDataQueue != "undefined" || txInProgress) {
+      if (txDataQueue===undefined) 
+        txDataQueue="";
       txDataQueue += data;
       return callback();
+    } else {
+      txDataQueue = data;
     }
 
-    // TODO: chunk sizes
-    txDataQueue = "";
-    console.log("BT> Sending "+ JSON.stringify(data));
-    try {
-      txCharacteristic.writeValue(str2ab(data)).then(function cb() {
-        setTimeout(function(){
+    function writeChunk() {
+      var chunk;
+      var CHUNKSIZE = 16;
+      if (txDataQueue.length <= CHUNKSIZE) {
+        chunk = txDataQueue;    
+        txDataQueue = undefined;
+      } else { 
+        chunk = txDataQueue.substr(0,CHUNKSIZE);
+        txDataQueue = txDataQueue.substr(CHUNKSIZE);
+      }
+      txInProgress = true;
+      console.log("BT> Sending "+ JSON.stringify(chunk));
+      try {
+        txCharacteristic.writeValue(str2ab(chunk)).then(function() {
           console.log("BT> Sent");
-          callback();
-          if (txDataQueue && txDataQueue.length) {
-            txCharacteristic.writeValue(str2ab(txDataQueue)).then(cb);
-          }
-          txDataQueue = undefined;
-        },500); // just throttle write for now
-      });
-    } catch (e) {
-      console.log("BT> ERROR "+e);
-      txDataQueue = undefined;
+          txInProgress = false;                
+          if (txDataQueue)
+            writeChunk();
+        });
+      } catch (e) {
+        console.log("BT> ERROR "+e);
+        txDataQueue = undefined;
+      }
     }
+    writeChunk();
+    return callback();
   };
   
   // ----------------------------------------------------------
