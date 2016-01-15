@@ -56,7 +56,9 @@ var txInProgress = false;
 
     var btService;
         
-    navigator.bluetooth.requestDevice({filters:[{services:[ NORDIC_SERVICE ]}]}).then(function(device) {
+    //navigator.bluetooth.requestDevice({filters:[{services:[ NORDIC_SERVICE ]}]}).then(function(device) {
+    // FIXME: Device filtering based on service ID doesn't seem to work reliably
+    navigator.bluetooth.requestDevice({filters:[{namePrefix: "Espruino" }]}).then(function(device) {
       console.log('BT>  Device Name:       ' + device.name);
       console.log('BT>  Device ID: '         + device.id);
       console.log('BT>  Device Paired:     ' + device.paired);
@@ -75,7 +77,13 @@ var txInProgress = false;
         }
       }, 1000);
       btServer = server;  
-      return server.getPrimaryService(NORDIC_SERVICE);
+      // FIXME: Remove this timeout when GattServices property works as intended.
+      // crbug.com/560277
+      return new Promise(function(resolve) {
+        setTimeout(function() {
+          resolve(server.getPrimaryService(NORDIC_SERVICE));
+        }, 2000);
+      })
     }).then(function(service) {
       console.log("BT> Got service");
       btService = service;
