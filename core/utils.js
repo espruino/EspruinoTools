@@ -198,11 +198,11 @@
           receivedData += String.fromCharCode(bufView[i]);
         }
         // check if we got what we wanted
-        var startProcess = receivedData.indexOf("<< <<<");
-        var endProcess = receivedData.indexOf(">>> >>", startProcess);
+        var startProcess = receivedData.indexOf("< <<");
+        var endProcess = receivedData.indexOf(">> >", startProcess);
         if(startProcess >= 0 && endProcess > 0){
           // All good - get the data!
-          var result = receivedData.substring(startProcess + 5,endProcess);       
+          var result = receivedData.substring(startProcess + 4,endProcess);       
           console.log("Got "+JSON.stringify(receivedData)); 
           // strip out the text we found
           receivedData = receivedData.substr(0,startProcess) + receivedData.substr(endProcess+5);
@@ -235,7 +235,7 @@
       // was already read by the board.
       setTimeout(function() {
         // string adds to stop the command tag being detected in the output
-        Espruino.Core.Serial.write('\x03echo(0);\nconsole.log("<<","<<<",JSON.stringify('+expressionToExecute+'),">>>",">>");\n');
+        Espruino.Core.Serial.write('\x03echo(0);\nconsole.log("<","<<",JSON.stringify('+expressionToExecute+'),">>",">");\n');
       }, 20);
 
       var maxTimeout = 20; // 10 secs

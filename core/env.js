@@ -41,7 +41,7 @@
         try {       
           json = JSON.parse(result);
         } catch (e) {
-          console.log("JSON parse failed - " + e);
+          console.log("JSON parse failed - " + e + " in " + JSON.stringify(result));
         }
       }
       // now process the enviroment variables

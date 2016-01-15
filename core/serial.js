@@ -131,9 +131,8 @@
     return currentDevice!==undefined;
   };
 
-  // Throttled serial write
-  var writeSerial = function(data, showStatus) {
-    if (!isConnected()) return; // throw data away
+   // Throttled serial write
+  var writeSerial = function(data, showStatus, callback) {    
     if (showStatus===undefined) showStatus=true;
 
     // Queue our data to write
@@ -160,9 +159,19 @@
       
       if (writeData!==undefined) {
         var d = undefined;
-        if (writeData.length>blockSize) {
-          d = writeData.substr(0,blockSize);
-          writeData = writeData.substr(blockSize);
+
+        var s = blockSize;
+        var delay = 50;
+        // if we get a Ctrl-C, wait a bit until it is processed before sending more
+        var ctrlCIdx = writeData.indexOf("\x03"); // check for Ctrl+C
+        if (ctrlCIdx>=0 && ctrlCIdx < s) {          
+          s = ctrlCIdx+1;
+          delay = 250;
+        }
+        // Only send some of the data
+        if (writeData.length>s) {
+          d = writeData.substr(0,s);
+          writeData = writeData.substr(s);
         } else {
           d = writeData;
           writeData = undefined; 
@@ -171,13 +180,16 @@
         if (showStatus) 
           Espruino.Core.Status.incrementProgress(d.length);        
         // actually write data
+        //console.log("Sending block "+JSON.stringify(d)+", wait "+delay+"ms");
         currentDevice.write(d, function() {
           // now written...
           if (writeData!==undefined) {
-            writeTimeout = setTimeout(sender, 50);
+            writeTimeout = setTimeout(sender, delay);
           } else {
             if (showStatus) 
               Espruino.Core.Status.setStatus("Sent");
+            if (callback)
+              callback();
           }
         });
       } 
@@ -187,6 +199,7 @@
       sender(); // start sending instantly
     } 
   };
+
   
   // ----------------------------------------------------------
   Espruino.Core.Serial = {
