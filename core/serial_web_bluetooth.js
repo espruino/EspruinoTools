@@ -92,9 +92,11 @@ var txInProgress = false;
       rxCharacteristic = s;
       console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
-        var characteristic = event.target;
-        console.log("BT> RX:"+JSON.stringify(ab2str(characteristic.value)));
-        receiveCallback(characteristic.value);
+        var value = event.target.value;
+        // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.
+        value = value.buffer ? value.buffer : value;
+        console.log("BT> RX:"+JSON.stringify(ab2str(value)));
+        receiveCallback(value);
       });
       return rxCharacteristic.startNotifications();
     }).then(function() {
