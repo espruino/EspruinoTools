@@ -32,6 +32,8 @@ for (var i=2;i<process.argv.length;i++) {
    else if (arg=="-q" || arg=="--quiet") args.quiet = true;
    else if (arg=="-c" || arg=="--color") args.color = true;
    else if (arg=="-m" || arg=="--minify") args.minify = true;
+   else if (arg=="-t" || arg=="--time") args.setTime = true;
+   else if (arg=="--ble") args.ble = true;
    else if (arg=="-p" || arg=="--port") { 
      args.ports.push(next); 
      var j = (++i) + 1;
@@ -51,7 +53,7 @@ for (var i=2;i<process.argv.length;i++) {
      if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o"); 
    } else if (arg=="-f") { 
      i++; args.updateFirmware = next; 
-     if (!isNextValid(next)) throw new Error("Expecting a filename argument to -f"); 
+     if (!isNextValid(next)) throw new Error("Expecting a filename argument to -f");
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -73,6 +75,10 @@ function setupConfig(Espruino) {
    Espruino.Config.MINIFICATION_LEVEL = "SIMPLE_OPTIMIZATIONS";
  if (args.baudRate && !isNaN(args.baudRate))
    Espruino.Config.BAUD_RATE = args.baudRate;
+ if (args.ble) 
+   Espruino.Config.BLUETOOTH_LOW_ENERGY = true;
+ if (args.setTime) 
+   Espruino.Config.SET_TIME_ON_WRITE = true;
 }
 
 //header
@@ -96,6 +102,8 @@ if (args.help) {
   "  -p,--port /dev/ttyX     : Specify port(s) to connect to",
   "  -b baudRate             : Set the baud rate of the serial connection",
   "                              No effect when using USB, default: 9600",
+  "  --ble                   : Try and connect with Bluetooth Low Energy (using the 'bleat' module)",  
+  "  -t,--time               : Set Espruino's time when uploading code",
   "  -o out.js               : Write the actual JS code sent to Espruino to a file",
   "  -f firmware.bin         : Update Espruino's firmware to the given file",
   "                              Espruino must be in bootloader mode",
