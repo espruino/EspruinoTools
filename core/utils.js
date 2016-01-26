@@ -212,8 +212,10 @@
           clearInterval(timeout);
           // Do the next stuff
           nextStep(result);
-        } else if (startProcess >= 0)
+        } else if (startProcess >= 0) {
+          // we got some data - so keep waiting...
           hadDataSinceTimeout = true;
+        }
       });
       
       // when we're done...
@@ -228,27 +230,27 @@
         callback(result);
       };
 
-      // Ensure that we have some chars on input line so that next Ctrl-C
+      // Ensure that we have a charavter on input line so that next Ctrl-C
       // character will clear the line and will not cause interrupt
-      Espruino.Core.Serial.write('O_o'); 
-      // Write main expression after small delay to ensure that 'O_o'
-      // was already read by the board.
-      setTimeout(function() {
-        // string adds to stop the command tag being detected in the output
-        Espruino.Core.Serial.write('\x03echo(0);\nconsole.log("<","<<",JSON.stringify('+expressionToExecute+'),">>",">");\n');
-      }, 20);
+      // string adds to stop the command tag being detected in the output
+      // until it is actually executed
+      Espruino.Core.Serial.write(' \x03echo(0);\nconsole.log("<","<<",JSON.stringify('+expressionToExecute+'),">>",">");\n');
 
       var maxTimeout = 20; // 10 secs
+      var timeoutCnt = 0;
       var timeout = setInterval(function onTimeout(){
+        timeoutCnt++;
         // if we're still getting data, keep waiting for up to 10 secs
-        if (hadDataSinceTimeout && (maxTimeout--)>0) {
+        if (hadDataSinceTimeout && timeoutCnt<maxTimeout) {
           hadDataSinceTimeout = false;
-          return;
-        }
-        clearInterval(timeout);
-        console.warn("No result found - just got "+JSON.stringify(receivedData));          
-        nextStep(undefined);        
-      }, 1000);   
+        } else if (timeoutCnt>2) {
+          // No data in 1 second
+          // OR we keep getting data for > maxTimeout seconds
+          clearInterval(timeout);
+          console.warn("No result found - just got "+JSON.stringify(receivedData));          
+          nextStep(undefined);        
+        }        
+      }, 500);   
     }    
    
     if(Espruino.Core.Serial.isConnected()){
