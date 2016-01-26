@@ -19,6 +19,10 @@ USAGE: espruino ...options... [file_to_upload.js]
   -q,--quiet              : Quiet - apart from Espruino output
   -m,--minify             : Minify the code before sending it
   -p,--port /dev/ttyX     : Specify port(s) to connect to
+  -b baudRate             : Set the baud rate of the serial connection
+                            No effect when using USB, default: 9600
+  --ble                   : Try and connect with Bluetooth Low Energy (using the 'bleat' module)",  
+  -t,--time               : Set Espruino's time when uploading code
   -o out.js               : Write the actual JS code sent to Espruino to a file
   -f firmware.bin         : Update Espruino's firmware to the given file
                               Espruino must be in bootloader mode
