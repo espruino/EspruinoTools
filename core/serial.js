@@ -136,12 +136,10 @@
     if (showStatus===undefined) showStatus=true;
 
     // Queue our data to write
-    var wasSending = false;
     if (writeData == undefined) {      
       writeData = data;
     } else {
       writeData += data;
-      wasSending = true;
     }
     
     /* if we're throttling our writes we want to send small
@@ -156,48 +154,56 @@
 
     function sender() {
       writeTimeout = undefined; // we've been called
+
+      if (writeData === "") {
+        if (showStatus) 
+          Espruino.Core.Status.setStatus("Sent");
+        if (callback)
+          callback();
+        return;
+      }
       
       if (writeData!==undefined) {
         var d = undefined;
 
-        var s = blockSize;
-        var delay = 50;
-        // if we get a Ctrl-C, wait a bit until it is processed before sending more
-        var ctrlCIdx = writeData.indexOf("\x03"); // check for Ctrl+C
-        if (ctrlCIdx>=0 && ctrlCIdx < s) {          
-          s = ctrlCIdx+1;
-          delay = 250;
+        // if we get something like Ctrl-C or `reset`, wait a bit for it to complete
+        var split = { start:blockSize, end:blockSize, delay:50 };
+        function findSplitIdx(prev, substr, delay) {
+          var match = writeData.match(substr);
+          // for found, or previous find was earlier in str
+          if (match===null || (prev.start>0 && prev.start<match.index)) return prev;
+          // found, and earlier
+          prev.start = match.index;
+          prev.end = match.index + match[0].length;
+          prev.delay = delay;
+          prev.match = match[0];
+          return prev;
         }
+        split = findSplitIdx(split, "\x03", 250); // Ctrl-C
+        split = findSplitIdx(split, "reset\(\);\n", 250); // Reset
+        split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);\n/, 250); // Adding a module
+        //if (split.match) console.log("Splitting at "+JSON.stringify(split.match));
         // Only send some of the data
-        if (writeData.length>s) {
-          d = writeData.substr(0,s);
-          writeData = writeData.substr(s);
+        if (writeData.length>split.end) {
+          d = writeData.substr(0,split.end);
+          writeData = writeData.substr(split.end);
         } else {
           d = writeData;
-          writeData = undefined; 
+          writeData = ""; 
         }          
         // update status
         if (showStatus) 
           Espruino.Core.Status.incrementProgress(d.length);        
         // actually write data
-        //console.log("Sending block "+JSON.stringify(d)+", wait "+delay+"ms");
+        //console.log("Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
         currentDevice.write(d, function() {
-          // now written...
-          if (writeData!==undefined) {
-            writeTimeout = setTimeout(sender, delay);
-          } else {
-            if (showStatus) 
-              Espruino.Core.Status.setStatus("Sent");
-            if (callback)
-              callback();
-          }
+          // Once written, start timeout 
+          writeTimeout = setTimeout(sender, split.delay);
         });
       } 
     }
     
-    if (!wasSending) {
-      sender(); // start sending instantly
-    } 
+    sender(); // start sending instantly
   };
 
   

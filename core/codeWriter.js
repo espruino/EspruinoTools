@@ -34,8 +34,7 @@
     if (code === undefined) return; // it should already have errored
     
     var realSendSerial = function(data) {
-
-      console.log("Sending... "+data);
+      //console.log("Sending... "+data);
       var full = "echo(0);\n" + data + "\necho(1);\n";
       Espruino.Core.Serial.write(full);
 

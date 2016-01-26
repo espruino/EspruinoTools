@@ -167,7 +167,7 @@
       });
       // When all promises are complete
       $.when.apply(null,promises).then(function(){ 
-        callback("Modules.removeAllCached();" + loadedModuleData.join("\n") + "\n" + code); 
+        callback("Modules.removeAllCached();\n" + loadedModuleData.join("\n") + "\n" + code); 
       });
     }
   };
