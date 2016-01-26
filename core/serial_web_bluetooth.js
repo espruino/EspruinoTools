@@ -56,9 +56,7 @@ var txInProgress = false;
 
     var btService;
         
-    //navigator.bluetooth.requestDevice({filters:[{services:[ NORDIC_SERVICE ]}]}).then(function(device) {
-    // FIXME: Device filtering based on service ID doesn't seem to work reliably
-    navigator.bluetooth.requestDevice({filters:[{namePrefix: "Espruino" }]}).then(function(device) {
+    navigator.bluetooth.requestDevice({filters:[{services:[ NORDIC_SERVICE ]}]}).then(function(device) {
       console.log('BT>  Device Name:       ' + device.name);
       console.log('BT>  Device ID: '         + device.id);
       console.log('BT>  Device Paired:     ' + device.paired);
