@@ -26,7 +26,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
     Espruino.Core.Config.add("SERIAL_TCPIP", {
       section : "Communications",
       name : "Connect over TCP Address",
-      description : "When connecting, add a menu item to connect to a given TCP/IP address (eg. `192.168.1.2` or `192.168.1.2:23`). Leave blank to disable.",
+      description : "When connecting, add a menu item to connect to a given TCP/IP address (eg. `192.168.1.2` or `192.168.1.2:23`). Leave blank to disable. Separate multiple ip addresses with a semi-colon.",
       type : "string",
       defaultValue : "", 
     });
