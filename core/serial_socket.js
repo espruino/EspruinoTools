@@ -38,15 +38,24 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
   var connectionReadCallback;  
 
   var getPorts = function(callback) {
-    if (Espruino.Config.SERIAL_TCPIP.trim() != "")
-      callback(['TCP/IP: ' + Espruino.Config.SERIAL_TCPIP]);
-    else
+    if (Espruino.Config.SERIAL_TCPIP.trim() != "") {      
+      var ips = Espruino.Config.SERIAL_TCPIP.trim().split(";");
+      var portList = [];
+      ips.forEach(function(s) { 
+        s = s.trim();
+        if (s.length) portList.push('TCP/IP: '+s); 
+      })
+      callback(portList);
+    } else
       callback();
   };
   
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
-
-    var host = Espruino.Config.SERIAL_TCPIP.trim();
+    if (serialPort.substr(0,8)!='TCP/IP: ') {
+      console.error("Invalid connection "+JSON.stringify(serialPort));
+      return;
+    }
+    var host = serialPort.substr(8);
     var port = 23;
     if (host.indexOf(":") >= 0) {
       var i = host.indexOf(":");
