@@ -149,7 +149,8 @@
    * and hope it comes back. Calls callback with first argument true if it
      had to Ctrl-C out */
   function getEspruinoPrompt(callback) {
-    if (Espruino.Core.Terminal.getTerminalLine()==">") {
+    if (Espruino.Core.Terminal!==undefined &&
+        Espruino.Core.Terminal.getTerminalLine()==">") {
       console.log("Found a prompt... great!");
       return callback();
     }

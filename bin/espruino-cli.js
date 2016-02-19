@@ -276,7 +276,10 @@ function main() {
   if (args.ports.length == 0) {
     console.log("Searching for serial ports...");
     Espruino.Core.Serial.getPorts(function(ports) {
-      console.log("PORTS:\n  "+ports.join("\n  "));
+      console.log("PORTS:\n  "+ports.map(function(p) {
+        if (p.description) return p.path + " ("+p.description+")";
+        return p.path;
+      }).join("\n  "));
       if (ports.length>0) {
         log("Using first port, "+ports[0]);
         args.ports = [ports[0].path];

@@ -33,8 +33,12 @@ Gordon Williams (gw@pur3.co.uk)
 //          })  
           .map(function(port) {
             // port.pnpId could be handy
-            console.log(port);
-            return { path : port.comName, usb : [e.vendorId, e.productId] };
+            var vid = parseInt(port.vendorId);
+            var pid = parseInt(port.productId);
+            var d = { path : port.comName };
+            if (vid||pid) d.usb = [vid,pid];
+            if (port.manufacturer) d.description = port.manufacturer;
+            return d;
           })
       );
     });

@@ -48,7 +48,8 @@
       Espruino.Core.Serial.write(code, true, function() {
         var count = 20;
         setTimeout(function cb() {
-          if (Espruino.Core.Terminal.getTerminalLine()!=">") {
+          if (Espruino.Core.Terminal!==undefined && 
+              Espruino.Core.Terminal.getTerminalLine()!=">") {
             count--;
             if (count>0) {
               setTimeout(cb, 100);
