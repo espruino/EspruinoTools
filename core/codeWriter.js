@@ -46,10 +46,16 @@
 
       //console.log("Sending... "+data);
       Espruino.Core.Serial.write(code, true, function() {
-        setTimeout(function() {
+        var count = 20;
+        setTimeout(function cb() {
           if (Espruino.Core.Terminal.getTerminalLine()!=">") {
-            Espruino.Core.Terminal.outputDataHandler("ERROR: Prompt not detected - upload failed. Trying to recover...\n");
-            Espruino.Core.Serial.write("\x03echo(1)\n", false, callback);
+            count--;
+            if (count>0) {
+              setTimeout(cb, 100);
+            } else {
+              Espruino.Core.Terminal.outputDataHandler("ERROR: Prompt not detected - upload failed. Trying to recover...\n");
+              Espruino.Core.Serial.write("\x03echo(1)\n", false, callback);
+            }
           } else {
             if (callback) callback();
           }
