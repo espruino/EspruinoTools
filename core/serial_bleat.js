@@ -73,7 +73,8 @@ var txInProgress = false;
         console.log("bleat scanning");
         bleat.startScan(function(dev) {
           if (dev.serviceUUIDs.indexOf(NORDIC_SERVICE)>=0) {
-            devices.push(dev.address);
+            console.log("Found device:",dev);
+            devices.push({path:dev.address, description: "BLE device"});
             btDevices[dev.address] = dev;
           }
         });

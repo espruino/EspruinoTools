@@ -43,7 +43,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
       var portList = [];
       ips.forEach(function(s) { 
         s = s.trim();
-        if (s.length) portList.push('TCP/IP: '+s); 
+        if (s.length) portList.push({path:'TCP/IP: '+s, description:"Network connection"}); 
       })
       callback(portList);
     } else

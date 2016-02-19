@@ -56,7 +56,9 @@ Author: Gordon Williams (gw@pur3.co.uk)
   };
 
   var getPorts=function(callback) {
-    chrome.serial.getPorts(callback);
+    chrome.serial.getPorts(function (ports) {
+      callback(ports.map(function(path) { return { path : path }; }));
+    });
   };
   
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {

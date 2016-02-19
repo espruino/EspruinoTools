@@ -44,7 +44,10 @@ Author: Gordon Williams (gw@pur3.co.uk)
       }
 
       callback(devices.map(function(device) {
-        return prefix+device.path;
+        return {
+                path : prefix+device.path, 
+                description : device.displayName, 
+                usb : [device.vendorId, device.productId]};
       }));
     });
   };

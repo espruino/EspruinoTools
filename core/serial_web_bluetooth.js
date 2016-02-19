@@ -46,7 +46,7 @@ var txInProgress = false;
 
   var getPorts = function(callback) {
     if (Espruino.Config.WEB_BLUETOOTH)
-      callback(['Web Bluetooth']);
+      callback([{path:'Web Bluetooth', description:'Bluetooth Low Energy'}]);
     else
       callback();
   };

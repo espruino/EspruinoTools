@@ -49,8 +49,10 @@
       device.getPorts(function(devicePorts) {
         if (devicePorts) {
           devicePorts.forEach(function(port) {
+            if (port.usb && port.usb[0]==0x0483 && port.usb[1]==0x5740)
+              port.description = "Espruino board";
             ports.push(port);
-            portToDevice[port] = device;
+            portToDevice[port.path] = device;
           });
         }
         responses++;

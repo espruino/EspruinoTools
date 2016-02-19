@@ -279,7 +279,7 @@ function main() {
       console.log("PORTS:\n  "+ports.join("\n  "));
       if (ports.length>0) {
         log("Using first port, "+ports[0]);
-        args.ports = [ports[0]];
+        args.ports = [ports[0].path];
         startConnect();
       } else
         throw new Error("No Ports Found");        
