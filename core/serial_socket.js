@@ -96,7 +96,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
         function () {
           connectionInfo=null;
           connectionDisconnectCallback();
-          connectionDisconnectCallback = undefinedl
+          connectionDisconnectCallback = undefined;
       });
     }
   };
