@@ -217,8 +217,11 @@
             Espruino.Core.Utils.getSubString(line,0,termCursorX)) + 
             "<span class='terminal__cursor'>" + Espruino.Core.Utils.escapeHTML(ch) + "</span>" + 
             Espruino.Core.Utils.escapeHTML(Espruino.Core.Utils.getSubString(line,termCursorX+1));
-      } else
+      } else {
         line = Espruino.Core.Utils.escapeHTML(line);
+        // handle URLs
+        line = line.replace(/(https?:\/\/[-a-zA-Z0-9@:%._\+~#=\/\?]+)/g, '<a href="$1" target="_blank">$1</a>');
+      }
       // extra text is for stuff like tutorials
       if (termExtraText[y])
         line = termExtraText[y] + line;
