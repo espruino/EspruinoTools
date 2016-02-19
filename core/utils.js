@@ -149,15 +149,19 @@
    * and hope it comes back. Calls callback with first argument true if it
      had to Ctrl-C out */
   function getEspruinoPrompt(callback) {
-    var  receivedData = "";
+    if (Espruino.Core.Terminal.getTerminalLine()==">") {
+      console.log("Found a prompt... great!");
+      return callback();
+    }
 
+    var  receivedData = "";
     var prevReader = Espruino.Core.Serial.startListening(function (readData) {
       var bufView = new Uint8Array(readData);
       for(var i = 0; i < bufView.length; i++) {
         receivedData += String.fromCharCode(bufView[i]);
       }
       if (receivedData[receivedData.length-1] == ">") {
-        console.log("Found a prompt... good!");
+        console.log("Received a prompt after sending newline... good!");
         clearTimeout(timeout);
         nextStep();         
       }        
@@ -185,7 +189,7 @@
     // send a newline, and we hope we'll see '=undefined\r\n>'
     Espruino.Core.Serial.write('\n');      
   };  
-  
+
   /** Return the value of executing an expression on the board */
   function executeExpression(expressionToExecute, callback) {
     var receivedData = "";
@@ -205,9 +209,9 @@
           var result = receivedData.substring(startProcess + 4,endProcess);       
           console.log("Got "+JSON.stringify(receivedData)); 
           // strip out the text we found
-          receivedData = receivedData.substr(0,startProcess) + receivedData.substr(endProcess+5);
+          receivedData = receivedData.substr(0,startProcess) + receivedData.substr(endProcess+4);
           // try and strip out the echo 0 too...
-          receivedData = receivedData.replace("echo(0);","");       
+          receivedData = receivedData.replace("echo(0);\r\n\r\n=undefined\r\n>","");       
           // Now stop time timeout
           clearInterval(timeout);
           // Do the next stuff
@@ -224,17 +228,12 @@
         Espruino.Core.Serial.startListening(prevReader);          
         // forward the original text to the previous reader
         prevReader(receivedData);
-        // do echo(1) here as this will re-show the prompt
-        Espruino.Core.Serial.write('echo(1);\n'); 
         // run the callback
         callback(result);
       };
 
-      // Ensure that we have a charavter on input line so that next Ctrl-C
-      // character will clear the line and will not cause interrupt
-      // string adds to stop the command tag being detected in the output
-      // until it is actually executed
-      Espruino.Core.Serial.write(' \x03echo(0);\nconsole.log("<","<<",JSON.stringify('+expressionToExecute+'),">>",">");\n');
+      // Don't Ctrl-C, as we've already got ourselves a prompt with Espruino.Core.Utils.getEspruinoPrompt
+      Espruino.Core.Serial.write('echo(0);\nconsole.log("<","<<",JSON.stringify('+expressionToExecute+'),">>",">");echo(1);\n');
 
       var maxTimeout = 20; // 10 secs
       var timeoutCnt = 0;
@@ -257,7 +256,7 @@
       Espruino.Core.Utils.getEspruinoPrompt(function() {
         getProcessInfo(expressionToExecute, callback);
       });
-    }
+    } else console.error("executeExpression called when not connected!");
   };
   
   function versionToFloat(version) {

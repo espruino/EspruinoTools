@@ -33,31 +33,28 @@
     code = reformatCode(code);
     if (code === undefined) return; // it should already have errored
     
-    var realSendSerial = function(data) {
-      //console.log("Sending... "+data);
-      var full = "echo(0);\n" + data + "\necho(1);\n";
-      Espruino.Core.Serial.write(full);
-
-      if (callback) setTimeout(callback, 1000); // TODO: proper callback when send finished?
-    };
-    var sendSerial = realSendSerial;
-    
-    // If we're supposed to reset Espruino before sending...
-    if (Espruino.Config.RESET_BEFORE_SEND) {
-      sendSerial = function(data) { 
-        // reset espruino
-        Espruino.Core.Serial.write("\x03reset();\n");
-        // wait for the reset
-        setTimeout(function() {
-          realSendSerial(data);
-        }, 200);
-      };
-    } 
-    
     // We want to make sure we've got a prompt before sending. If not,
     // this will issue a Ctrl+C
     Espruino.Core.Utils.getEspruinoPrompt(function() {
-      sendSerial(code);
+      // turn off ech around the code
+      code = "echo(0);\n" + code + "\necho(1);\n";
+
+      // If we're supposed to reset Espruino before sending...
+      if (Espruino.Config.RESET_BEFORE_SEND) {
+        code = "reset();\n"+code;
+      } 
+
+      //console.log("Sending... "+data);
+      Espruino.Core.Serial.write(code, true, function() {
+        setTimeout(function() {
+          if (Espruino.Core.Terminal.getTerminalLine()!=">") {
+            Espruino.Core.Terminal.outputDataHandler("ERROR: Prompt not detected - upload failed. Trying to recover...\n");
+            Espruino.Core.Serial.write("\x03echo(1)\n", false, callback);
+          } else {
+            if (callback) callback();
+          }
+        }, 100);
+      });
     });
   };
   

@@ -140,7 +140,7 @@
       callback(data);
     });
     Espruino.addProcessor("disconnected", function(data, callback) {
-      outputDataHandler("\r\nDisconnected\r\n>");
+      outputDataHandler("\r\nDisconnected\r\n");
       $("#terminal").removeClass("terminal--connected");
       callback(data);
     });
