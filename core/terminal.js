@@ -150,7 +150,7 @@
     // Get just the last entered line
     var currentLine = Espruino.Core.Terminal.getInputLine();
     if (currentLine==undefined)
-      currentLine = { text : "" };
+      currentLine = { text : "", line : 0 };
     termText = currentLine.text.split("\n");
     // re-add > and : marks
     for (var l in termText)
