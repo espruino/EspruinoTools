@@ -148,7 +148,9 @@
     }
 
     /* if we're throttling our writes we want to send small
-     * blocks of data at once */
+     * blocks of data at once. We still limit the size of
+     * sent blocks to 512 because on Mac we seem to lose
+     * data otherwise (not on any other platforms!) */
     var blockSize = slowWrite ? 15 : 512;
 
     showStatus &= writeData.length>blockSize;
@@ -175,11 +177,14 @@
       if (!sendingBinary) {
         function findSplitIdx(prev, substr, delay) {
           var match = writeData.match(substr);
-          // for found, or previous find was earlier in str
-          if (match===null || (prev.start>=0 && prev.start<match.index)) return prev;
+          // not found
+          if (match===null) return prev;
+          // or previous find was earlier in str
+          var end = match.index + match[0].length;
+          if (end > prev.end) return prev;
           // found, and earlier
           prev.start = match.index;
-          prev.end = match.index + match[0].length;
+          prev.end = end;
           prev.delay = delay;
           prev.match = match[0];
           return prev;
@@ -201,11 +206,11 @@
       if (showStatus)
         Espruino.Core.Status.incrementProgress(d.length);
       // actually write data
-      //console.log("Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
+      console.log("Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
       currentDevice.write(d, function() {
         // Once written, start timeout
         writeTimeout = setTimeout(function() {
-          //console.log("Sent");
+          console.log("Sent");
           sender();
         }, split.delay);
       });
