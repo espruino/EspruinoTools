@@ -299,6 +299,13 @@
   function isURL(text) {
     return (new RegExp( '(http|https)://' )).test(text);
   }
+
+  /* Are we served from a secure location so we're
+   forced to use a secure get? */
+  function needsHTTPS() {
+    if (!window || !window.location) return false;
+    return window.location.protocol=="https:";
+  }
   
   Espruino.Core.Utils = {
       init : init,
@@ -315,5 +322,6 @@
       markdownToHTML : markdownToHTML,
       getURL : getURL,
       isURL : isURL,
+      needsHTTPS : needsHTTPS
   };
 }());
