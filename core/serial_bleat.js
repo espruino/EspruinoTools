@@ -20,14 +20,15 @@ var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
 var initialised = false;
 function checkInit(callback) {
-  if (initialised) callback();
+  if (initialised) callback(null);
   else {
     bleat.init(function() {
       console.log("bleat initialised");
       initialised = true;
-      callback();
+      callback(null);
     }, function(err) {
-      console.error("bleat init error", err);
+      console.error("bleat error:", err);
+      callback(err);
     });
   }    
 }
@@ -67,7 +68,8 @@ var txInProgress = false;
     if (!Espruino.Config.BLUETOOTH_LOW_ENERGY) {
       callback([]);
     } else {
-      checkInit(function() {
+      checkInit(function(err) {
+        if (err) return callback([]);
         var devices = [];
         btDevices = {};
         console.log("bleat scanning");
