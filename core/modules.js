@@ -65,7 +65,7 @@
   
   /** Called from loadModule when a module is loaded. Parse it for other modules it might use
    *  and resolve dfd after all submodules have been loaded */
-  function moduleLoaded(dfd, requires, modName, data, loadedModuleData, alreadyMinified){
+  function moduleLoaded(resolve, requires, modName, data, loadedModuleData, alreadyMinified){
     // Check for any modules used from this module that we don't already have
     var newRequires = getModulesRequired(data);
     console.log(" - "+modName+" requires "+JSON.stringify(newRequires));
@@ -85,11 +85,7 @@
       // add the module to the beginning of our array
       loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
       // if we needed to load something, wait until we have all promises complete before resolving our promise!
-      if(newPromises.length > 0) {
-        $.when.apply(null,newPromises).then(function(){ dfd.resolve(); });
-      } else {
-        dfd.resolve();
-      }  
+      Promise.all(newPromises).then(function(){ resolve(); });
     }
     if (alreadyMinified)
       loadProcessedModule(data);
@@ -100,15 +96,14 @@
   /** Given a module name (which could be a URL), try and find it. Return
    * a deferred thingybob which signals when we're done. */
   function loadModule(requires, fullModuleName, loadedModuleData) {
-    var dfd = $.Deferred();
-    
-    // First off, try and find this module using callProcessor 
-    Espruino.callProcessor("getModule", 
+    return new Promise(function(resolve, reject) {
+      // First off, try and find this module using callProcessor 
+      Espruino.callProcessor("getModule", 
         { moduleName:fullModuleName, moduleCode:undefined },
         function(data) {
           if (data.moduleCode!==undefined) {
             // great! it found something. Use it.
-            moduleLoaded(dfd, requires, fullModuleName, data.moduleCode, loadedModuleData, false); 
+            moduleLoaded(resolve, requires, fullModuleName, data.moduleCode, loadedModuleData, false); 
           } else {
             // otherwise try and load the module the old way...
             console.log("loadModule("+fullModuleName+")");
@@ -129,26 +124,23 @@
             (function download(urls) {
               if (urls.length==0) {
                 Espruino.Core.Notifications.warning("Module "+fullModuleName+" not found");
-                return dfd.resolve();
+                return resolve();
               }
               var dlUrl = urls[0];
               Espruino.Core.Utils.getURL(dlUrl, function (data) {
                 if (data!==undefined) {
                   // we got it!
-                  moduleLoaded(dfd, requires, fullModuleName, data, loadedModuleData, dlUrl.substr(-7)==".min.js"); 
+                  moduleLoaded(resolve, requires, fullModuleName, data, loadedModuleData, dlUrl.substr(-7)==".min.js"); 
                 } else {
                   // else try next
                   download(urls.slice(1));
                 }
               });
             })(urls);
-            
-             
           }
-        }
-    );
-    
-    return dfd.promise();
+        });
+      
+    });
   }
 
   /** Finds instances of 'require' and then ensures that 
@@ -166,7 +158,7 @@
         return loadModule(requires, moduleName, loadedModuleData);
       });
       // When all promises are complete
-      $.when.apply(null,promises).then(function(){ 
+      Promise.all(promises).then(function(){ 
         callback("Modules.removeAllCached();\n" + loadedModuleData.join("\n") + "\n" + code); 
       });
     }

@@ -85,26 +85,26 @@
   
   /** Get a list of boards that we know about */
   function getBoardList(callback) {
-    $.get(JSON_DIR + "boards.json", function(boards){
+    Espruino.Core.Utils.getJSONURL(JSON_DIR + "boards.json", function(boards){
      // now load all the individual JSON files 
       var promises = [];      
       for (var boardId in boards) {
         promises.push((function() {
           var id = boardId;
-          var dfd = $.Deferred();
-          $.get(JSON_DIR + boards[boardId].json, function (data) {
-            boards[id]["json"] = data;
-            dfd.resolve();
-          }, "json").fail(function () { dfd.resolve(); });
-          return dfd.promise();
+          return new Promise(function(resolve, reject) {
+            Espruino.Core.Utils.getJSONURL(JSON_DIR + boards[boardId].json, function (data) {
+              boards[id]["json"] = data;
+              dfd.resolve();
+            });
+          });
         })());
       }
       
       // When all are loaded, load the callback
-      $.when.apply(null,promises).then(function(){ 
+      Promise.all(promises).then(function(){ 
         callback(boards); 
       });      
-    },"json").fail(callback(undefined));
+    });
   }
   
   Espruino.Core.Env = {

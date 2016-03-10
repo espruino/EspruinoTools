@@ -289,10 +289,47 @@
       if (result.data!==undefined) {
         callback(result.data);
       } else {
-        $.get( url, callback, "text" ).fail(function() {
-          callback(undefined);
-        });
+        if (typeof process === 'undefined') {
+          // Web browser
+          $.get( url, function(d) {
+            callback(d);
+          }).error(function() {
+            callback(undefined);
+          });
+        } else { 
+          // Node.js
+          if (url.substr(0,4)=="http") {
+            require("http").get(url, function(res) { 
+              var data = ""; 
+              res.on("data", function(d) { data += d; });
+              res.on("end", function() { 
+                callback(data); 
+              });
+            }).on('error', function(err) {
+              console.error(err);
+              callback(undefined);    
+            });
+          } else {
+            require("fs").readFile(url, function(err, d) {
+              if (err) {
+                console.error(err);
+                callback(undefined);
+              } else
+                callback(d.toString());
+            });
+          }
+        }
       }
+    });
+  }
+
+  /// Gets a URL as JSON, and returns callback(data) or callback(undefined) on error
+  function getJSONURL(url, callback) {
+    getURL(url, function(d) {
+      if (!d) return callback(d);      
+      var j;
+      try { j=JSON.parse(d); } catch (e) { console.error("Unable to parse JSON",d); }
+      callback(j);
     });
   }
   
@@ -306,6 +343,7 @@
     if (typeof window==="undefined" || !window.location) return false;
     return window.location.protocol=="https:";
   }
+
   
   Espruino.Core.Utils = {
       init : init,
@@ -321,6 +359,7 @@
       htmlTable : htmlTable,
       markdownToHTML : markdownToHTML,
       getURL : getURL,
+      getJSONURL : getJSONURL,
       isURL : isURL,
       needsHTTPS : needsHTTPS
   };

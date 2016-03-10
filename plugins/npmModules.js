@@ -28,7 +28,7 @@
           ) {
         var url = "http://registry.npmjs.org/"+data.moduleName;
         console.log("NPM: Checking NPM at "+url);
-        $.get(url, function (json) {
+        Espruino.Core.Utils.getJSONURL(url, function (json) {
           var ok = false;
           if (json["dist-tags"] && json["dist-tags"]["latest"]) {
             var version = json["dist-tags"]["latest"];
@@ -64,9 +64,6 @@
             console.log(json);
             callback(data);
           }
-        }, "json").fail(function () {
-          // Failed :(
-          callback(data);
         });
         
       } else

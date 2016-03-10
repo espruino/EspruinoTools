@@ -14,10 +14,8 @@
     "url": "git+https://github.com/espruino/EspruinoTools.git"
   },
   "dependencies": {
+    "es6-shim": "",
     "serialport": ">=1.2.5",
-    "jquery": ">=2.1.1",
-    "node-jsdom": "",
-    "xmlhttprequest": ">=1.7.0",
     "acorn": ">=0.6.0",
     "esprima": "",
     "esmangle": "",

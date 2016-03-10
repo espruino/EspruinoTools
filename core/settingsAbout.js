@@ -12,11 +12,17 @@
 "use strict";
 (function(){
   
-  function getVersion(callback) 
-  {
-    $.getJSON('manifest.json',function (manifest) {
+  function getVersion(callback) {
+    if (typeof process === 'undefined') {
+      // Web Browser
+      Espruino.Core.Utils.getJSONURL('manifest.json',function (manifest) {
         callback(manifest.version);
-    });
+      });
+    } else {
+      // Node
+      var pjson = require('./package.json');
+      callback(pjson.version);
+    }
   }
 
   function init() {
@@ -25,7 +31,7 @@
         description : "About the Espruino Web IDE v"+ version,
         sortOrder : -1000,
         getHTML : function(callback) {      
-          $.get("data/settings_about.html", function(data) {
+          Espruino.Core.Utils.getURL("data/settings_about.html", function(data) {
             callback(data);
             var html;
             if (Object.keys(Espruino.Core.Env.getBoardData()).length > 0)

@@ -30,17 +30,15 @@
       
       console.log("Found GitHub", JSON.stringify(git));
       var apiURL = "https://api.github.com/repos/"+git.owner+"/"+git.repo+"/contents/"+git.path+"?ref="+git.branch;
-      $.get(apiURL, function(json) {
-        if (json.type=="file" &&
+      Espruino.Core.Utils.getJSONURL(apiURL, function(json) {
+        if (json &&
+            json.type=="file" &&
             json.encoding=="base64") {
           // just load it...
           data.data = window.atob(json.content);
         } else {
-          console.log("GET of "+apiURL+" returned JSON that wasn't a base64 encoded fine");          
+          console.log("GET of "+apiURL+" returned JSON that wasn't a base64 encoded file");          
         }
-        callback(data);
-      }, "json").fail(function() {
-        console.log("GET of "+apiURL+" failed.");
         callback(data);
       });
     } else

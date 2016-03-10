@@ -26,15 +26,11 @@
       if (env!==undefined && env.BOARD!==undefined) {
         var jsonPath = Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json";
         console.log("Loading "+jsonPath);
-        $.getJSON(jsonPath, function(data){
+        Espruino.Core.Utils.getJSONURL(jsonPath, function(data){
           console.log("Board JSON loaded");
           for (var key in data)
             env[key] = data[key];
-          Espruino.callProcessor("boardJSONLoaded", env);
-        }).error(function() { 
-          console.warn("Error loading "+jsonPath); 
-        }).complete(function() { 
-          callback(env); 
+          Espruino.callProcessor("boardJSONLoaded", env, callback);          
         });
       } else
         callback(env);

@@ -1,3 +1,4 @@
+require('es6-shim');
 /* Entrypoint for node module. Not used for Web IDE */
 var fs = require("fs");
 
@@ -23,6 +24,26 @@ function loadDir(dir) {
 }
 
 // ---------------
+// Horrible jQuery stubs. We don't want to pull in jQuery itself because it drags in a million other
+// modules that we don't care about, and needs jsDom which has nasty dependency problems
+// ---------------
+
+var jqReady = [];
+var jqShim = {
+  ready : function(cb) { jqReady.push(cb); },
+  css : function() {},
+  html : function() {},
+  width : function() {},
+  height : function() {},
+  addClass : function() {},
+  removeClass : function() {},
+  appendTo : function() { return jqShim; },
+  show : function() {},
+  hide : function() {},
+};
+global.$ = function() { return jqShim; };
+
+// ---------------
 
 var espruinoInitialised = false;
 
@@ -34,9 +55,7 @@ function init(callback) {
   espruinoInitialised = true;
 
   global.navigator = { userAgent : "node" };
-  global.document = {};
-  global.env = require('node-jsdom').env;
-  global.$ = undefined;
+  global.document = {};  
   global.document = undefined;
   global.Espruino = undefined;
 
@@ -62,40 +81,30 @@ function init(callback) {
     console.log("escodegen library not found - you'll need it to minify code");
   }
   
-  env("<html></html>", function (errors, window) {
-    // Fixing up with fake web browser
-    $ = require('jquery')(window);        
-    global.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
-    $.support.cors = true;
-    $.ajaxSettings.xhr = function() {
-        return new XMLHttpRequest();
-    };
-    document = window.document;
+  // Load each JS file...
+  // libraries needed by the tools
+  loadDir(__dirname+"/libs");
+  /* NOTE: we have libs/esprima that we're not parsing here.
+   it's got some detection for node.js and loading this way 
+   doesn't work - instead we require it using NPM below. */
+  // the 'main' file
+  Espruino = loadJS(__dirname+"/espruino.js");
+  // Core features
+  loadDir(__dirname+"/core");
+  // Various plugins
+  loadDir(__dirname+"/plugins");
+
+  // Bodge up notifications
+  Espruino.Core.Notifications = {
+    success : function(e) { log(e); },
+    error : function(e) { console.error(e); },
+    warning : function(e) { console.warn(e); },
+    info : function(e) { console.log(e); }, 
+  };
   
-    // Load each JS file...
-    // libraries needed by the tools
-    loadDir(__dirname+"/libs");
-    /* NOTE: we have libs/esprima that we're not parsing here.
-     it's got some detection for node.js and loading this way 
-     doesn't work - instead we require it using NPM below. */
-    // the 'main' file
-    Espruino = loadJS(__dirname+"/espruino.js");
-    // Core features
-    loadDir(__dirname+"/core");
-    // Various plugins
-    loadDir(__dirname+"/plugins");
-  
-    // Bodge up notifications
-    Espruino.Core.Notifications = {
-      success : function(e) { log(e); },
-      error : function(e) { console.error(e); },
-      warning : function(e) { console.warn(e); },
-      info : function(e) { console.log(e); }, 
-    };
-  
-    // Finally init jQuery, which will init espruino.js
-    $(callback);
-  });
+  // Finally init everything
+  jqReady.forEach(function(cb){cb();});
+  callback();
 };
 
 /** Initialise EspruinoTools and call the callback.
