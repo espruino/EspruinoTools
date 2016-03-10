@@ -24,7 +24,15 @@ function loadDir(dir) {
 
 // ---------------
 
+var espruinoInitialised = false;
+
 function init(callback) {
+  if (espruinoInitialised) {
+    console.log("Already initialised.");
+    return callback();
+  }
+  espruinoInitialised = true;
+
   global.navigator = { userAgent : "node" };
   global.document = {};
   global.env = require('node-jsdom').env;

@@ -76,13 +76,13 @@ var esp = require("espruino");
  will then contain everything that's needed to use EspruinoTools */
 esp.init(callback);
 
-/** Send a file to an Espruino on the given port, call the callback when done */
+/** Send a file to an Espruino on the given port, call the callback when done (calls 'init' automatically) */
 esp.sendFile (port, filename, callback);
 
-/** Execute an expression on Espruino, call the callback with the result */
+/** Execute an expression on Espruino, call the callback with the result (calls 'init' automatically) */
 esp.expr(port, expr, callback(result));
 
-/** Flash the given firmware file to an Espruino board. */
+/** Flash the given firmware file to an Espruino board (calls 'init' automatically) */
 esp.flash(port, filename, callback);
 ```
 
@@ -96,6 +96,18 @@ require('espruino').expr('/dev/ttyACM0', 'E.getTemperature()', function(temp) {
 
 **Note:** this module is currently prints a lot of debug
 information to `console.log` when working.
+
+If you want to set specific options, for example Baud rate, initialise everything explicitly with `init`, set the options, and then call the function you need:
+
+```
+var esp = require("espruino");
+esp.init(function() {
+  Espruino.Config.BAUD_RATE = "115200";
+  esp.sendFile(port, filename, function() {
+    console.log('Done!');
+  })
+});
+```
 
 
 Internals
