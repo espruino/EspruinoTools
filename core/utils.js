@@ -293,7 +293,8 @@
           // Web browser
           $.get( url, function(d) {
             callback(d);
-          }).error(function() {
+          }, "text").error(function(xhr,status,err) {
+            console.error(err);
             callback(undefined);
           });
         } else { 
