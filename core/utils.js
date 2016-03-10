@@ -303,7 +303,7 @@
   /* Are we served from a secure location so we're
    forced to use a secure get? */
   function needsHTTPS() {
-    if (!window || !window.location) return false;
+    if (typeof window==="undefined" || !window.location) return false;
     return window.location.protocol=="https:";
   }
   
