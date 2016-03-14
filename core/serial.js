@@ -38,11 +38,12 @@
 
   var getPorts=function(callback) {
     var ports = [];
-    portToDevice = [];
+    var newPortToDevice = [];
     // get all devices
     var responses = 0;
     var devices = Espruino.Core.Serial.devices;
     if (!devices || devices.length==0) {
+         portToDevice = newPortToDevice;
       return callback(ports);
     }
     devices.forEach(function (device) {
@@ -52,12 +53,14 @@
             if (port.usb && port.usb[0]==0x0483 && port.usb[1]==0x5740)
               port.description = "Espruino board";
             ports.push(port);
-            portToDevice[port.path] = device;
+            newPortToDevice[port.path] = device;
           });
         }
         responses++;
-        if (responses == devices.length)
+        if (responses == devices.length) {
+          portToDevice = newPortToDevice;
           callback(ports);
+        }
       });
     });
   };

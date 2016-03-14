@@ -272,7 +272,6 @@ function startConnect() {
 
 function main() {
   setupConfig(Espruino);
-
   if (args.ports.length == 0) {
     console.log("Searching for serial ports...");
     Espruino.Core.Serial.getPorts(function(ports) {
@@ -281,7 +280,7 @@ function main() {
         return p.path;
       }).join("\n  "));
       if (ports.length>0) {
-        log("Using first port, "+ports[0]);
+        log("Using first port, "+JSON.stringify(ports[0]));
         args.ports = [ports[0].path];
         startConnect();
       } else

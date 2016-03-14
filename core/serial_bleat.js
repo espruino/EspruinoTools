@@ -7,10 +7,13 @@
  */   
   
   if (typeof require === 'undefined') return;
+  var bleat = undefined;
   try {
-    var bleat = require('bleat');
+    bleat = require('bleat');
+    if (bleat.classic) bleat = bleat.classic;
   } catch (e) {
-    console.log("`bleat` module not found - no node.js Bluetooth Low Energy");
+    console.error(e);
+    console.log("`bleat` module not loaded - no node.js Bluetooth Low Energy");
     return;
   }
 
@@ -20,7 +23,7 @@ var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
 var initialised = false;
 function checkInit(callback) {
-  if (initialised) callback(null);
+  if (initialised || !bleat.init) callback(null);
   else {
     bleat.init(function() {
       console.log("bleat initialised");
@@ -39,10 +42,18 @@ function ab2str(buf) {
 
 function str2abv(str) {
   var bufView = new Uint8Array(str.length);
-  for (var i=0, strLen=str.length; i<strLen; i++) {
+  for (var i=0; i<bufView.length; i++) {
     bufView[i] = str.charCodeAt(i);
   }
   return bufView;
+}
+
+function dataview2ab(dv) {
+  var bufView = new Uint8Array(dv.byteLength);
+  for (var i=0;i<bufView.length; i++) {
+    bufView[i] = dv.getUint8(i);
+  }
+  return bufView.buffer;
 }
 
 // map of bluetooth devices found by getPorts
@@ -71,14 +82,14 @@ var txInProgress = false;
       checkInit(function(err) {
         if (err) return callback([]);
         var devices = [];
-        btDevices = {};
+//        btDevices = {};
         console.log("bleat scanning");
         bleat.startScan(function(dev) {
           if (dev.serviceUUIDs.indexOf(NORDIC_SERVICE)>=0) {
-            //console.log("Found device:", dev);
+            console.log("Found UART device:", dev);            
             devices.push({path:dev.address, description: dev.name});
             btDevices[dev.address] = dev;
-          }
+          } else console.log("Found device:", dev);
         });
         setTimeout(function() {
           console.log("bleat stopping scan");
@@ -103,6 +114,10 @@ var txInProgress = false;
       txCharacteristic = service.characteristics[NORDIC_TX];
 
       rxCharacteristic.enableNotify(function(data) {
+        if (data instanceof DataView) {
+          // Bleat API changes between versions :(
+          data = dataview2ab(data);
+        }
         console.log("BT> RX:"+JSON.stringify(ab2str(data)));
         receiveCallback(data);
       }, function() {
@@ -129,22 +144,17 @@ var txInProgress = false;
 
   // Throttled serial write
   var writeSerial = function(data, callback) {
-    console.log(1);
     if (txCharacteristic === undefined) return; 
-    console.log(2);
     if (typeof txDataQueue != "undefined" || txInProgress) {
       if (txDataQueue===undefined) 
         txDataQueue="";
       txDataQueue += data;
-      console.log(5);
       return callback();
     } else {
       txDataQueue = data;
     }
-    console.log(3);
 
     function writeChunk() {
-    console.log(4);
       var chunk;
       var CHUNKSIZE = 16;
       if (txDataQueue.length <= CHUNKSIZE) {
