@@ -94,7 +94,7 @@
           return new Promise(function(resolve, reject) {
             Espruino.Core.Utils.getJSONURL(JSON_DIR + boards[boardId].json, function (data) {
               boards[id]["json"] = data;
-              dfd.resolve();
+              resolve();
             });
           });
         })());
