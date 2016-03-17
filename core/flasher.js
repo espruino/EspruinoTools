@@ -250,7 +250,6 @@
 
   var writeAllData = function(binary, flashOffset, callback) {
     var chunkSize = 256;
-    flashOffset = flashOffset || DEFAULT_FLASH_OFFSET;
     console.log("Writing "+binary.byteLength+" bytes");
     Espruino.Core.Status.setStatus("Writing flash...",  binary.byteLength);
     var writer = function(offset) {
@@ -272,7 +271,6 @@
   };
 
   var readAllData = function(binaryLength, flashOffset, callback) {
-    flashOffset = flashOffset || DEFAULT_FLASH_OFFSET;
     var data = new Uint8Array(flashOffset);
     var chunkSize = 256;
     console.log("Reading "+binaryLength+" bytes");
@@ -303,7 +301,9 @@
       flashOffset = null;
     }
 
-    flashOffset = flashOffset || DEFAULT_FLASH_OFFSET;
+    if (!flashOffset && flashOffset !== 0) {
+      flashOffset = DEFAULT_FLASH_OFFSET;
+    }
 
     if (typeof binary == "string") {
       var a = new ArrayBuffer(binary.length);
