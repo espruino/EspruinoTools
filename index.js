@@ -159,7 +159,13 @@ exports.expr = function(port, expr, callback) {
 
 
 /** Flash the given firmware file to an Espruino board. */
-exports.flash = function(port, filename, callback) {
+exports.flash = function(port, filename, flashOffset, callback) {
+  if (typeof flashOffset === 'function') {
+    // backward compatibility if flashOffset is missed
+    callback = flashOffset;
+    flashOffset = null;
+  }
+
   var code = fs.readFileSync(filename, {encoding:"utf8"});
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
@@ -168,7 +174,8 @@ exports.flash = function(port, filename, callback) {
         console.error("Unable to connect!");
         return callback();
       }
-      Espruino.Core.Flasher.flashBinaryToDevice(fs.readFileSync(filename, {encoding:"binary"}), function(err) {
+      var bin = fs.readFileSync(filename, {encoding:"binary"});
+      Espruino.Core.Flasher.flashBinaryToDevice(bin, flashOffset, function(err) {
         console.log(err ? "Error!" : "Success!");
         setTimeout(function() {
           Espruino.Core.Serial.close();
