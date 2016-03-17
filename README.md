@@ -26,6 +26,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   -o out.js               : Write the actual JS code sent to Espruino to a file
   -f firmware.bin         : Update Espruino's firmware to the given file
                               Espruino must be in bootloader mode
+                              Optionally skip N first bytes of the bin file,
   -e command              : Evaluate the given expression on Espruino
                               If no file to upload is specified but you use -e,
                               Espruino will not be reset
