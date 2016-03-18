@@ -12,8 +12,6 @@
 "use strict";
 (function(){
   
-  var DEFAULT_JSON_DIR = "http://www.espruino.com/json/";
-  
   var environmentData = {};
   var boardData = {};
   
@@ -85,7 +83,7 @@
   
   /** Get a list of boards that we know about */
   function getBoardList(callback) {
-    var jsonDir = Espruino.Config.BOARD_JSON_URL || DEFAULT_JSON_DIR;
+    var jsonDir = Espruino.Config.BOARD_JSON_URL;
 
     // ensure jsonDir ends with slash
     if (jsonDir.indexOf('/', jsonDir.length - 1) === -1) {
