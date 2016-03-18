@@ -306,10 +306,11 @@
     }
 
     if (typeof binary == "string") {
-      var a = new ArrayBuffer(binary.length);
+      var buf = new ArrayBuffer(binary.length);
+      var a = new Uint8Array(buf);
       for (var i=0;i<binary.length;i++)
         a[i] = binary.charCodeAt(i);
-      binary = a;
+      binary = buf;
     }
     // add serial listener
     dataReceived = undefined;
