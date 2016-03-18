@@ -17,6 +17,8 @@
 
   var ACK = 0x79;
   var NACK = 0x1F;
+  var DEFAULT_FLASH_OFFSET = 1024*10; /* Skip size of F1 bootloader by default */
+
 
   function init() {
   }
@@ -246,9 +248,7 @@
     });
   };
 
-  var FLASH_OFFSET = 1024*10 /* no bootloader */;
-
-  var writeAllData = function(binary, callback) {
+  var writeAllData = function(binary, flashOffset, callback) {
     var chunkSize = 256;
     console.log("Writing "+binary.byteLength+" bytes");
     Espruino.Core.Status.setStatus("Writing flash...",  binary.byteLength);
@@ -267,11 +267,11 @@
         writer(offset + chunkSize);
       }, 0x08000000 + offset, data);
     };
-    writer(FLASH_OFFSET);
+    writer(flashOffset);
   };
 
-  var readAllData = function(binaryLength, callback) {
-    var data = new Uint8Array(FLASH_OFFSET);
+  var readAllData = function(binaryLength, flashOffset, callback) {
+    var data = new Uint8Array(flashOffset);
     var chunkSize = 256;
     console.log("Reading "+binaryLength+" bytes");
     Espruino.Core.Status.setStatus("Reading flash...",  binaryLength);
@@ -291,15 +291,26 @@
         reader(offset + chunkSize);
       }, 0x08000000 + offset, chunkSize);
     };
-    reader(FLASH_OFFSET);
+    reader(flashOffset);
   };
 
-  function flashBinaryToDevice(binary, callback) {
+  function flashBinaryToDevice(binary, flashOffset, callback) {
+    if (typeof flashOffset === 'function') {
+      // backward compatibility if flashOffset is missed
+      callback = flashOffset;
+      flashOffset = null;
+    }
+
+    if (!flashOffset && flashOffset !== 0) {
+      flashOffset = DEFAULT_FLASH_OFFSET;
+    }
+
     if (typeof binary == "string") {
-      var a = new ArrayBuffer(binary.length);
+      var buf = new ArrayBuffer(binary.length);
+      var a = new Uint8Array(buf);
       for (var i=0;i<binary.length;i++)
         a[i] = binary.charCodeAt(i);
-      binary = a;
+      binary = buf;
     }
     // add serial listener
     dataReceived = undefined;
@@ -336,7 +347,7 @@
       if (err) { finish(err); return; }
       eraseChip(function (err) {
         if (err) { finish(err); return; }
-        writeAllData(binary, function (err) {
+        writeAllData(binary, flashOffset, function (err) {
           if (err) { finish(err); return; }
           finish();
         });
@@ -361,11 +372,11 @@
     });
   }
 
-  function flashDevice(url, callback) {
+  function flashDevice(url, flashOffset, callback) {
     getBinary(url, function (err, binary) {
       if (err) { callback(err); return; }
       console.log("Downloaded "+binary.byteLength+" bytes");
-      flashBinaryToDevice(binary, callback);
+      flashBinaryToDevice(binary, flashOffset, callback);
     });
   };
 

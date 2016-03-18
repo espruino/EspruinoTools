@@ -52,8 +52,12 @@ for (var i=2;i<process.argv.length;i++) {
      i++; args.outputJS = next; 
      if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o"); 
    } else if (arg=="-f") { 
-     i++; args.updateFirmware = next; 
+     i++; var arg = next; 
      if (!isNextValid(next)) throw new Error("Expecting a filename argument to -f");
+     arg = arg.split(':', 2);
+     args.updateFirmware = arg[0];
+     args.firmwareFlashOffset = parseInt(arg[1] || '0');
+     if (isNaN(args.firmwareFlashOffset)) throw new Error("Expecting a numeric offset for -f"); 
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -105,8 +109,9 @@ if (args.help) {
   "  --ble                   : Try and connect with Bluetooth Low Energy (using the 'bleat' module)",  
   "  -t,--time               : Set Espruino's time when uploading code",
   "  -o out.js               : Write the actual JS code sent to Espruino to a file",
-  "  -f firmware.bin         : Update Espruino's firmware to the given file",
-  "                              Espruino must be in bootloader mode",
+  "  -f firmware.bin[:N]     : Update Espruino's firmware to the given file",
+  "                              Espruino must be in bootloader mode.",
+  "                              Optionally skip N first bytes of the bin file.",
   "  -e command              : Evaluate the given expression on Espruino",
   "                              If no file to upload is specified but you use -e,",
   "                              Espruino will not be reset", 
@@ -164,7 +169,9 @@ function connect(port, exitCallback) {
     // Do we need to update firmware?
     if (args.updateFirmware) {
       if (code) throw new Error("Can't update firmware *and* upload code right now.");
-      Espruino.Core.Flasher.flashBinaryToDevice(fs.readFileSync(args.updateFirmware, {encoding:"binary"}), function(err) {
+      var bin = fs.readFileSync(args.updateFirmware, {encoding:"binary"});
+      var flashOffset = args.firmwareFlashOffset || 0;
+      Espruino.Core.Flasher.flashBinaryToDevice(bin, flashOffset, function(err) {
         log(err ? "Error!" : "Success!");
         exitTimeout = setTimeout(exitCallback, 500);
       });

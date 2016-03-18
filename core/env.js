@@ -12,7 +12,7 @@
 "use strict";
 (function(){
   
-  var JSON_DIR = "http://www.espruino.com/json/";
+  var DEFAULT_JSON_DIR = "http://www.espruino.com/json/";
   
   var environmentData = {};
   var boardData = {};
@@ -85,14 +85,21 @@
   
   /** Get a list of boards that we know about */
   function getBoardList(callback) {
-    Espruino.Core.Utils.getJSONURL(JSON_DIR + "boards.json", function(boards){
+    var jsonDir = Espruino.Config.BOARD_JSON_URL || DEFAULT_JSON_DIR;
+
+    // ensure jsonDir ends with slash
+    if (jsonDir.indexOf('/', jsonDir.length - 1) === -1) {
+      jsonDir += '/';
+    }
+
+    Espruino.Core.Utils.getJSONURL(jsonDir + "boards.json", function(boards){
      // now load all the individual JSON files 
       var promises = [];      
       for (var boardId in boards) {
         promises.push((function() {
           var id = boardId;
           return new Promise(function(resolve, reject) {
-            Espruino.Core.Utils.getJSONURL(JSON_DIR + boards[boardId].json, function (data) {
+            Espruino.Core.Utils.getJSONURL(jsonDir + boards[boardId].json, function (data) {
               boards[id]["json"] = data;
               resolve();
             });

@@ -24,7 +24,7 @@
     
     Espruino.addProcessor("environmentVar", function(env, callback) {
       if (env!==undefined && env.BOARD!==undefined) {
-        var jsonPath = Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json";
+        var jsonPath = env.JSON_URL || Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json";
         console.log("Loading "+jsonPath);
         Espruino.Core.Utils.getJSONURL(jsonPath, function(data){
           console.log("Board JSON loaded");
