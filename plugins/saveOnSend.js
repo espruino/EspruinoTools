@@ -35,8 +35,7 @@
     var newCode = [];
     newCode.push("E.setBootCode(");
     newCode.push(JSON.stringify(code));
-    newCode.push(");\n");
-    newCode.push("reset();");
+    newCode.push(");");
     newCode.push("load();");
     newCode = newCode.join('');
 
