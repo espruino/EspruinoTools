@@ -33,11 +33,14 @@
     if (!Espruino.Config.SAVE_ON_SEND) return callback(code);
 
     var newCode = [];
-    newCode.push("function onInit() {");
-    newCode.push(code);
-    newCode.push("}");
-    newCode.push("save();");
+    newCode.push("E.setBootCode(");
+    newCode.push(JSON.stringify(code));
+    newCode.push(");\n");
+    newCode.push("reset();");
+    newCode.push("load();");
     newCode = newCode.join('');
+
+    console.log('Save on send transformed code to:', newCode);
     callback(newCode);
   }
   
