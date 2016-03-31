@@ -19,7 +19,7 @@
     Espruino.Core.Config.add("SAVE_ON_SEND", {
       section : "Communications",
       name : "Save on Send",
-      description : "Save the code after sending so that it is executed again as is on board restart",
+      description : "Save the code after sending so that everything is executed again when the board restarts. Not as memory efficient, but more Arduino-like.",
       type : "boolean",
       defaultValue : false
     });    
@@ -36,7 +36,7 @@
     newCode.push("E.setBootCode(");
     newCode.push(JSON.stringify(code));
     newCode.push(");");
-    newCode.push("load();");
+    newCode.push("load();\n");
     newCode = newCode.join('');
 
     console.log('Save on send transformed code to:', newCode);

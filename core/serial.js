@@ -196,6 +196,7 @@
         }
         split = findSplitIdx(split, /\x03/, 250); // Ctrl-C
         split = findSplitIdx(split, /reset\(\);\n/, 250); // Reset
+        split = findSplitIdx(split, /load\(\);\n/, 250); // Load
         split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);\n/, 250); // Adding a module
         if (split.match) console.log("Splitting at "+JSON.stringify(split.match)+", delay "+split.delay);
       }
