@@ -76,7 +76,7 @@ if (args.color) {
 //sets up configuration as requested by the command-line options
 function setupConfig(Espruino) {
  if (args.minify) 
-   Espruino.Config.MINIFICATION_LEVEL = "SIMPLE_OPTIMIZATIONS";
+   Espruino.Config.MINIFICATION_LEVEL = "ESPRIMA";
  if (args.baudRate && !isNaN(args.baudRate))
    Espruino.Config.BAUD_RATE = args.baudRate;
  if (args.ble) 
