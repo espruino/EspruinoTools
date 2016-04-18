@@ -56,7 +56,7 @@
               setTimeout(cb, 100);
             } else {
               Espruino.Core.Terminal.outputDataHandler("ERROR: Prompt not detected - upload failed. Trying to recover...\n");
-              Espruino.Core.Serial.write("\x03echo(1)\n", false, callback);
+              Espruino.Core.Serial.write("\x03\x03echo(1)\n", false, callback);
             }
           } else {
             if (callback) callback();
