@@ -62,7 +62,12 @@ var txInProgress = false;
       console.log('BT>  Device Paired:     ' + device.paired);
       console.log('BT>  Device Class:      ' + device.deviceClass);
       console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
-      return device.connectGATT();
+      device.addEventListener('gattserverdisconnected', function() {
+        console.log("BT> Disconnected (gattserverdisconnected)");
+        closeSerial();
+      });
+      // Should be 'device.gatt.connect' in new bluetooth
+      return (device.gatt && device.gatt.connect) ? device.gatt.connect() : device.connectGATT();
     }).then(function(server) {
       console.log("BT> Connected");
       // Check for disconnects
@@ -121,16 +126,16 @@ var txInProgress = false;
         txCharacteristic = undefined;
         rxCharacteristic = undefined;
       }      
-      openCallback(undefined);
+      disconnectCallback(undefined);
     });
   };
  
   var closeSerial=function() {
-    if (btServer) {
-      if (btChecker) {
-        clearInterval(btChecker);
-        btChecker = undefined;
-      }
+    if (btChecker) {
+      clearInterval(btChecker);
+      btChecker = undefined;
+    }
+    if (btServer) { 
       if (btServer.disconnect) btServer.disconnect(); // Chromebook doesn't have disconnect?
       btServer = undefined;
       txCharacteristic = undefined;
