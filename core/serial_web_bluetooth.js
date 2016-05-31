@@ -168,17 +168,16 @@ var txInProgress = false;
       }
       txInProgress = true;
       console.log("BT> Sending "+ JSON.stringify(chunk));
-      try {
-        txCharacteristic.writeValue(str2ab(chunk)).then(function() {
-          console.log("BT> Sent");
-          txInProgress = false;                
-          if (txDataQueue)
-            writeChunk();
-        });
-      } catch (e) {
-        console.log("BT> ERROR "+e);
-        txDataQueue = undefined;
-      }
+      txCharacteristic.writeValue(str2ab(chunk)).then(function() {
+        console.log("BT> Sent");
+        txInProgress = false;                
+        if (txDataQueue)
+          writeChunk();
+      }).catch(function(error) {
+       console.log('BT> SEND ERROR: ' + error);
+       txDataQueue = undefined;
+       closeSerial();
+      });
     }
     writeChunk();
     return callback();
