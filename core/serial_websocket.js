@@ -3,9 +3,8 @@ Gordon Williams (gw@pur3.co.uk)
 */
 (function() {
 
-  if (typeof window == "undefined") return;
-  if (!window.location || window.location.toString().substr(0,16)!="http://localhost") return;
-  console.log("WebSockets support enabled, as running from localhost");
+  if (typeof window == "undefined" || typeof WebSocket == undefined) return;
+  console.log("WebSockets support enabled - running in web browser");
   var ws;
 
   var str2ab=function(str) {
