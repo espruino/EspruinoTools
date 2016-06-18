@@ -58,6 +58,7 @@ function dataview2ab(dv) {
 
 // map of bluetooth devices found by getPorts
 var btDevices = {};
+var lastDevices = [];
 
 var btDevice;
 var txCharacteristic;
@@ -94,7 +95,20 @@ var txInProgress = false;
         setTimeout(function() {
           console.log("bleat stopping scan");
           bleat.stopScan();
-          callback(devices);
+          // report back device list from both the last scan and this one...
+          var reportedDevices = [];
+          devices.forEach(function(d) {
+            reportedDevices.push(d);
+          });
+          lastDevices.forEach(function(d) {
+            var found = false;
+            reportedDevices.forEach(function(dv) {
+              if (dv.path==d.path) found=true;
+            });
+            reportedDevices.push(d);
+          });
+          lastDevices = devices;
+          callback(reportedDevices);
         }, 1500);
       });
     }
