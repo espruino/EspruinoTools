@@ -301,6 +301,10 @@
           // Node.js
           if (url.substr(0,4)=="http") {
             require("http").get(url, function(res) { 
+              if (res.statusCode != 200) {
+                console.error("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
+                return callback(undefined); 
+              }
               var data = ""; 
               res.on("data", function(d) { data += d; });
               res.on("end", function() { 
