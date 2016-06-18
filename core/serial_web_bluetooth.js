@@ -57,6 +57,7 @@ var txInProgress = false;
     var btService;
         
     navigator.bluetooth.requestDevice({filters:[{services:[ NORDIC_SERVICE ]}]}).then(function(device) {
+      Espruino.Core.Status.setStatus("Connecting to "+device.name);
       console.log('BT>  Device Name:       ' + device.name);
       console.log('BT>  Device ID: '         + device.id);
       console.log('BT>  Device Paired:     ' + device.paired);
@@ -69,6 +70,7 @@ var txInProgress = false;
       // Should be 'device.gatt.connect' in new bluetooth
       return (device.gatt && device.gatt.connect) ? device.gatt.connect() : device.connectGATT();
     }).then(function(server) {
+      Espruino.Core.Status.setStatus("Connected to BLE");
       console.log("BT> Connected");
       // Check for disconnects
       btChecker = setInterval(function() {
@@ -88,10 +90,12 @@ var txInProgress = false;
         }, 2000);
       })
     }).then(function(service) {
+      Espruino.Core.Status.setStatus("Configuring BLE...");
       console.log("BT> Got service");
       btService = service;
       return btService.getCharacteristic(NORDIC_RX);
     }).then(function (s) {
+      Espruino.Core.Status.setStatus("Configuring BLE....");
       rxCharacteristic = s;
       console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
@@ -103,15 +107,19 @@ var txInProgress = false;
       });
       return rxCharacteristic.startNotifications();
     }).then(function() {
+      Espruino.Core.Status.setStatus("Configuring BLE....");
       return btService.getCharacteristic(NORDIC_TX);
     }).then(function (s) {
+      Espruino.Core.Status.setStatus("Configuring BLE.....");
       txCharacteristic = s;
       console.log("BT> TX characteristic:"+JSON.stringify(txCharacteristic));          
     }).then(function() {
+      Espruino.Core.Status.setStatus("Configuring BLE.....");
       txDataQueue = undefined;
       txInProgress = false;
       Espruino.Core.Serial.setSlowWrite(false, true); // hack - leave throttling up to this implementation
       setTimeout(function() {
+        Espruino.Core.Status.setStatus("BLE configured. Receiving data...");
         openCallback("All ok");
       }, 500);
     }).catch(function(error) {

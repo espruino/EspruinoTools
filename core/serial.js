@@ -80,6 +80,7 @@
       console.error("Port "+JSON.stringify(serialPort)+" not found");
       return connectCallback(undefined);
     }
+    connectionInfo = undefined;
     currentDevice = portToDevice[serialPort];
     currentDevice.open(serialPort, function(cInfo) {
       // CONNECT
@@ -100,8 +101,15 @@
       if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers");
       if (readListener) readListener(data);
     }, function() {
-      // DISCONNECT
       currentDevice = undefined;
+      if (!connectionInfo) {
+        // we got a disconnect when we hadn't connected...
+        // Just call connectCallback(undefined), don't bother sending disconnect
+        connectCallback(undefined);
+        return;
+      }
+      // DISCONNECT
+      connectionInfo = undefined;      
       if (writeTimeout!==undefined)
         clearTimeout(writeTimeout);
       writeTimeout = undefined;
