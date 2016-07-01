@@ -105,8 +105,9 @@ var txInProgress = false;
             reportedDevices.forEach(function(dv) {
               if (dv.path==d.path) found=true;
             });
-            reportedDevices.push(d);
+            if (!found) reportedDevices.push(d);
           });
+          reportedDevices.sort(function(a,b) { return a.path.localeCompare(b.path); });
           lastDevices = devices;
           callback(reportedDevices);
         }, 1500);
