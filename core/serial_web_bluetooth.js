@@ -26,7 +26,6 @@ function str2ab(str) {
 
 
 var btServer = undefined;
-var btChecker;
 var connectionDisconnectCallback;
 
 var txCharacteristic;
@@ -40,9 +39,9 @@ var txInProgress = false;
       name : "Connect over Bluetooth Smart (Web Bluetooth)",
       descriptionHTML : 'Allow connection to Espruino via BLE with the Nordic UART implementation',
       type : "boolean",
-      defaultValue : true, 
+      defaultValue : true,
     });
-  }  
+  }
 
   var getPorts = function(callback) {
     if (Espruino.Config.WEB_BLUETOOTH)
@@ -50,58 +49,38 @@ var txInProgress = false;
     else
       callback();
   };
-  
+
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     connectionDisconnectCallback = disconnectCallback;
 
     var btService;
-        
+
     navigator.bluetooth.requestDevice({filters:[{services:[ NORDIC_SERVICE ]}]}).then(function(device) {
       Espruino.Core.Status.setStatus("Connecting to "+device.name);
       console.log('BT>  Device Name:       ' + device.name);
       console.log('BT>  Device ID: '         + device.id);
-      console.log('BT>  Device Paired:     ' + device.paired);
-      console.log('BT>  Device Class:      ' + device.deviceClass);
       console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
       device.addEventListener('gattserverdisconnected', function() {
         console.log("BT> Disconnected (gattserverdisconnected)");
         closeSerial();
       });
-      // Should be 'device.gatt.connect' in new bluetooth
-      return (device.gatt && device.gatt.connect) ? device.gatt.connect() : device.connectGATT();
+      return device.gatt.connect();
     }).then(function(server) {
       Espruino.Core.Status.setStatus("Connected to BLE");
       console.log("BT> Connected");
-      // Check for disconnects
-      btChecker = setInterval(function() {
-        if (!btServer.connected) {
-          clearInterval(btChecker);
-          btChecker = undefined;
-          console.log("BT> Disconnected");
-          disconnectCallback();
-        }
-      }, 1000);
-      btServer = server;  
-      // FIXME: Remove this timeout when GattServices property works as intended.
-      // crbug.com/560277
-      return new Promise(function(resolve) {
-        setTimeout(function() {
-          resolve(server.getPrimaryService(NORDIC_SERVICE));
-        }, 2000);
-      })
+      btServer = server;
+      return server.getPrimaryService(NORDIC_SERVICE);
     }).then(function(service) {
       Espruino.Core.Status.setStatus("Configuring BLE...");
       console.log("BT> Got service");
       btService = service;
       return btService.getCharacteristic(NORDIC_RX);
-    }).then(function (s) {
+    }).then(function (characteristic) {
       Espruino.Core.Status.setStatus("Configuring BLE....");
-      rxCharacteristic = s;
+      rxCharacteristic = characteristic;
       console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
         var value = event.target.value;
-        // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.
-        value = value.buffer ? value.buffer : value;
         console.log("BT> RX:"+JSON.stringify(ab2str(value)));
         receiveCallback(value);
       });
@@ -109,10 +88,10 @@ var txInProgress = false;
     }).then(function() {
       Espruino.Core.Status.setStatus("Configuring BLE....");
       return btService.getCharacteristic(NORDIC_TX);
-    }).then(function (s) {
+    }).then(function (characteristic) {
       Espruino.Core.Status.setStatus("Configuring BLE.....");
-      txCharacteristic = s;
-      console.log("BT> TX characteristic:"+JSON.stringify(txCharacteristic));          
+      txCharacteristic = characteristic;
+      console.log("BT> TX characteristic:"+JSON.stringify(txCharacteristic));
     }).then(function() {
       Espruino.Core.Status.setStatus("Configuring BLE.....");
       txDataQueue = undefined;
@@ -128,23 +107,19 @@ var txInProgress = false;
         clearInterval(btChecker);
         btChecker = undefined;
       }
-      if (btServer) {        
-        if (btServer.disconnect) btServer.disconnect(); // Chromebook doesn't have disconnect?
+      if (btServer) {
+        btServer.disconnect();
         btServer = undefined;
         txCharacteristic = undefined;
         rxCharacteristic = undefined;
-      }      
+      }
       disconnectCallback(undefined);
     });
   };
- 
+
   var closeSerial=function() {
-    if (btChecker) {
-      clearInterval(btChecker);
-      btChecker = undefined;
-    }
-    if (btServer) { 
-      if (btServer.disconnect) btServer.disconnect(); // Chromebook doesn't have disconnect?
+    if (btServer) {
+      btServer.disconnect();
       btServer = undefined;
       txCharacteristic = undefined;
       rxCharacteristic = undefined;
@@ -154,9 +129,9 @@ var txInProgress = false;
 
   // Throttled serial write
   var writeSerial = function(data, callback) {
-    if (!txCharacteristic) return; 
+    if (!txCharacteristic) return;
     if (typeof txDataQueue != "undefined" || txInProgress) {
-      if (txDataQueue===undefined) 
+      if (txDataQueue===undefined)
         txDataQueue="";
       txDataQueue += data;
       return callback();
@@ -168,9 +143,9 @@ var txInProgress = false;
       var chunk;
       var CHUNKSIZE = 16;
       if (txDataQueue.length <= CHUNKSIZE) {
-        chunk = txDataQueue;    
+        chunk = txDataQueue;
         txDataQueue = undefined;
-      } else { 
+      } else {
         chunk = txDataQueue.substr(0,CHUNKSIZE);
         txDataQueue = txDataQueue.substr(CHUNKSIZE);
       }
@@ -178,7 +153,7 @@ var txInProgress = false;
       console.log("BT> Sending "+ JSON.stringify(chunk));
       txCharacteristic.writeValue(str2ab(chunk)).then(function() {
         console.log("BT> Sent");
-        txInProgress = false;                
+        txInProgress = false;
         if (txDataQueue)
           writeChunk();
       }).catch(function(error) {
@@ -190,7 +165,7 @@ var txInProgress = false;
     writeChunk();
     return callback();
   };
-  
+
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
@@ -201,5 +176,3 @@ var txInProgress = false;
     "close": closeSerial
   });
 })();
-
-
