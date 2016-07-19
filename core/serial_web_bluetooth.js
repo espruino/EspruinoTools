@@ -58,7 +58,7 @@ var txInProgress = false;
     navigator.bluetooth.requestDevice({filters:[{services:[ NORDIC_SERVICE ]}]}).then(function(device) {
       Espruino.Core.Status.setStatus("Connecting to "+device.name);
       console.log('BT>  Device Name:       ' + device.name);
-      console.log('BT>  Device ID: '         + device.id);
+      console.log('BT>  Device ID:         ' + device.id);
       console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
       device.addEventListener('gattserverdisconnected', function() {
         console.log("BT> Disconnected (gattserverdisconnected)");
