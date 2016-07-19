@@ -80,7 +80,8 @@ var txInProgress = false;
       rxCharacteristic = characteristic;
       console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
-        var value = event.target.value;
+        // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.		
+        var value = event.target.value.buffer;
         console.log("BT> RX:"+JSON.stringify(ab2str(value)));
         receiveCallback(value);
       });
@@ -103,10 +104,6 @@ var txInProgress = false;
       }, 500);
     }).catch(function(error) {
       console.log('BT> ERROR: ' + error);
-      if (btChecker) {
-        clearInterval(btChecker);
-        btChecker = undefined;
-      }
       if (btServer) {
         btServer.disconnect();
         btServer = undefined;
