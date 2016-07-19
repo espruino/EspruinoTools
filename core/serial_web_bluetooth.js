@@ -82,7 +82,7 @@ var txInProgress = false;
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
         var value = event.target.value;
         console.log("BT> RX:"+JSON.stringify(ab2str(value)));
-        receiveCallback(value);
+        receiveCallback(value.buffer);
       });
       return rxCharacteristic.startNotifications();
     }).then(function() {
@@ -103,10 +103,6 @@ var txInProgress = false;
       }, 500);
     }).catch(function(error) {
       console.log('BT> ERROR: ' + error);
-      if (btChecker) {
-        clearInterval(btChecker);
-        btChecker = undefined;
-      }
       if (btServer) {
         btServer.disconnect();
         btServer = undefined;
