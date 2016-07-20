@@ -38,6 +38,7 @@ Gordon Williams (gw@pur3.co.uk)
             var d = { path : port.comName };
             if (vid||pid) d.usb = [vid,pid];
             if (port.manufacturer) d.description = port.manufacturer;
+            if (!port.vendorId || !port.productId) d.unimportant = true;
             return d;
           })
       );

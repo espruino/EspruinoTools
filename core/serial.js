@@ -59,6 +59,11 @@
         responses++;
         if (responses == devices.length) {
           portToDevice = newPortToDevice;
+          ports.sort(function(a,b) {
+            if (a.unimportant && !b.unimportant) return 1;
+            if (b.unimportant && !a.unimportant) return -1;
+            return 0;
+          });
           callback(ports);
         }
       });
