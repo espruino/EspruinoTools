@@ -12,6 +12,52 @@
 "use strict";
 (function(){
   
+  function browserTarGZ(tarUrl, entryPoint, data, callback) {
+    TarGZ.load(tarUrl, function onload(files) {
+      console.log(files);
+      for (var i in files) {
+        var file = files[i];
+        if (file["data"] && file["filename"].indexOf(entryPoint)>=0) {
+          console.log("NPM: Using "+file["filename"]+" as the entrypoint");
+          data.moduleCode = file.data;
+          // TODO:  minification?
+        }
+      }
+      callback(data);
+      }, function onstream() {
+      }, function onerror() {
+        console.log("NPM: TarGZ load failed");
+        callback(data);
+    });
+  }
+
+  function nodeTarGZ(tarUrl, entryPoint, data, callback) {
+    var request = require('request');
+    var targz = require('tar.gz');
+ 
+    // Streams 
+    var read = request.get(tarUrl);
+    var parse = targz().createParseStream();
+    parse.on('entry', function(entry){
+      if(entry.path.indexOf(entryPoint)>=0) {
+        var moduleCode;
+        entry.on("data", function(data){
+          if(moduleCode) {
+	          moduleCode = Buffer.concat([moduleCode, data]);
+          } else {
+            moduleCode = data;
+          }
+        });
+        entry.on("end", function(){
+          data.moduleCode = moduleCode.toString();
+          callback(data);
+        });
+      }
+    });
+ 
+    read.pipe(parse);
+  }
+
   function init() {
     Espruino.Core.Config.add("NPM_MODULES", {
       section : "Communications",
@@ -41,22 +87,11 @@
               var entryPoint = json["versions"][version]["main"];
               console.log("NPM: URL "+tarUrl);
               ok = true;
-              TarGZ.load(tarUrl, function onload(files) {
-                console.log(files);
-                for (var i in files) {
-                  var file = files[i];
-                  if (file["data"] && file["filename"].indexOf(entryPoint)>=0) {
-                    console.log("NPM: Using "+file["filename"]+" as the entrypoint");
-                    data.moduleCode = file.data;              
-                    // TODO:  minification?
-                  }
-                }
-                callback(data);
-              }, function onstream() {
-              }, function onerror() {
-                console.log("NPM: TarGZ load failed");
-                callback(data);
-              });
+              if(typeof window === "undefined") {
+                nodeTarGZ(tarUrl, entryPoint, data, callback);
+              } else {
+                browserTarGZ(tarUrl, entryPoint, data, callback);
+              }
             }
           }
           if (!ok) {
