@@ -115,6 +115,10 @@ exports.init = init;
 /** Send a file to an Espruino on the given port, call the callback when done */
 exports.sendFile = function(port, filename, callback) {
   var code = fs.readFileSync(filename, {encoding:"utf8"});
+  sendCode(port, code, callback);
+};
+
+exports.sendCode = function sendCode(port, code, callback) {
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
     Espruino.Core.Serial.open(port, function(status) {
