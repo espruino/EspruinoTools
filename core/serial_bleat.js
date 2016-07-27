@@ -58,6 +58,7 @@ function dataview2ab(dv) {
 
 // map of bluetooth devices found by getPorts
 var btDevices = {};
+var newDevices = [];
 var lastDevices = [];
 
 var btDevice;
@@ -65,6 +66,7 @@ var txCharacteristic;
 var rxCharacteristic;
 var txDataQueue = undefined;
 var txInProgress = false;
+var scanStopTimeout = undefined;
 
   function init() {
     Espruino.Core.Config.add("BLUETOOTH_LOW_ENERGY", {
@@ -82,22 +84,32 @@ var txInProgress = false;
     } else {
       checkInit(function(err) {
         if (err) return callback([]);
-        var devices = [];
-//        btDevices = {};
-        console.log("bleat scanning");
+ 
+        
+        if (scanStopTimeout) {
+          clearTimeout(scanStopTimeout);
+          scanStopTimeout = undefined;
+        } else {
+          console.log("bleat starting scan");
+        }
         bleat.startScan(function(dev) {
-          if (dev.serviceUUIDs.indexOf(NORDIC_SERVICE)>=0) {
+          if (dev.serviceUUIDs.indexOf(NORDIC_SERVICE)>=0 ||
+              dev.name.substr(0,7)=="Puck.js" ||
+              dev.name.substr(0,8)=="Espruino") {
             console.log("Found UART device:", dev);            
-            devices.push({path:dev.address, description: dev.name});
+            newDevices.push({path:dev.address, description: dev.name});
             btDevices[dev.address] = dev;
           } else console.log("Found device:", dev);
         });
         setTimeout(function() {
-          console.log("bleat stopping scan");
-          bleat.stopScan();
+          scanStopTimeout = setTimeout(function() {
+            scanStopTimeout = undefined;
+            console.log("bleat stopping scan");
+            bleat.stopScan();
+          }, 2000);
           // report back device list from both the last scan and this one...
           var reportedDevices = [];
-          devices.forEach(function(d) {
+          newDevices.forEach(function(d) {
             reportedDevices.push(d);
           });
           lastDevices.forEach(function(d) {
@@ -108,7 +120,8 @@ var txInProgress = false;
             if (!found) reportedDevices.push(d);
           });
           reportedDevices.sort(function(a,b) { return a.path.localeCompare(b.path); });
-          lastDevices = devices;
+          lastDevices = newDevices;
+          newDevices = [];
           callback(reportedDevices);
         }, 1500);
       });
@@ -118,6 +131,13 @@ var txInProgress = false;
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     var device = btDevices[serialPort];
     if (device===undefined) throw "BT device not found"
+
+    if (scanStopTimeout) {
+      clearTimeout(scanStopTimeout);
+      scanStopTimeout = undefined;
+      console.log("bleat stopping scan");
+      bleat.stopScan();
+    }
 
     console.log("BT> Connecting");
     device.connect(function() {
