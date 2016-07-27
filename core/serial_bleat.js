@@ -94,8 +94,9 @@ var scanStopTimeout = undefined;
         }
         bleat.startScan(function(dev) {
           if (dev.serviceUUIDs.indexOf(NORDIC_SERVICE)>=0 ||
-              dev.name.substr(0,7)=="Puck.js" ||
-              dev.name.substr(0,8)=="Espruino") {
+              (dev.name &&
+                (dev.name.substr(0,7)=="Puck.js" ||
+                 dev.name.substr(0,8)=="Espruino"))) {
             console.log("Found UART device:", dev);            
             newDevices.push({path:dev.address, description: dev.name});
             btDevices[dev.address] = dev;
