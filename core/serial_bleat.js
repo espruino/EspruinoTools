@@ -1,11 +1,11 @@
 (function() {
 
 /* On Linux, BLE normnally needs admin right to be able to access BLE
- * 
+ *
  * sudo apt-get install libcap2-bin
  * sudo setcap 'cap_net_raw,cap_net_admin+eip'  /usr/bin/nodejs
- */   
-  
+ */
+
   if (typeof require === 'undefined') return;
   var bleat = undefined;
   try {
@@ -33,7 +33,7 @@ function checkInit(callback) {
       console.error("bleat error:", err);
       callback(err);
     });
-  }    
+  }
 }
 
 function ab2str(buf) {
@@ -74,9 +74,9 @@ var scanStopTimeout = undefined;
       name : "Connect over Bluetooth Smart (BTLE) via 'bleat'",
       descriptionHTML : 'Allow connection to Espruino via BLE with the Nordic UART implementation',
       type : "boolean",
-      defaultValue : true, 
-    });    
-  }  
+      defaultValue : true,
+    });
+  }
 
   var getPorts = function(callback) {
     if (!Espruino.Config.BLUETOOTH_LOW_ENERGY) {
@@ -84,20 +84,22 @@ var scanStopTimeout = undefined;
     } else {
       checkInit(function(err) {
         if (err) return callback([]);
- 
-        
+
+
         if (scanStopTimeout) {
           clearTimeout(scanStopTimeout);
           scanStopTimeout = undefined;
         } else {
           console.log("bleat starting scan");
+          lastDevices = [];
+          newDevices = [];          
         }
         bleat.startScan(function(dev) {
           if (dev.serviceUUIDs.indexOf(NORDIC_SERVICE)>=0 ||
               (dev.name &&
                 (dev.name.substr(0,7)=="Puck.js" ||
                  dev.name.substr(0,8)=="Espruino"))) {
-            console.log("Found UART device:", dev);            
+            console.log("Found UART device:", dev);
             newDevices.push({path:dev.address, description: dev.name});
             btDevices[dev.address] = dev;
           } else console.log("Found device:", dev);
@@ -128,7 +130,7 @@ var scanStopTimeout = undefined;
       });
     }
   };
-  
+
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     var device = btDevices[serialPort];
     if (device===undefined) throw "BT device not found"
@@ -161,7 +163,7 @@ var scanStopTimeout = undefined;
         txDataQueue = undefined;
         txInProgress = false;
         openCallback({});
-      });      
+      });
     }, function() {
       // disconnected
       console.log("BT> Disconnected");
@@ -169,9 +171,9 @@ var scanStopTimeout = undefined;
       rxCharacteristic = undefined;
       txCharacteristic = undefined;
       disconnectCallback();
-    });    
+    });
   };
- 
+
   var closeSerial=function() {
     if (btDevice) {
       btDevice.disconnect(); // should call disconnect callback?
@@ -180,9 +182,9 @@ var scanStopTimeout = undefined;
 
   // Throttled serial write
   var writeSerial = function(data, callback) {
-    if (txCharacteristic === undefined) return; 
+    if (txCharacteristic === undefined) return;
     if (typeof txDataQueue != "undefined" || txInProgress) {
-      if (txDataQueue===undefined) 
+      if (txDataQueue===undefined)
         txDataQueue="";
       txDataQueue += data;
       return callback();
@@ -194,9 +196,9 @@ var scanStopTimeout = undefined;
       var chunk;
       var CHUNKSIZE = 16;
       if (txDataQueue.length <= CHUNKSIZE) {
-        chunk = txDataQueue;    
+        chunk = txDataQueue;
         txDataQueue = undefined;
-      } else { 
+      } else {
         chunk = txDataQueue.substr(0,CHUNKSIZE);
         txDataQueue = txDataQueue.substr(CHUNKSIZE);
       }
@@ -205,7 +207,7 @@ var scanStopTimeout = undefined;
       try {
         txCharacteristic.write(str2abv(chunk), function() {
           console.log("BT> Sent");
-          txInProgress = false;                
+          txInProgress = false;
           if (txDataQueue)
             writeChunk();
         });
@@ -217,7 +219,7 @@ var scanStopTimeout = undefined;
     writeChunk();
     return callback();
   };
-  
+
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
@@ -228,5 +230,3 @@ var scanStopTimeout = undefined;
     "close": closeSerial
   });
 })();
-
-
