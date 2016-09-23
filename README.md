@@ -18,6 +18,8 @@ USAGE: espruino ...options... [file_to_upload.js]
   -v,--verbose            : Verbose
   -q,--quiet              : Quiet - apart from Espruino output
   -m,--minify             : Minify the code before sending it
+  -w,--watch              : If uploading a JS file, continue to watch it for",
+                            changes and upload again if it does.",
   -p,--port /dev/ttyX     : Specify port(s) to connect to
   -b baudRate             : Set the baud rate of the serial connection
                             No effect when using USB, default: 9600
@@ -44,13 +46,17 @@ For instance:
 espruino
 
 # Connect to Espruino on the specified port, act as a terminal
-espruino -p /dev/ttyACM0 
+espruino -p /dev/ttyACM0
 
 # Write a program to Espruino (IF Espruino is the only serial port reported)
 espruino myprogram.js
 
 # Otherwise you'll want to specify the exact port first
 espruino -p /dev/ttyACM0 myprogram.js
+
+# Write a program to Espruino and drop into a terminal, but then monitor
+# myprogram.js for changes and upload it again
+espruino --watch myprogram.js
 
 # Load a file into two Espruino boards
 espruino -p /dev/ttyACM1 /dev/ttyACM2 mycode.js
@@ -66,7 +72,7 @@ espruino -e "digitalWrite(LED1,1);"
 NPM Module
 ----------
 
-This is the NPM module [`espruino`](https://www.npmjs.com/package/espruino). 
+This is the NPM module [`espruino`](https://www.npmjs.com/package/espruino).
 
 Once installed with `npm install -g espruino` it contains the following functions:
 
@@ -92,7 +98,7 @@ For example, to get the current temperature of the board you can do:
 
 ```
 require('espruino').expr('/dev/ttyACM0', 'E.getTemperature()', function(temp) {
-        console.log('Current temperature is '+temp); 
+        console.log('Current temperature is '+temp);
 });
 ```
 
@@ -119,7 +125,7 @@ This isn't well documented right now, but basically:
 
 * You have a bunch of source files that are automatically loaded by `index.js`
 * These add things to `Espruino.Core` or `Espruino.Plugins`
-* They also register themselves as `processors` with `Espruino.addProcessor`. For instance you might register for `"transformForEspruino"` in which case you can do something to the JS code before it's finally sent to Espruino. 
+* They also register themselves as `processors` with `Espruino.addProcessor`. For instance you might register for `"transformForEspruino"` in which case you can do something to the JS code before it's finally sent to Espruino.
 * You then call into `Espruino.Core.X` or `Espruino.Plugins.Y` to do what you want
 
 It's not ideal for node.js, but was designed to run in the Web browser for the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE)
@@ -155,7 +161,7 @@ Please be aware that the Espruino Web IDE (and even [a truly online version of t
 
  * Please stick to a [K&R style](http://en.wikipedia.org/wiki/1_true_brace_style#K.26R_style) with no tabs and 2 spaces per indent
  * Filenames should start with a lowerCase letter, and different words should be capitalised, not split with underscores
- 
+
 ### Code Outline
 
  * Core functionality goes in `core`, Plugins go in `plugins`. See `plugins/_examplePlugin.js` for an example layout
