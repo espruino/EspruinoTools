@@ -269,10 +269,15 @@ function terminal(port, exitCallback) {
     // figure out what code we need to send (if any)
     sendCode(function() {
       if (args.watchFile) {
+        var busy = false;
         require("fs").watch(args.file, { persistent : false,}, function(eventType) {
-          if (eventType!='change') return;
+          if (busy || eventType!='change') return;
+          busy = true;
           console.log(args.file+" changed, reloading");
-          sendCode(function() { console.log("Done!"); });
+          sendCode(function() {
+            console.log("Done!");
+            busy = false;
+          });
         });
       }
     });
