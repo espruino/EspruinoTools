@@ -8,7 +8,15 @@
 
   if (typeof require === 'undefined') return;
   var bleat = undefined;
-  try {
+ 
+var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+
+var initialised = false;
+function checkInit(callback) {
+  
+   try {
     bleat = require('bleat');
     if (bleat.classic) bleat = bleat.classic;
   } catch (e) {
@@ -17,12 +25,6 @@
     return;
   }
 
-var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
-var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-
-var initialised = false;
-function checkInit(callback) {
   if (initialised || !bleat.init) callback(null);
   else {
     bleat.init(function() {
@@ -74,7 +76,7 @@ var scanStopTimeout = undefined;
       name : "Connect over Bluetooth Smart (BTLE) via 'bleat'",
       descriptionHTML : 'Allow connection to Espruino via BLE with the Nordic UART implementation',
       type : "boolean",
-      defaultValue : true,
+      defaultValue : false,
     });
   }
 
