@@ -142,6 +142,7 @@
           varDeclaration || // variable declaration then newline
           tok.str=="," || // comma on newline - there was probably something before
           tok.str=="." || // dot on newline - there was probably something before
+          tok.str=="=" || // equals on newline - there was probably something before
           tok.str=="else" // else on newline
         ) {
         //console.log("Possible"+JSON.stringify(previousString));
