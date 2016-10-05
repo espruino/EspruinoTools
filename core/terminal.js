@@ -129,7 +129,7 @@
       setTimeout(function () {
         var text = $(element).val();
         $(element).val("");
-        onInputData(text);
+        onInputData(Espruino.Core.Utils.fixBrokenCode(text));
       }, 100);
     });
 
