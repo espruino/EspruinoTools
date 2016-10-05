@@ -114,7 +114,7 @@
         return;
       }
       // DISCONNECT
-      connectionInfo = undefined;      
+      connectionInfo = undefined;
       if (writeTimeout!==undefined)
         clearTimeout(writeTimeout);
       writeTimeout = undefined;
@@ -142,9 +142,10 @@
   };
 
   var closeSerial=function() {
-    if (currentDevice)
+    if (currentDevice) {
       currentDevice.close();
-    else
+      currentDevice = undefined;
+    } else
       console.error("Close called, but serial port not open");
   };
 
