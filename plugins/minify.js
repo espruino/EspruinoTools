@@ -120,11 +120,11 @@
         code = escodegen.generate(syntax, option);
         after = code.length;
         if (before > after) {
-          Espruino.Core.Notifications.info('No error. Minifying ' + before + ' bytes to ' + after + ' bytes.');
-          callback(code);
+          Espruino.Core.Notifications.info('No error. Minified ' + before + ' bytes to ' + after + ' bytes.');
         } else {
-          Espruino.Core.Notifications.warning('Can not minify further, code is already optimized.');
+          Espruino.Core.Notifications.info('Can not minify further, code is already optimized.');
         }
+        callback(code);
     } catch (e) {
       Espruino.Core.Notifications.error(e.toString());
       console.error(e.stack);
