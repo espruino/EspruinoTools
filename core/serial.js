@@ -11,7 +11,7 @@
   var sendingBinary = false;
   // For throttled write
   var slowWrite = true;
-  var writeData = "";
+  var writeData = [];
   var writeTimeout = undefined;
 
 
@@ -118,7 +118,7 @@
       if (writeTimeout!==undefined)
         clearTimeout(writeTimeout);
       writeTimeout = undefined;
-      writeData = "";
+      writeData = [];
       sendingBinary = false;
 
       Espruino.callProcessor("disconnected", undefined, function() {
@@ -153,90 +153,89 @@
     return currentDevice!==undefined;
   };
 
+  var writeSerialWorker = function(isStarting) {
+    writeTimeout = undefined; // we've been called
+
+    if (writeData[0].data === "") {
+      if (writeData[0].showStatus)
+        Espruino.Core.Status.setStatus("Sent");
+      if (writeData[0].callback)
+        writeData[0].callback();
+      writeData.shift(); // remove this empty first element
+      if (!writeData.length) return; // anything left to do?
+      isStarting = true;
+    }
+
+    if (isStarting) {
+      /* if we're throttling our writes we want to send small
+       * blocks of data at once. We still limit the size of
+       * sent blocks to 512 because on Mac we seem to lose
+       * data otherwise (not on any other platforms!) */
+      writeData[0].blockSize = slowWrite ? 15 : 512;
+
+      writeData[0].showStatus &= writeData[0].data.length>writeData[0].blockSize;
+      if (writeData[0].showStatus) {
+        Espruino.Core.Status.setStatus("Sending...", writeData[0].data.length);
+        console.log("---> "+JSON.stringify(writeData[0].data));
+      }
+    }
+
+    // Initially, split based on block size
+    var d = undefined;
+    var split = { start:writeData[0].blockSize, end:writeData[0].blockSize, delay:50 };
+    // if we get something like Ctrl-C or `reset`, wait a bit for it to complete
+    if (!sendingBinary) {
+      function findSplitIdx(prev, substr, delay) {
+        var match = writeData[0].data.match(substr);
+        // not found
+        if (match===null) return prev;
+        // or previous find was earlier in str
+        var end = match.index + match[0].length;
+        if (end > prev.end) return prev;
+        // found, and earlier
+        prev.start = match.index;
+        prev.end = end;
+        prev.delay = delay;
+        prev.match = match[0];
+        return prev;
+      }
+      split = findSplitIdx(split, /\x03/, 250); // Ctrl-C
+      split = findSplitIdx(split, /reset\(\);\n/, 250); // Reset
+      split = findSplitIdx(split, /load\(\);\n/, 250); // Load
+      split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);\n/, 250); // Adding a module
+      if (split.match) console.log("Splitting at "+JSON.stringify(split.match)+", delay "+split.delay);
+    }
+    // Only send some of the data
+    if (writeData[0].data.length>split.end) {
+      d = writeData[0].data.substr(0,split.end);
+      writeData[0].data = writeData[0].data.substr(split.end);
+    } else {
+      d = writeData[0].data;
+      writeData[0].data = "";
+    }
+    // update status
+    if (writeData[0].showStatus)
+      Espruino.Core.Status.incrementProgress(d.length);
+    // actually write data
+    console.log("Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
+    currentDevice.write(d, function() {
+      // Once written, start timeout
+      writeTimeout = setTimeout(function() {
+        writeSerialWorker();
+      }, split.delay);
+    });
+  }
+
    // Throttled serial write
   var writeSerial = function(data, showStatus, callback) {
     if (showStatus===undefined) showStatus=true;
 
     // Queue our data to write
-    if (writeData === "") {
-      writeData = data;
-    } else {
-      console.error("Already sending data - calling callback immediately!");
-      writeData += data;
-      return callback();
-    }
+    writeData.push({data:data,callback:callback,showStatus:showStatus});
+    // if we have more data we're already running. so break out
+    if (writeData.length>1) return;
 
-    /* if we're throttling our writes we want to send small
-     * blocks of data at once. We still limit the size of
-     * sent blocks to 512 because on Mac we seem to lose
-     * data otherwise (not on any other platforms!) */
-    var blockSize = slowWrite ? 15 : 512;
-
-    showStatus &= writeData.length>blockSize;
-    if (showStatus) {
-      Espruino.Core.Status.setStatus("Sending...", writeData.length);
-      console.log("---> "+JSON.stringify(data));
-    }
-
-    function sender() {
-      writeTimeout = undefined; // we've been called
-
-      if (writeData === "") {
-        if (showStatus)
-          Espruino.Core.Status.setStatus("Sent");
-        if (callback)
-          callback();
-        return;
-      }
-
-      // Initially, split based on block size
-      var d = undefined;
-      var split = { start:blockSize, end:blockSize, delay:50 };
-      // if we get something like Ctrl-C or `reset`, wait a bit for it to complete
-      if (!sendingBinary) {
-        function findSplitIdx(prev, substr, delay) {
-          var match = writeData.match(substr);
-          // not found
-          if (match===null) return prev;
-          // or previous find was earlier in str
-          var end = match.index + match[0].length;
-          if (end > prev.end) return prev;
-          // found, and earlier
-          prev.start = match.index;
-          prev.end = end;
-          prev.delay = delay;
-          prev.match = match[0];
-          return prev;
-        }
-        split = findSplitIdx(split, /\x03/, 250); // Ctrl-C
-        split = findSplitIdx(split, /reset\(\);\n/, 250); // Reset
-        split = findSplitIdx(split, /load\(\);\n/, 250); // Load
-        split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);\n/, 250); // Adding a module
-        if (split.match) console.log("Splitting at "+JSON.stringify(split.match)+", delay "+split.delay);
-      }
-      // Only send some of the data
-      if (writeData.length>split.end) {
-        d = writeData.substr(0,split.end);
-        writeData = writeData.substr(split.end);
-      } else {
-        d = writeData;
-        writeData = "";
-      }
-      // update status
-      if (showStatus)
-        Espruino.Core.Status.incrementProgress(d.length);
-      // actually write data
-      console.log("Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
-      currentDevice.write(d, function() {
-        // Once written, start timeout
-        writeTimeout = setTimeout(function() {
-          console.log("Sent");
-          sender();
-        }, split.delay);
-      });
-    }
-
-    sender(); // start sending instantly
+    writeSerialWorker(true); // start sending instantly
   };
 
 
