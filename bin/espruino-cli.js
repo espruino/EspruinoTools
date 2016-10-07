@@ -34,7 +34,7 @@ for (var i=2;i<process.argv.length;i++) {
    else if (arg=="-m" || arg=="--minify") args.minify = true;
    else if (arg=="-t" || arg=="--time") args.setTime = true;
    else if (arg=="-w" || arg=="--watch") args.watchFile = true;
-   else if (arg=="--ble") args.ble = true;
+   else if (arg=="--no-ble") args.noBle = true;
    else if (arg=="--list") args.showDevices = true;
    else if (arg=="-p" || arg=="--port") {
      args.ports.push(next);
@@ -81,8 +81,8 @@ function setupConfig(Espruino) {
    Espruino.Config.MINIFICATION_LEVEL = "ESPRIMA";
  if (args.baudRate && !isNaN(args.baudRate))
    Espruino.Config.BAUD_RATE = args.baudRate;
- if (args.ble)
-   Espruino.Config.BLUETOOTH_LOW_ENERGY = true;
+ if (args.noBle)
+   Espruino.Config.BLUETOOTH_LOW_ENERGY = false;
  if (args.setTime)
    Espruino.Config.SET_TIME_ON_WRITE = true;
  if (args.watchFile && !args.file)
@@ -114,7 +114,7 @@ if (args.help) {
   "  -p,--port /dev/ttyX     : Specify port(s) to connect to",
   "  -b baudRate             : Set the baud rate of the serial connection",
   "                              No effect when using USB, default: 9600",
-  "  --ble                   : Try and connect with Bluetooth Low Energy (using the 'bleat' module)",
+  "  --no-ble                : Disables Bluetooth Low Energy (using the 'bleat' module)",
   "  --list                  : List all available devices and exit",
   "  -t,--time               : Set Espruino's time when uploading code",
   "  -o out.js               : Write the actual JS code sent to Espruino to a file",

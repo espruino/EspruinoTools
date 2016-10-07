@@ -75,7 +75,7 @@
       name: "Connect over Bluetooth Smart (BTLE) via 'bleat'",
       descriptionHTML: 'Allow connection to Espruino via BLE with the Nordic UART implementation',
       type: "boolean",
-      defaultValue: false,
+      defaultValue: true
     });
   }
 
