@@ -4,7 +4,7 @@
  This Source Code is subject to the terms of the Mozilla Public
  License, v2.0. If a copy of the MPL was not distributed with this
  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
+
  ------------------------------------------------------------------
   VT100 terminal window
  ------------------------------------------------------------------
@@ -15,32 +15,32 @@
      !process.__node_webkit &&
      !process.versions.electron)
     return; // don't load this in std NodeJS
-  
-  var onInputData = function(d){}; // the handler for character data from user 
+
+  var onInputData = function(d){}; // the handler for character data from user
 
   var displayTimeout = null;
   var displayData = [];
-  
+
   // Text to be displayed in the terminal
   var termText = [ "" ];
   // Map of terminal line number to text to display before it
-  var termExtraText = {}; 
-  
+  var termExtraText = {};
+
   var termCursorX = 0;
   var termCursorY = 0;
-  var termControlChars = [];    
+  var termControlChars = [];
 
   // maximum lines on the terminal
   var MAX_LINES = 2048;
-  
-  function init() 
+
+  function init()
   {
     // Add buttons
-    if (Espruino.Core.App) Espruino.Core.App.addIcon({ 
+    if (Espruino.Core.App) Espruino.Core.App.addIcon({
       id: "clearScreen",
-      icon: "clear", 
-      title : "Clear Screen", 
-      order: -100, 
+      icon: "clear",
+      title : "Clear Screen",
+      order: -100,
       area: {
         name: "terminal",
         position: "top"
@@ -57,32 +57,32 @@
 
     // Populate terminal
     $.get("data/terminal_initial.html", function (data){
-      $("#terminal").html(data);  
-      $(".tour_link").click(function(e) { 
-        e.preventDefault(); 
-        $("#icon-tour").click(); 
+      $("#terminal").html(data);
+      $(".tour_link").click(function(e) {
+        e.preventDefault();
+        $("#icon-tour").click();
       });
     });
-    
+
     $("#terminal").mouseup(function() {
       var terminalfocus = $('#terminalfocus');
       var selection = window.getSelection();
       /* this rather convoluted code checks to see if the selection
        * is actually part of the terminal. It may be that the user
        * clicked on the editor pane, dragged, and released over the
-       * terminal in which case we DON'T want to copy. */ 
+       * terminal in which case we DON'T want to copy. */
       if (selection.rangeCount > 0) {
         var node = selection.getRangeAt(0).startContainer;
         var terminal = $("#terminal")[0];
         while (node && node!=terminal)
           node = node.parentNode;
-        
+
         if (node==terminal) {
-          // selection WAS part of terminal  
+          // selection WAS part of terminal
           var selectedText = selection.toString();
-          if (selectedText.trim().length > 0) {               
+          if (selectedText.trim().length > 0) {
             //console.log(selectedText);
-            //console.log(selectedText.split("").map(function(c) { return c.charCodeAt(0); }));    
+            //console.log(selectedText.split("").map(function(c) { return c.charCodeAt(0); }));
             selectedText = selectedText.replace(/\xA0/g," "); // Convert nbsp chars to spaces
             //console.log(selectedText.split("").map(function(c) { return c.charCodeAt(0); }));
             terminalfocus.val(selectedText).select();
@@ -91,15 +91,15 @@
           }
         }
       }
-      
-      terminalfocus.focus(); 
+
+      terminalfocus.focus();
     });
     $("#terminalfocus").focus(function() { $("#terminal").addClass('focus'); } ).blur(function() { $("#terminal").removeClass('focus'); } );
-    $("#terminalfocus").keypress(function(e) { 
+    $("#terminalfocus").keypress(function(e) {
       e.preventDefault();
       var ch = String.fromCharCode(e.which);
       onInputData(ch);
-    }).keydown(function(e) { 
+    }).keydown(function(e) {
       var ch = undefined;
       if (e.ctrlKey) {
         if (e.keyCode == 'C'.charCodeAt(0)) ch = String.fromCharCode(3); // control C
@@ -122,18 +122,18 @@
       if (ch!=undefined) {
         e.preventDefault();
         onInputData(ch);
-      } 
+      }
     }).bind('paste', function () {
-      var element = this; 
+      var element = this;
       // nasty hack - wait for paste to complete, then get contents of input
       setTimeout(function () {
         var text = $(element).val();
-        $(element).val("");        
-        onInputData(text);
+        $(element).val("");
+        onInputData(Espruino.Core.Utils.fixBrokenCode(text));
       }, 100);
     });
-    
-    
+
+
     Espruino.addProcessor("connected", function(data, callback) {
       grabSerialPort();
       outputDataHandler("\r\nConnected\r\n>");
@@ -146,7 +146,7 @@
       callback(data);
     });
   };
-  
+
   var clearTerminal = function() {
     // Get just the last entered line
     var currentLine = Espruino.Core.Terminal.getInputLine();
@@ -155,19 +155,19 @@
     termText = currentLine.text.split("\n");
     // re-add > and : marks
     for (var l in termText)
-      termText[l] = (l==0?">":":") + termText[l]; 
+      termText[l] = (l==0?">":":") + termText[l];
     // reset other stuff...
-    termExtraText = {}; 
+    termExtraText = {};
     // leave X cursor where it was...
     termCursorY -= currentLine.line; // move Y cursor back
-    termControlChars = [];   
+    termControlChars = [];
     // finally update the HTML
     updateTerminal();
     // fire off a clear terminal processor
     Espruino.callProcessor("terminalClear");
   };
 
-  var updateTerminal = function() {  
+  var updateTerminal = function() {
     var terminal = $("#terminal");
     // gather a list of elements for each line
     var elements = [];
@@ -178,7 +178,7 @@
       else
         $(this).remove(); // remove stuff that doesn't have a line number
     });
-    
+
     // remove extra lines if there are too many
     if (termText.length > MAX_LINES) {
       var removedLines = termText.length - MAX_LINES;
@@ -186,11 +186,11 @@
       termCursorY -= removedLines;
       var newTermExtraText = {};
       for (var i in termExtraText) {
-        if (i>=removedLines) 
+        if (i>=removedLines)
           newTermExtraText[i-removedLines] = termExtraText[i];
       }
       termExtraText = newTermExtraText;
-      
+
       // now renumber our elements (cycle them around)
       var newElements = [];
       for (i in elements) {
@@ -203,10 +203,10 @@
         }
       }
       elements = newElements;
-    }   
+    }
     // remove elements if we have too many...
     for (i=termText.length;i<elements.length;i++)
-      if (i in elements) 
+      if (i in elements)
         elements[i].remove();
     // now write this to the screen
     var t = [];
@@ -215,8 +215,8 @@
       if (y == termCursorY) {
         var ch = Espruino.Core.Utils.getSubString(line,termCursorX,1);
         line = Espruino.Core.Utils.escapeHTML(
-            Espruino.Core.Utils.getSubString(line,0,termCursorX)) + 
-            "<span class='terminal__cursor'>" + Espruino.Core.Utils.escapeHTML(ch) + "</span>" + 
+            Espruino.Core.Utils.getSubString(line,0,termCursorX)) +
+            "<span class='terminal__cursor'>" + Espruino.Core.Utils.escapeHTML(ch) + "</span>" +
             Espruino.Core.Utils.escapeHTML(Espruino.Core.Utils.getSubString(line,termCursorX+1));
       } else {
         line = Espruino.Core.Utils.escapeHTML(line);
@@ -226,7 +226,7 @@
       // extra text is for stuff like tutorials
       if (termExtraText[y])
         line = termExtraText[y] + line;
-      
+
       // Only update the elements if they need updating
       if (elements[y]===undefined) {
         var prev = y-1;
@@ -245,12 +245,12 @@
   function trimRight(str) {
     var s = str.length-1;
     while (s>0 && str[s]==" ") s--;
-    return str.substr(0,s+1);      
+    return str.substr(0,s+1);
   }
-  
+
   var handleReceivedCharacter = function (/*char*/ch) {
     //console.log("IN = "+ch);
-    if (termControlChars.length==0) {        
+    if (termControlChars.length==0) {
       switch (ch) {
         case  8 : {
           if (termCursorX>0) termCursorX--;
@@ -261,18 +261,19 @@
           while (termCursorY >= termText.length) termText.push("");
         } break;
         case 13 : { // carriage return
-          termCursorX = 0;           
+          termCursorX = 0;
         } break;
         case 27 : {
           termControlChars = [ 27 ];
         } break;
         case 19 : break; // XOFF
         case 17 : break; // XON
-        default : {          
+        case 0xC2 : break; // UTF8 for <255 - ignore this
+        default : {
           // Else actually add character
           termText[termCursorY] = trimRight(
-              Espruino.Core.Utils.getSubString(termText[termCursorY],0,termCursorX) + 
-              String.fromCharCode(ch) + 
+              Espruino.Core.Utils.getSubString(termText[termCursorY],0,termCursorX) +
+              String.fromCharCode(ch) +
               Espruino.Core.Utils.getSubString(termText[termCursorY],termCursorX+1));
           termCursorX++;
           // check for the 'prompt', eg '>' or 'debug>'
@@ -304,33 +305,33 @@
            case 66: termCursorY++; while (termCursorY >= termText.length) termText.push(""); break;  // down FIXME should add extra lines in...
            case 67: termCursorX++; break; // right
            case 68: if (termCursorX > 0) termCursorX--; break; // left
-           }           
+           }
          }
        } else {
          switch (ch) {
            case 91: {
-             termControlChars = [27, 91];      
+             termControlChars = [27, 91];
            } break;
            default: {
-             termControlChars = [];      
+             termControlChars = [];
            }
          }
        }
-     } else termControlChars = [];         
-};    
-    
-  
+     } else termControlChars = [];
+};
+
+
 // ----------------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------------
-  
+
   /// Set the callback(String) that gets called when the user presses a key. Returns the old one
   function setInputDataHandler( callback ) {
-    var old = onInputData; 
+    var old = onInputData;
     onInputData = callback;
     return old;
   };
-  
+
   /// Called when data comes OUT of Espruino INTO the terminal
   function outputDataHandler(readData) {
     if ("string" == typeof readData)
@@ -338,12 +339,12 @@
     // Add data to our buffer
     var bufView=new Uint8Array(readData);
     searchData(bufView);
-    for (var i=0;i<bufView.length;i++) 
+    for (var i=0;i<bufView.length;i++)
       displayData.push(bufView[i]);
     // If we haven't had data after 50ms, update the HTML
-    if (displayTimeout == null) 
+    if (displayTimeout == null)
       displayTimeout = window.setTimeout(function() {
-        for (i in displayData) 
+        for (i in displayData)
           handleReceivedCharacter(displayData[i]);
         updateTerminal();
         displayData = [];
@@ -358,7 +359,7 @@
       receivedData += String.fromCharCode(bytes[i]);
     }
     si = receivedData.indexOf("<<<<<");
-    if(si >= 0){ 
+    if(si >= 0){
       receivedData = receivedData.substr(si);
       ei = receivedData.indexOf(">>>>>");
       if(ei > 0){
@@ -369,7 +370,7 @@
     }
     else{ receivedData = ""; }
   }
-  
+
   /// Claim input and output of the Serial port
   function grabSerialPort() {
     // Ensure that keypresses go direct to the Espruino device
@@ -377,40 +378,40 @@
       Espruino.Core.Serial.write(d);
     });
     // Ensure that data from Espruino goes to this terminal
-    Espruino.Core.Serial.startListening(Espruino.Core.Terminal.outputDataHandler);      
+    Espruino.Core.Serial.startListening(Espruino.Core.Terminal.outputDataHandler);
   };
 
   /// Get the current terminal line that we're on
   function getCurrentLine() {
     return termText.length-1;
   };
-  
+
   /// Set extra text to display before a certain terminal line
   function setExtraText(line, text) {
     if (termExtraText[line] != text) {
       termExtraText[line] = text;
       updateTerminal();
-    }      
-  };    
+    }
+  };
 
   /// Clear all extra text that is to be displayed
   function clearExtraText() {
     termExtraText = {};
     updateTerminal();
-  };   
+  };
 
   /// Give the terminal focus
   function focus() {
-    $("#terminalfocus").focus(); 
+    $("#terminalfocus").focus();
   };
 
   // Is the terminal actually visible, or is it so small it can't be seen?
   function isVisible() {
-    return ($("#terminal").width() > 20) && ($("#terminal").height() > 20); 
+    return ($("#terminal").width() > 20) && ($("#terminal").height() > 20);
   }
-  
+
   /** Get the Nth from latest terminal line (and the line number of it). 0=current line.
-   * By terminal line we mean a line starting with '>' */  
+   * By terminal line we mean a line starting with '>' */
   function getInputLine(n) {
     if (n===undefined) n=0;
     var startLine = termText.length-1;
@@ -425,8 +426,8 @@
       text += "\n"+termText[line++].substr(1);
     return { line : startLine, text : text };
   };
-  
-  /** Get the Nth from latest line of text in the terminal (unlike getInputLine) */  
+
+  /** Get the Nth from latest line of text in the terminal (unlike getInputLine) */
   function getTerminalLine(n) {
     if (n===undefined) n=0;
     var line = termText.length-(1+n);
@@ -437,20 +438,20 @@
 
   Espruino.Core.Terminal = {
       init : init,
-      
+
       getInputLine : getInputLine,
       getTerminalLine : getTerminalLine,
       getCurrentLine : getCurrentLine,
       isVisible : isVisible, // Is the terminal actually visible, or is it so small it can't be seen?
       focus : focus, // Give this focus
       clearTerminal : clearTerminal, // Clear the contents of the terminal
-      
+
       setExtraText : setExtraText,
       clearExtraText : clearExtraText,
-      
+
       grabSerialPort : grabSerialPort,
       setInputDataHandler : setInputDataHandler,
-      outputDataHandler : outputDataHandler,      
+      outputDataHandler : outputDataHandler,
   };
 
 })();

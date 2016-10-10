@@ -23,7 +23,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   -p,--port /dev/ttyX     : Specify port(s) to connect to
   -b baudRate             : Set the baud rate of the serial connection
                             No effect when using USB, default: 9600
-  --no-ble                : Disables Bluetooth Low Energy (using the 'bleat' module)
+  --no-ble                : Disable Bluetooth Low Energy (used by default if the 'bleat' module exists)
   --list                  : List all available devices and exit
   -t,--time               : Set Espruino's time when uploading code
   -o out.js               : Write the actual JS code sent to Espruino to a file
