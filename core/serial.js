@@ -182,7 +182,7 @@
 
     // Initially, split based on block size
     var d = undefined;
-    var split = { start:writeData[0].blockSize, end:writeData[0].blockSize, delay:50 };
+    var split = { start:writeData[0].blockSize, end:writeData[0].blockSize, delay:0 };
     // if we get something like Ctrl-C or `reset`, wait a bit for it to complete
     if (!sendingBinary) {
       function findSplitIdx(prev, substr, delay) {
@@ -207,6 +207,7 @@
     }
     // Only send some of the data
     if (writeData[0].data.length>split.end) {
+      if (split.delay==0) split.delay=50;
       d = writeData[0].data.substr(0,split.end);
       writeData[0].data = writeData[0].data.substr(split.end);
     } else {
