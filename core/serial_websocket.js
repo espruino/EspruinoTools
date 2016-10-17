@@ -6,6 +6,7 @@ Gordon Williams (gw@pur3.co.uk)
   if (typeof window == "undefined" || typeof WebSocket == undefined) return;
   console.log("WebSockets support enabled - running in web browser");
   var ws;
+  var dataWrittenCallbacks = [];
 
   var str2ab=function(str) {
     var buf=new ArrayBuffer(str.length);
@@ -27,9 +28,10 @@ Gordon Williams (gw@pur3.co.uk)
        else callback(ports);
     });
   };
-  
+
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     ws = new WebSocket("ws://" + location.host + "/" + serialPort, "serial");
+    dataWrittenCallbacks = [];
     ws.onerror = function(event) {
       connectCallback(undefined);
       ws = undefined;
@@ -39,9 +41,15 @@ Gordon Williams (gw@pur3.co.uk)
         openCallback("Hello");
       });
       ws.onerror = undefined;
-      ws.onmessage = function (event) { 
-        console.log("MSG:"+event.data);
-        receiveCallback(str2ab(event.data));
+      ws.onmessage = function (event) {
+        //console.log("MSG:"+event.data);
+        if (event.data[0]=="R") {
+          receiveCallback(str2ab(event.data.substr(1)));
+        } else {
+          // if it's a data written callback, execute it
+          var c = dataWrittenCallbacks.shift();
+          if (c) c();
+        }
       };
       ws.onclose = function(event) {
         currentDevice = undefined;
@@ -59,12 +67,12 @@ Gordon Williams (gw@pur3.co.uk)
       ws = undefined;
     }
   };
-   
+
   var writeSerial = function(data, callback) {
+    dataWrittenCallbacks.push(callback);
     if (ws) ws.send(data);
-    callback();
   };
-  
+
   // ----------------------------------------------------------
   Espruino.Core.Serial.devices.push({
     "getPorts": getPorts,
