@@ -5,7 +5,7 @@
  This Source Code is subject to the terms of the Mozilla Public
  License, v2.0. If a copy of the MPL was not distributed with this
  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
+
  ------------------------------------------------------------------
   Escape non-ASCII characters into \xHH UTF-8 sequences before send
  ------------------------------------------------------------------
@@ -24,7 +24,8 @@
     var idx = 0;
 
     for (var i = 0; i < code.length; ++i) {
-      if (code.charCodeAt(i) >= 128) {
+      var ch = code.charCodeAt(i);
+      if (ch >= 128 && ch!=172/*¬*/ && ch!=163/*£*/) {
         newCode.push(code.substring(idx, i));
         newCode.push(escapeChar(code[i]));
         idx = i + 1;
