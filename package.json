@@ -15,11 +15,11 @@
   },
   "dependencies": {
     "acorn": ">=0.6.0",
-    "bleat": "^0.1.1",
     "es6-shim": "",
     "escodegen": "",
     "esmangle": "",
     "esprima": "",
+    "noble": "^1.7.0",
     "request": "^2.74.0",
     "serialport": ">=1.2.5",
     "tar.gz": "^1.0.5"
