@@ -21,6 +21,8 @@
     } catch (e) {
       console.error(e);
       console.log("`bleat` module not loaded - no node.js Bluetooth Low Energy");
+      Espruino.Config.BLUETOOTH_LOW_ENERGY = false;
+      callback("No 'bleat' module");
       return;
     }
 
