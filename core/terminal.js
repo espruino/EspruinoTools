@@ -10,9 +10,10 @@
  ------------------------------------------------------------------
 **/
 "use strict";
+
 (function(){
   if(typeof process !== "undefined" &&
-     !process.__node_webkit &&
+     !process.versions.nw &&
      !process.versions.electron)
     return; // don't load this in std NodeJS
 

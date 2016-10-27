@@ -2,6 +2,11 @@
 Gordon Williams (gw@pur3.co.uk)
 */
 (function() {
+  // Are we on nw.js with chrome.serial? No need for serialport then!
+  if (typeof chrome !== 'undefined' && chrome.serial) {
+    console.log("We have chrome.serial - not using 'serialport' module");
+    return;
+  }
   if (typeof require === 'undefined') return;
   var serialport = require('serialport');
 
@@ -30,7 +35,7 @@ Gordon Williams (gw@pur3.co.uk)
            */
 //          .filter(function(e) {
 //            return (e.vendorId === '0x0483' && e.productId === '0x5740');
-//          })  
+//          })
           .map(function(port) {
             // port.pnpId could be handy
             var vid = parseInt(port.vendorId);
@@ -44,7 +49,7 @@ Gordon Williams (gw@pur3.co.uk)
       );
     });
   };
-  
+
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     // https://github.com/voodootikigod/node-serialport#reference-guide
     connection = new serialport(serialPort, {
@@ -56,7 +61,7 @@ Gordon Williams (gw@pur3.co.uk)
     connection.on('data', function(data) {
       if (receiveCallback !== undefined) {
         var a = new Uint8Array(data.length);
-        for (var i=0;i<data.length;i++) 
+        for (var i=0;i<data.length;i++)
           a[i] = data[i];
         receiveCallback(a.buffer);
       }
@@ -70,7 +75,7 @@ Gordon Williams (gw@pur3.co.uk)
   var closeSerial=function(callback) {
     connection.close(callback);
   };
-   
+
   var writeSerial = function(data, callback) {
     // convert to an array - if we put a string into
     // a Buffer (expected by nodeserial) then I think
@@ -80,7 +85,7 @@ Gordon Williams (gw@pur3.co.uk)
       a[i] = data.charCodeAt(i);
     connection.write(a, callback);
   };
-  
+
   // ----------------------------------------------------------
   Espruino.Core.Serial.devices.push({
     "getPorts": getPorts,
