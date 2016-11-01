@@ -87,8 +87,9 @@
   }, 1000);
 
   noble.on('discover', function(dev) {
-    if (btDevices[dev.address]) return; // already seen it
     if (!dev.advertisement) return;
+    for (var i in newDevices)
+      if (newDevices[i].path == dev.address) return; // already seen it
     var name = dev.advertisement.localName;
     var hasUartService = dev.advertisement.serviceUuids.indexOf(NORDIC_SERVICE)>=0;
     if (hasUartService ||
@@ -96,7 +97,7 @@
           (name.substr(0, 7) == "Puck.js" ||
            name.substr(0, 8) == "Espruino"))) {
       console.log("Found UART device:", name, dev.address);
-      newDevices.push({ path: dev.address, description: dev.name });
+      newDevices.push({ path: dev.address, description: name });
       btDevices[dev.address] = dev;
     } else console.log("Found device:", name, dev.address);
   });
