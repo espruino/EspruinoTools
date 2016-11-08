@@ -306,6 +306,8 @@
            case 66: termCursorY++; while (termCursorY >= termText.length) termText.push(""); break;  // down FIXME should add extra lines in...
            case 67: termCursorX++; break; // right
            case 68: if (termCursorX > 0) termCursorX--; break; // left
+           case 74: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX);
+                    termText = termText.slice(0,termCursorY+1);   break; // Delete to right + down
            case 75: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); break; // Delete to right
          }
        }
