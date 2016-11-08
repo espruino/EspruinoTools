@@ -286,8 +286,8 @@
           }
         }
       }
-   } else if (termControlChars[0]==27) {
-     if (termControlChars[1]==91) {
+   } else if (termControlChars[0]==27) { // Esc
+     if (termControlChars[1]==91) { // Esc [
        if (termControlChars[2]==63) {
          if (termControlChars[3]==55) {
            if (ch!=108)
@@ -306,19 +306,20 @@
            case 66: termCursorY++; while (termCursorY >= termText.length) termText.push(""); break;  // down FIXME should add extra lines in...
            case 67: termCursorX++; break; // right
            case 68: if (termCursorX > 0) termCursorX--; break; // left
-           }
-         }
-       } else {
-         switch (ch) {
-           case 91: {
-             termControlChars = [27, 91];
-           } break;
-           default: {
-             termControlChars = [];
-           }
+           case 75: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); break; // Delete to right
          }
        }
-     } else termControlChars = [];
+     } else {
+       switch (ch) {
+         case 91: {
+           termControlChars = [27, 91];
+         } break;
+         default: {
+           termControlChars = [];
+         }
+       }
+     }
+   } else termControlChars = [];
 };
 
 
@@ -436,6 +437,14 @@
     return termText[line];
   };
 
+  function addNotification(text) {
+    var line = getInputLine(0);
+    line = (line===undefined)?0:line.line;
+    if (!termExtraText[line]) termExtraText[line]="";
+    termExtraText[line] += '<div class="notification_text">'+text+'</div>';
+    updateTerminal();
+  }
+
 
   Espruino.Core.Terminal = {
       init : init,
@@ -449,6 +458,7 @@
 
       setExtraText : setExtraText,
       clearExtraText : clearExtraText,
+      addNotification : addNotification, // wrapper around setExtraText to add advice to the terminal
 
       grabSerialPort : grabSerialPort,
       setInputDataHandler : setInputDataHandler,
