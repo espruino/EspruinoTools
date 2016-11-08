@@ -65,8 +65,19 @@
       });
     });
 
+    var mouseDownTime = Date.now();
+    $(window).mousedown(function() {
+      mouseDownTime = Date.now();
+    });
     $("#terminal").mouseup(function() {
       var terminalfocus = $('#terminalfocus');
+      /* Maybe we basically just clicked (>100ms)
+       in which case we don't want to copy */
+      if (Date.now() < mouseDownTime+100) {
+        terminalfocus.focus();
+        return;
+      }
+
       var selection = window.getSelection();
       /* this rather convoluted code checks to see if the selection
        * is actually part of the terminal. It may be that the user
@@ -86,13 +97,28 @@
             //console.log(selectedText.split("").map(function(c) { return c.charCodeAt(0); }));
             selectedText = selectedText.replace(/\xA0/g," "); // Convert nbsp chars to spaces
             //console.log(selectedText.split("").map(function(c) { return c.charCodeAt(0); }));
+
+            /* Because Espruino prefixes multi-line code with ':' it makes
+             it a nightmare to copy/paste. This hack gets around it. */
+            var allColon = true, hasNewline = false;
+            for (var i=0;i<selectedText.length-1;i++) {
+              if (selectedText[i]=="\n")
+                hasNewline = true;
+              if (selectedText[i]=="\n" && selectedText[i+1]!=":")
+                allColon = false;
+            }
+            if (allColon && hasNewline) {
+              selectedText = selectedText.replace(/\n:/g,"\n");
+              if (selectedText[0]==">")
+                selectedText = selectedText.substr(1);
+            }
+
             terminalfocus.val(selectedText).select();
             document.execCommand('copy');
             terminalfocus.val('');
           }
         }
       }
-
       terminalfocus.focus();
     });
     $("#terminalfocus").focus(function() { $("#terminal").addClass('focus'); } ).blur(function() { $("#terminal").removeClass('focus'); } );
