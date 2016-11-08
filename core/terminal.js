@@ -121,13 +121,38 @@
       }
       terminalfocus.focus();
     });
-    $("#terminalfocus").focus(function() { $("#terminal").addClass('focus'); } ).blur(function() { $("#terminal").removeClass('focus'); } );
-    $("#terminalfocus").keypress(function(e) {
-      e.preventDefault();
-      var ch = String.fromCharCode(e.which);
-      onInputData(ch);
-    }).keydown(function(e) {
+    var terminalfocus = document.getElementById("terminalfocus");
+    terminalfocus.focus();
+    terminalfocus.addEventListener("focus", function() {
+      $("#terminal").addClass('focus');
+    });
+    terminalfocus.addEventListener("blur", function() {
+      $("#terminal").removeClass('focus');
+    });
+    /* Super hack for Android. We can't just look at keypresses since
+    it wants to do autocomplete. What we do is keep the current word
+    (at least until someone presses a special char) in an input box
+    and then try and send the characters needed to keep text on
+    Espruino up to date with the text box. */
+    var lastValue = terminalfocus.value;
+    terminalfocus.addEventListener('input', function(e) {
+      var thisValue = terminalfocus.value;
+      var commonChars = 0;
+      while (commonChars<thisValue.length &&
+             commonChars<lastValue.length &&
+             thisValue[commonChars] == lastValue[commonChars])
+        commonChars++;
+      var text = "";
+      for (var i=commonChars;i<lastValue.length;i++)
+        text+="\x08"; // backspace
+      text+=thisValue.substr(commonChars);
+      lastValue = terminalfocus.value;
+      if (text.length)
+        onInputData(text);
+    });
+    terminalfocus.addEventListener("keydown", function(e) {
       var ch = undefined;
+      if (e.keyCode == 13) ch = String.fromCharCode(13);
       if (e.ctrlKey) {
         if (e.keyCode == 'C'.charCodeAt(0)) ch = String.fromCharCode(3); // control C
       }
@@ -148,14 +173,17 @@
 
       if (ch!=undefined) {
         e.preventDefault();
+        terminalfocus.value = "";
+        lastValue = "";
         onInputData(ch);
       }
-    }).bind('paste', function () {
-      var element = this;
+    });
+    terminalfocus.addEventListener("paste", function() {
       // nasty hack - wait for paste to complete, then get contents of input
       setTimeout(function () {
-        var text = $(element).val();
-        $(element).val("");
+        var text = terminalfocus.value;
+        terminalfocus.value = "";
+        lastValue = "";
         onInputData(Espruino.Core.Utils.fixBrokenCode(text));
       }, 100);
     });
@@ -267,6 +295,16 @@
     // now show the line where the cursor is
     if (elements[termCursorY]!==undefined);
       elements[termCursorY][0].scrollIntoView();
+    /* Move input box to the same place as the cursor, so Android devices
+    keep that part of the screen in view */
+    var cursor = document.getElementsByClassName("terminal__cursor");
+    if (cursor.length) {
+      var pos = cursor[0].getBoundingClientRect();
+      var terminalfocus = document.getElementById("terminalfocus");
+      terminalfocus.style.left=pos.left+"px";
+      terminalfocus.style.top=pos.top+"px";
+      terminalfocus.style["z-index"]=-100;
+    }
   };
 
   function trimRight(str) {
