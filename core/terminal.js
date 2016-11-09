@@ -56,9 +56,12 @@
     $('<div id="terminal" class="terminal"></div>').appendTo(".editor--terminal .editor__canvas");
     $('<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1"></textarea>').appendTo(document.body);
 
+    var terminal = document.getElementById("terminal");
+    var terminalfocus = document.getElementById("terminalfocus");
+
     // Populate terminal
     $.get("data/terminal_initial.html", function (data){
-      $("#terminal").html(data);
+      terminal.innerHTML = data;
       $(".tour_link").click(function(e) {
         e.preventDefault();
         $("#icon-tour").click();
@@ -66,26 +69,59 @@
     });
 
     var mouseDownTime = Date.now();
-    $(window).mousedown(function() {
+    window.addEventListener("mousedown", function() {
       mouseDownTime = Date.now();
     });
-    $("#terminal").mouseup(function() {
-      var terminalfocus = $('#terminalfocus');
+    terminal.addEventListener("mouseup" , function(e) {
+      var selection = window.getSelection();
       /* Maybe we basically just clicked (>100ms)
        in which case we don't want to copy */
-      if (Date.now() < mouseDownTime+100) {
+      if (Date.now() < mouseDownTime+200) {
+        // Move cursor, if we can...
+        if (selection &&
+            selection.baseNode &&
+            selection.baseNode.parentNode &&
+            selection.baseNode.parentNode.className=="termLine") {
+          var cx = selection.baseOffset;
+          var cy = selection.baseNode.parentNode.attributes.linenumber.value;
+          var prev = selection.baseNode.previousSibling;
+          while (prev) {
+            cx += prev.textContent.length;
+            prev = prev.previousSibling;
+          }
+          //console.log("Click to ",cx,cy, termCursorX,termCursorY);
+          var s = "";
+          var tx = termCursorX;
+          var ty = termCursorY;
+          while (cx<tx) { tx--; s+=String.fromCharCode(27,91,68); } // left
+          while (cy>ty && termText[ty] && ":>".indexOf(termText[ty][0])>=0) {
+            ty++; s+=String.fromCharCode(27,91,66);
+          }
+          while (cy<ty && termText[ty] && ":>".indexOf(termText[ty][0])>=0) {
+            ty--; s+=String.fromCharCode(27,91,65);
+          }
+          while (cx>tx) { tx++; s+=String.fromCharCode(27,91,67); } // right
+          if (s.length) {
+            if (termCursorY==termText.length-1 &&
+                termCursorX>1 && termCursorX==termText[termCursorY].length) {
+              /* if we're at the end of the last line, we need to step left
+              then move, then right - or we could just end up going back in
+              the command history */
+              s = String.fromCharCode(27,91,68) + s + String.fromCharCode(27,91,67);
+            }
+            onInputData(s);
+          }
+        }
         terminalfocus.focus();
         return;
       }
 
-      var selection = window.getSelection();
       /* this rather convoluted code checks to see if the selection
        * is actually part of the terminal. It may be that the user
        * clicked on the editor pane, dragged, and released over the
        * terminal in which case we DON'T want to copy. */
       if (selection.rangeCount > 0) {
         var node = selection.getRangeAt(0).startContainer;
-        var terminal = $("#terminal")[0];
         while (node && node!=terminal)
           node = node.parentNode;
 
@@ -113,21 +149,22 @@
                 selectedText = selectedText.substr(1);
             }
 
-            terminalfocus.val(selectedText).select();
+            terminalfocus.value = selectedText;
+            terminalfocus.select();
             document.execCommand('copy');
-            terminalfocus.val('');
+            terminalfocus.value = '';
+            lastValue = '';
           }
         }
       }
       terminalfocus.focus();
     });
-    var terminalfocus = document.getElementById("terminalfocus");
     terminalfocus.focus();
     terminalfocus.addEventListener("focus", function() {
-      $("#terminal").addClass('focus');
+      terminal.classList.add('focus');
     });
     terminalfocus.addEventListener("blur", function() {
-      $("#terminal").removeClass('focus');
+      terminal.classList.remove('focus');
     });
     /* Super hack for Android. We can't just look at keypresses since
     it wants to do autocomplete. What we do is keep the current word
@@ -135,7 +172,7 @@
     and then try and send the characters needed to keep text on
     Espruino up to date with the text box. */
     var lastValue = terminalfocus.value;
-    terminalfocus.addEventListener('input', function(e) {
+    function changeListener() {
       var thisValue = terminalfocus.value;
       var commonChars = 0;
       while (commonChars<thisValue.length &&
@@ -148,8 +185,9 @@
       text+=thisValue.substr(commonChars);
       lastValue = terminalfocus.value;
       if (text.length)
-        onInputData(text);
-    });
+        onInputData(Espruino.Core.Utils.fixBrokenCode(text));
+    }
+    terminalfocus.addEventListener("input", changeListener);
     terminalfocus.addEventListener("keydown", function(e) {
       var ch = undefined;
       if (e.keyCode == 13) ch = String.fromCharCode(13);
@@ -181,10 +219,9 @@
     terminalfocus.addEventListener("paste", function() {
       // nasty hack - wait for paste to complete, then get contents of input
       setTimeout(function () {
-        var text = terminalfocus.value;
+        changeListener();
         terminalfocus.value = "";
         lastValue = "";
-        onInputData(Espruino.Core.Utils.fixBrokenCode(text));
       }, 100);
     });
 
@@ -192,12 +229,12 @@
     Espruino.addProcessor("connected", function(data, callback) {
       grabSerialPort();
       outputDataHandler("\r\nConnected\r\n>");
-      $("#terminal").addClass("terminal--connected");
+      terminal.classList.add("terminal--connected");
       callback(data);
     });
     Espruino.addProcessor("disconnected", function(data, callback) {
       outputDataHandler("\r\nDisconnected\r\n");
-      $("#terminal").removeClass("terminal--connected");
+      terminal.classList.remove("terminal--connected");
       callback(data);
     });
   };
