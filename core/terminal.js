@@ -94,22 +94,32 @@
           var tx = termCursorX;
           var ty = termCursorY;
           while (cx<tx) { tx--; s+=String.fromCharCode(27,91,68); } // left
-          while (cy>ty && termText[ty] && ":>".indexOf(termText[ty][0])>=0) {
+          while (cy>ty && termText[ty+1] && ":>".indexOf(termText[ty+1][0])>=0) {
             ty++; s+=String.fromCharCode(27,91,66);
           }
-          while (cy<ty && termText[ty] && ":>".indexOf(termText[ty][0])>=0) {
+          while (cy<ty && termText[ty-1] && ":>".indexOf(termText[ty-1][0])>=0) {
             ty--; s+=String.fromCharCode(27,91,65);
           }
+          if (!termText[ty]) cx=0;
+          else if (termText[ty].length<cx)
+            cx = termText[ty].length;
           while (cx>tx) { tx++; s+=String.fromCharCode(27,91,67); } // right
           if (s.length) {
             if (termCursorY==termText.length-1 &&
-                termCursorX>1 && termCursorX==termText[termCursorY].length) {
-              /* if we're at the end of the last line, we need to step left
-              then move, then right - or we could just end up going back in
-              the command history */
-              s = String.fromCharCode(27,91,68) + s + String.fromCharCode(27,91,67);
+                termCursorX==termText[termCursorY].length) {
+              if (termCursorX<=1) {
+                /* if we're right at the end, but there are no characters so
+                we can't step back - don't try and move because we can't */
+                s="";
+              } else {
+                /* if we're at the end of the last line, we need to step left
+                then move, then right - or we could just end up going back in
+                the command history */
+                s = String.fromCharCode(27,91,68) + s + String.fromCharCode(27,91,67);
+              }
             }
-            onInputData(s);
+            if (s.length)
+              onInputData(s);
           }
         }
         terminalfocus.focus();
