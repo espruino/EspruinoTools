@@ -36,12 +36,12 @@
     // We want to make sure we've got a prompt before sending. If not,
     // this will issue a Ctrl+C
     Espruino.Core.Utils.getEspruinoPrompt(function() {
-      // turn off ech around the code
-      code = "echo(0);\n" + code + "\necho(1);\n";
+      // Make sure code ends in a newline
+      if (code[code.length]!="\n") code += "\n";
 
       // If we're supposed to reset Espruino before sending...
       if (Espruino.Config.RESET_BEFORE_SEND) {
-        code = "reset();\n"+code;
+        code = "\x10reset();\n"+code;
       }
 
       //console.log("Sending... "+data);
@@ -100,7 +100,7 @@
       lineNumberOffset = -i;
     }
 
-    var resultCode = "";
+    var resultCode = "\x10"; // 0x10 = echo off for line
     /** we're looking for:
      *   `a = \n b`
      *   `for (.....) \n X`
@@ -149,6 +149,7 @@
         previousString = previousString.replace(/\n/g, "\x1B\x0A");
       }
 
+      var previousBrackets = brackets;
       if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;
       if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;
 
@@ -180,9 +181,13 @@
           previousString += "\x1B\x5B"+(tok.lineNumber+lineNumberOffset)+"d";
         }
       }
-
+      /* If we're at root scope and had whitespace/comments between code,
+      remove it all and replace it with a single newline and a
+      0x10 (echo off for line) character*/
+      if (previousBrackets==0 && previousString.indexOf("\n")>=0)
+        previousString = "\n\x10";
       // add our stuff back together
-      resultCode += previousString + tokenString;
+      resultCode += previousString+tokenString;
       // next
       lastIdx = tok.endIdx;
       lastTok = tok;

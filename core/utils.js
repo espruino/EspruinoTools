@@ -226,8 +226,6 @@
           console.log("Got "+JSON.stringify(receivedData));
           // strip out the text we found
           receivedData = receivedData.substr(0,startProcess) + receivedData.substr(endProcess+4);
-          // try and strip out the echo 0 too...
-          receivedData = receivedData.replace("echo(0);\r\n\r\n=undefined\r\n>","");
           // Now stop time timeout
           clearInterval(timeout);
           // Do the next stuff
@@ -249,7 +247,7 @@
       };
 
       // Don't Ctrl-C, as we've already got ourselves a prompt with Espruino.Core.Utils.getEspruinoPrompt
-      Espruino.Core.Serial.write('echo(0);\nconsole.log("<","<<",JSON.stringify('+expressionToExecute+'),">>",">");echo(1);\n');
+      Espruino.Core.Serial.write('\x10console.log("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n');
 
       var maxTimeout = 20; // 10 secs
       var timeoutCnt = 0;
