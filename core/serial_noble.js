@@ -225,7 +225,7 @@
 
     function writeChunk() {
       var chunk;
-      var CHUNKSIZE = 16;
+      var CHUNKSIZE = 20;
       if (txDataQueue.length <= CHUNKSIZE) {
         chunk = txDataQueue;
         txDataQueue = undefined;
