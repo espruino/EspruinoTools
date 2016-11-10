@@ -66,7 +66,7 @@
     var chNum="0123456789";
     var chAlphaNum = chAlpha+chNum;
     var chWhiteSpace=" \t\n\r";
-    var chQuotes = "\"'";
+    var chQuotes = "\"'`";
     var ch;
     var idx = 0;
     var lineNumber = 1;
