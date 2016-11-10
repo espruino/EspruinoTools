@@ -147,15 +147,17 @@
             /* Because Espruino prefixes multi-line code with ':' it makes
              it a nightmare to copy/paste. This hack gets around it. */
             var allColon = true, hasNewline = false;
-            for (var i=0;i<selectedText.length-1;i++) {
-              if (selectedText[i]=="\n")
+            var trimmedSelectedText = selectedText.trim();
+            for (var i=0;i<trimmedSelectedText.length-1;i++) {
+              if (trimmedSelectedText[i]=="\n")
                 hasNewline = true;
-              if (selectedText[i]=="\n" && selectedText[i+1]!=":")
+              if (trimmedSelectedText[i]=="\n" && trimmedSelectedText[i+1]!=":")
                 allColon = false;
             }
             if (allColon && hasNewline) {
               selectedText = selectedText.replace(/\n:/g,"\n");
-              if (selectedText[0]==">")
+              if (selectedText[0]==">" ||
+                  selectedText[1]==":")
                 selectedText = selectedText.substr(1);
             }
 
