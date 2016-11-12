@@ -69,6 +69,20 @@ espruino -e "digitalWrite(LED1,1);"
 ```
 
 
+Bluetooth
+----------
+
+If the NPM module `noble` is installed, it'll be used to scan for Bluetooth LE UART devices like [Puck.js](http://puck-js.com). It's an optional dependency, so will be installed if possible - but if not you just won't get BLE support.
+
+If it is installed and you don't want it, you can use `./espruino --no-ble` to disable it for the one command, or can remove the module with `npm remove noble`.
+
+On linux, you'll need to run as superuser to access Bluetooth Low Energy. To avoid this you need to give node.js the relevant privileges with:
+
+```
+sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
+```
+
+
 NPM Module
 ----------
 
@@ -129,25 +143,6 @@ This isn't well documented right now, but basically:
 * You then call into `Espruino.Core.X` or `Espruino.Plugins.Y` to do what you want
 
 It's not ideal for node.js, but was designed to run in the Web browser for the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE)
-
-
-To Do
------
-
-While [EspruinoTools](http://www.github.com/espruino/EspruinoTools) has been in use in the Web IDE for a while, the command-line tool still needs a lot of work.
-
-Main things that need attention at the moment are:
-
-* The local filesystem should be checked for modules that are referenced from Espruino's code, maybe `modules` folder to avoid confusion with node.
-* Remove usage of `console.log` and replace it with something else that can be easily disabled when used as a module
-
-Cool stuff would be:
-
-* Add a command-line option (`-w`?) to watch a file and re-upload it when it has changed
-* Allow the final code that's sent to Espruino to be written to a file (useful when there's Compilation/assembly/modules/minification involved).
-* Add an option to expose the serial connection via WebSockets. Something [like the online Web IDE](http://espruino.github.io/EspruinoWebIDE/) could the communicate directly.
-* Support for Nordic UART via [bleat](https://www.npmjs.com/package/bleat)
-* Support for [using the Espruino JS->C compiler](https://github.com/gfwilliams/EspruinoCompiler) offline, if `arm-node-eabi-gcc` is installed.
 
 
 Contributing
