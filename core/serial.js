@@ -218,7 +218,7 @@
     if (writeData[0].showStatus)
       Espruino.Core.Status.incrementProgress(d.length);
     // actually write data
-    console.log("Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
+    //console.log("Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
     currentDevice.write(d, function() {
       // Once written, start timeout
       writeTimeout = setTimeout(function() {
