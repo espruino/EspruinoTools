@@ -88,6 +88,7 @@ Gordon Williams (gw@pur3.co.uk)
 
   // ----------------------------------------------------------
   Espruino.Core.Serial.devices.push({
+    "name" : "Node Serial",
     "getPorts": getPorts,
     "open": openSerial,
     "write": writeSerial,

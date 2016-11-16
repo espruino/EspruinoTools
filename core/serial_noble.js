@@ -255,6 +255,7 @@
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
+    "name" : "Noble",
     "init": init,
     "getPorts": getPorts,
     "open": openSerial,

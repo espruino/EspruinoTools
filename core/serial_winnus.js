@@ -7,6 +7,8 @@
     console.log("'winnus' module not found, no Windows Bluetooth Low Energy", e);
     return;
   }
+  console.log("Disable Web Bluetooth as we have Winnus instead");
+  Espruino.Core.Serial.NO_WEB_BLUETOOTH = true;
 
   var txDataQueue = undefined;
   var txInProgress = false;
@@ -114,6 +116,7 @@
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
+    "name" : "Windows NUS BLE",
     "init": init,
     "getPorts": getPorts,
     "open": openSerial,

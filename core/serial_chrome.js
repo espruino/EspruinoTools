@@ -24,8 +24,8 @@ Author: Gordon Williams (gw@pur3.co.uk)
     // wrong chrome version
     console.log("Chrome does NOT have post-M33 serial API");
     return;
-  }  
-  
+  }
+
   var connectionInfo;
   var connectedPort; // unused?
   var connectionDisconnectCallback;
@@ -36,7 +36,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
 
       var prefix = "";
       // Workaround for Chrome v34 bug - http://forum.espruino.com/conversations/1056/#comment16121
-      // In this case, ports are reported as ttyACM0 - not /dev/ttyACM0      
+      // In this case, ports are reported as ttyACM0 - not /dev/ttyACM0
       if (navigator.userAgent.indexOf("Linux")>=0) {
         hasSlashes = false;
         devices.forEach(function(device) { if (device.path.indexOf("/")>=0) hasSlashes=true; });
@@ -45,17 +45,17 @@ Author: Gordon Williams (gw@pur3.co.uk)
 
       callback(devices.map(function(device) {
         return {
-                path : prefix+device.path, 
-                description : device.displayName, 
+                path : prefix+device.path,
+                description : device.displayName,
                 usb : [device.vendorId, device.productId]};
       }));
     });
   };
-  
+
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     connectionReadCallback = receiveCallback;
     connectionDisconnectCallback = disconnectCallback;
-    chrome.serial.connect(serialPort, {bitrate: parseInt(Espruino.Config.BAUD_RATE)}, 
+    chrome.serial.connect(serialPort, {bitrate: parseInt(Espruino.Config.BAUD_RATE)},
       function(cInfo) {
         if (!cInfo) {
           console.log("Unable to open device (connectionInfo="+cInfo+")");
@@ -65,7 +65,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
           connectedPort = serialPort;
           console.log(cInfo);
           openCallback(cInfo);
-        }        
+        }
     });
   };
 
@@ -82,8 +82,8 @@ Author: Gordon Williams (gw@pur3.co.uk)
     }
     return buf;
   };
- 
- 
+
+
   var closeSerial=function() {
     if (connectionInfo)
       chrome.serial.disconnect(connectionInfo.connectionId, connectionDisconnectCallback);
@@ -91,14 +91,14 @@ Author: Gordon Williams (gw@pur3.co.uk)
     connectionDisconnectCallback = undefined;
     connectionInfo=null;
   };
-   
+
   var writeSerial = function(data, callback) {
-    chrome.serial.send(connectionInfo.connectionId, str2ab(data), callback); 
+    chrome.serial.send(connectionInfo.connectionId, str2ab(data), callback);
   };
-  
+
   // ----------------------------------------------------------
   chrome.serial.onReceive.addListener(function(receiveInfo) {
-    if (connectionReadCallback!==undefined) 
+    if (connectionReadCallback!==undefined)
       connectionReadCallback(receiveInfo.data);
   });
 
@@ -108,6 +108,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
   });
 
   Espruino.Core.Serial.devices.push({
+    "name" : "Chrome Serial",
     "getPorts": getPorts,
     "open": openSerial,
     "write": writeSerial,

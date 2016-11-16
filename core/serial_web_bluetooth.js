@@ -34,6 +34,13 @@ var txDataQueue = undefined;
 var txInProgress = false;
 
   function init() {
+    /* If BLE is handled some other way (eg winnus), then it
+    can be disabled here */
+    if (Espruino.Core.Serial.NO_WEB_BLUETOOTH) {
+      Espruino.Config.WEB_BLUETOOTH = false;
+      return;
+    }
+
     Espruino.Core.Config.add("WEB_BLUETOOTH", {
       section : "Communications",
       name : "Connect over Bluetooth Smart (Web Bluetooth)",
@@ -87,7 +94,7 @@ var txInProgress = false;
       rxCharacteristic = characteristic;
       console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
-        // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.		
+        // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.
         var value = event.target.value.buffer;
         console.log("BT> RX:"+JSON.stringify(ab2str(value)));
         receiveCallback(value);
@@ -173,6 +180,7 @@ var txInProgress = false;
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
+    "name" : "Web Bluetooth",
     "init" : init,
     "getPorts": getPorts,
     "open": openSerial,

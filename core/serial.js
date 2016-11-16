@@ -25,9 +25,11 @@
     });
 
     var devices = Espruino.Core.Serial.devices;
-    for (var i=0;i<devices.length;i++)
+    for (var i=0;i<devices.length;i++) {
+      console.log("  - Initialising Serial "+devices[i].name);
       if (devices[i].init)
         devices[i].init();
+    }
   }
 
   var startListening=function(callback) {
