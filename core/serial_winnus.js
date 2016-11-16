@@ -10,6 +10,7 @@
 
   var txDataQueue = undefined;
   var txInProgress = false;
+  var onDisconnect;
 
   function str2Uint8Array(str) {
     var buf = new Uint8Array(str.length);
@@ -46,6 +47,7 @@
 
     txDataQueue = undefined;
     txInProgress = false;
+    onDisconnect = disconnectCallback;
 
     try {
       winnus.connect(foundDevice, function(rxData) {
@@ -58,8 +60,15 @@
   };
 
   var closeSerial = function () {
-    if (btDevice) {
-      btDevice.disconnect(); // should call disconnect callback?
+    txDataQueue = undefined;
+    txInProgress = false;
+    try {
+      winnus.disconnect();
+    } catch (e) {
+    }
+    if (onDisconnect) {
+      onDisconnect();
+      onDisconnect = undefined;
     }
   };
 
