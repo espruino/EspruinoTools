@@ -1,0 +1,114 @@
+(function () {
+  if (typeof require === 'undefined') return;
+  var winnus = undefined;
+  try {
+    winnus = require('winnus');
+  } catch (e) {
+    console.log("'winnus' module not found, no Windows Bluetooth Low Energy", e);
+    return;
+  }
+
+  var txDataQueue = undefined;
+  var txInProgress = false;
+
+  function str2Uint8Array(str) {
+    var buf = new Uint8Array(str.length);
+    for (var i = 0; i < buf.length; i++) {
+      buf[i] = str.charCodeAt(i);
+    }
+    return buf;
+  }
+
+  function init() {
+
+  }
+
+  var getPorts = function (callback) {
+    var devices = [];
+    try {
+      winnus.getDevices().forEach(function(dev) {
+        devices.push({ description : dev.name, path: dev.address });
+      });
+    } catch (e) {
+      console.log(e);
+    }
+    callback(devices);
+  };
+
+  var openSerial = function (serialPort, openCallback, receiveCallback, disconnectCallback) {
+    var devices = winnus.getDevices();
+    var foundDevice;
+    devices.forEach(function(device) {
+      if (device.address == serialPort)
+        foundDevice = device;
+    });
+    if (foundDevice === undefined) throw "BT device not found"
+
+    txDataQueue = undefined;
+    txInProgress = false;
+
+    try {
+      winnus.connect(foundDevice, function(rxData) {
+        receiveCallback(str2Uint8Array(rxData).buffer);
+      });
+      openCallback({}); // success!
+    } catch (e) {
+      openCallback(); // fail.
+    }
+  };
+
+  var closeSerial = function () {
+    if (btDevice) {
+      btDevice.disconnect(); // should call disconnect callback?
+    }
+  };
+
+  // Throttled serial write
+  var writeSerial = function (data, callback) {
+    if (typeof txDataQueue != "undefined" || txInProgress) {
+      if (txDataQueue === undefined)
+        txDataQueue = "";
+      txDataQueue += data;
+      return callback();
+    } else {
+      txDataQueue = data;
+    }
+
+    function writeChunk() {
+      var chunk;
+      var CHUNKSIZE = 20;
+      if (txDataQueue.length <= CHUNKSIZE) {
+        chunk = txDataQueue;
+        txDataQueue = undefined;
+      } else {
+        chunk = txDataQueue.substr(0, CHUNKSIZE);
+        txDataQueue = txDataQueue.substr(CHUNKSIZE);
+      }
+      txInProgress = true;
+      console.log("BT> Sending " + JSON.stringify(chunk));
+      try {
+        winnus.write(chunk);
+        setTimeout(function() {
+          txInProgress = false;
+          if (txDataQueue)
+            writeChunk();
+        }, 20);
+      } catch (e) {
+        console.log("BT> ERROR " + e);
+        txDataQueue = undefined;
+      }
+    }
+    writeChunk();
+    return callback();
+  };
+
+  // ----------------------------------------------------------
+
+  Espruino.Core.Serial.devices.push({
+    "init": init,
+    "getPorts": getPorts,
+    "open": openSerial,
+    "write": writeSerial,
+    "close": closeSerial
+  });
+})();
