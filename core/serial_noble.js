@@ -1,6 +1,6 @@
 (function () {
 
-  /* On Linux, BLE normnally needs admin right to be able to access BLE
+  /* On Linux, BLE normally needs admin right to be able to access BLE
   *
   * sudo apt-get install libcap2-bin
   * sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
@@ -11,7 +11,9 @@
   try {
     noble = require('noble');
   } catch (e) {
-    console.log("'noble' module couldn't be loaded, no node.js Bluetooth Low Energy", e);
+    console.log("'noble' module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
+    // super nasty workaround for https://github.com/sandeepmistry/noble/issues/502
+    process.removeAllListeners('exit');
     return;
   }
 
