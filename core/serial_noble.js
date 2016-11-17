@@ -72,6 +72,12 @@
 
   noble.on('stateChange', function(state) {
     if (state=="poweredOn") {
+      if (Espruino.Config.WEB_BLUETOOTH) {
+        // Everything has already initialised, so we must disable
+        // web bluetooth this way instead
+        console.log("Disable Web Bluetooth as we have Noble instead");
+        Espruino.Config.WEB_BLUETOOTH = false;
+      }
       initialised = true;
       if (scanWhenInitialised) {
         getPorts(scanWhenInitialised);
