@@ -158,7 +158,7 @@ inputNode.onaudioprocess = function(e) {
 
   var getPorts=function(callback) {
     if (Espruino.Config.SERIAL_AUDIO != 0)
-      callback([{path:'Audio',description:'Serial over Audio'}]);
+      callback([{path:'Audio',description:'Serial over Audio', type:"audio"}]);
     else
       callback();
   };

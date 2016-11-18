@@ -30,7 +30,7 @@
     var devices = [];
     try {
       winnus.getDevices().forEach(function(dev) {
-        devices.push({ description : dev.name, path: dev.address });
+        devices.push({ description : dev.name, path: dev.address, type : "bluetooth" });
       });
     } catch (e) {
       console.log(e);

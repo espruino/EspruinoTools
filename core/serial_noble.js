@@ -105,7 +105,7 @@
           (name.substr(0, 7) == "Puck.js" ||
            name.substr(0, 8) == "Espruino"))) {
       console.log("Found UART device:", name, dev.address);
-      newDevices.push({ path: dev.address, description: name });
+      newDevices.push({ path: dev.address, description: name, type : "bluetooth" });
       btDevices[dev.address] = dev;
     } else console.log("Found device:", name, dev.address);
   });
