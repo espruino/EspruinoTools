@@ -26,6 +26,13 @@
       description : "The file extensions to use for each module. These are checked in order and the first that exists is used. One or more file extensions (including the dot) separated by `|`",
       type : "string",
       defaultValue : ".min.js|.js"
+    });
+    Espruino.Core.Config.add("MODULE_AS_FUNCTION", {
+      section : "Communications",
+      name : "Modules uploaded as functions (BETA)",
+      description : "Espruino 1v90 and later ONLY. Upload modules as Functions, allowing any functions inside them to be loaded directly from flash when 'Save on Send' is enabled.",
+      type : "boolean",
+      defaultValue : false, 
     });    
     
     // When code is sent to Espruino, search it for modules and add extra code required to load them 
@@ -83,7 +90,10 @@
 
     var loadProcessedModule = function (moduleCode) {
       // add the module to the beginning of our array
-      loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
+      if (Espruino.Config.MODULE_AS_FUNCTION)
+        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + ",function(){" + moduleCode + "});");
+      else 
+        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
       // if we needed to load something, wait until we have all promises complete before resolving our promise!
       Promise.all(newPromises).then(function(){ resolve(); });
     }
