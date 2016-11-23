@@ -350,7 +350,8 @@
     if (cursor.length) {
       var pos = cursor[0].getBoundingClientRect();
       var terminalfocus = document.getElementById("terminalfocus");
-      terminalfocus.style.left=pos.left+"px";
+      var x = Math.min(pos.left, terminal.offsetWidth);
+      terminalfocus.style.left=x+"px";
       terminalfocus.style.top=pos.top+"px";
       terminalfocus.style["z-index"]=-100;
     }
