@@ -171,7 +171,14 @@
           statement = false;
           statementBeforeBrackets = false;
         }
+      }
+      /* If we're at root scope and had whitespace/comments between code,
+      remove it all and replace it with a single newline and a
+      0x10 (echo off for line) character*/
+      if (previousBrackets==0 && previousString.indexOf("\n")>=0)
+        previousString = "\n\x10";
 
+      if (brackets==0) {
         /* For functions defined at the global scope, we want to shove
          * an escape code before them that tells Espruino what their
          * line number is */
@@ -181,11 +188,6 @@
           previousString += "\x1B\x5B"+(tok.lineNumber+lineNumberOffset)+"d";
         }
       }
-      /* If we're at root scope and had whitespace/comments between code,
-      remove it all and replace it with a single newline and a
-      0x10 (echo off for line) character*/
-      if (previousBrackets==0 && previousString.indexOf("\n")>=0)
-        previousString = "\n\x10";
       // add our stuff back together
       resultCode += previousString+tokenString;
       // next
