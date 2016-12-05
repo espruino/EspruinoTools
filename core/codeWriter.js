@@ -136,7 +136,9 @@
       var tokenString = code.substring(tok.startIdx, tok.endIdx);
       //console.log("prev "+JSON.stringify(previousString)+"   next "+tokenString);
 
-      if (brackets>0 || // we have brackets - sending the special newline means Espruino doesn't have to do a search itself - faster.
+      /* Inserting Alt-Enter newline, which adds newline without trying
+      to execute */
+      if (brackets>0 || // we have brackets - sending the alt-enter special newline means Espruino doesn't have to do a search itself - faster.
           statement || // statement was before brackets - expecting something else
           statementBeforeBrackets ||  // we have an 'if'/etc
           varDeclaration || // variable declaration then newline
@@ -174,9 +176,14 @@
       }
       /* If we're at root scope and had whitespace/comments between code,
       remove it all and replace it with a single newline and a
-      0x10 (echo off for line) character*/
-      if (previousBrackets==0 && previousString.indexOf("\n")>=0)
+      0x10 (echo off for line) character. However DON'T do this if we had
+      an alt-enter in the line, as it was there to stop us executing
+      prematurely */
+      if (previousBrackets==0 && 
+          previousString.indexOf("\n")>=0 && 
+          previousString.indexOf("\x1B\x0A")<0)
         previousString = "\n\x10";
+
 
       if (brackets==0) {
         /* For functions defined at the global scope, we want to shove
