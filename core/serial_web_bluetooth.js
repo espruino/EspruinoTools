@@ -73,7 +73,8 @@ var txInProgress = false;
       Espruino.Core.Status.setStatus("Connecting to "+device.name);
       console.log('BT>  Device Name:       ' + device.name);
       console.log('BT>  Device ID:         ' + device.id);
-      console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
+      // Chrome on Android 5 doesn't seem to have device.uuids?
+      //console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
       device.addEventListener('gattserverdisconnected', function() {
         console.log("BT> Disconnected (gattserverdisconnected)");
         closeSerial();
