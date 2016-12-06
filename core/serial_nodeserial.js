@@ -8,7 +8,13 @@ Gordon Williams (gw@pur3.co.uk)
     return;
   }
   if (typeof require === 'undefined') return;
-  var serialport = require('serialport');
+  var serialport;
+  try {
+    serialport = require('serialport');
+  } catch (e) {
+    console.log("No 'serialport' module found");
+    return;
+  }
 
   var connection = undefined;
 
