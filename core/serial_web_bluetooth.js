@@ -6,6 +6,10 @@ if (!navigator.bluetooth) {
   console.log("No navigator.bluetooth - Web Bluetooth not enabled");
   return;
 }
+if (window && window.location && window.location.protocol=="http:") {
+  console.log("Serving off HTTP (not HTTPS) - Web Bluetooth not enabled");
+  return;
+}
 
 var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
