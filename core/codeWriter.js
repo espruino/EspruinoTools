@@ -36,8 +36,9 @@
     // We want to make sure we've got a prompt before sending. If not,
     // this will issue a Ctrl+C
     Espruino.Core.Utils.getEspruinoPrompt(function() {
-      // Make sure code ends in a newline
-      if (code[code.length]!="\n") code += "\n";
+      // Make sure code ends in 2 newlines
+      while (code[code.length-2]!="\n") 
+        code += "\n";
 
       // If we're supposed to reset Espruino before sending...
       if (Espruino.Config.RESET_BEFORE_SEND) {
