@@ -25,7 +25,7 @@
 
     for (var i = 0; i < code.length; ++i) {
       var ch = code.charCodeAt(i);
-      if (ch >= 128 && ch!=172/*¬*/ && ch!=163/*£*/) {
+      if (ch >= 128 && ch!=172/*¬*/ && ch!=163/*£*/ && ch!=160/*non-breaking space*/) {
         newCode.push(code.substring(idx, i));
         newCode.push(escapeChar(code[i]));
         idx = i + 1;
