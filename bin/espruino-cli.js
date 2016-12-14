@@ -19,6 +19,9 @@ var isNextValidPort = function(next) {
 var isNextValidJS = function(next) {
  return next && next.indexOf("-") == -1 && next.indexOf(".js") >= 0;
 }
+var isNextValidJSON = function(next) {
+ return next && next.indexOf("-") == -1 && next.indexOf(".json") >= 0;
+}
 var isNextValid = function(next) {
  return next && next.indexOf("-") == -1;
 }
@@ -50,6 +53,9 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="-b") {
      i++; args.baudRate = parseInt(next);
      if (!isNextValid(next) || isNaN(args.baudRate)) throw new Error("Expecting a numeric argument to -b");
+   } else if (arg=="-j") {
+     i++; args.job = next;
+     if (!isNextValidJSON(next)) throw new Error("Expecting a JSON filename argument to -j");
    } else if (arg=="-o") {
      i++; args.outputJS = next;
      if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o");
@@ -67,6 +73,14 @@ for (var i=2;i<process.argv.length;i++) {
    args.file = arg;
  }
 }
+
+// job file injection...
+ if (args.job) {
+   var job = fs.readFileSync(args.job, {encoding:"utf8"});  // read the job file
+   var config = JSON.parse(job);
+   for (var key in config) args[key] = config[key];
+ }
+
 //Extra argument stuff
 args.espruinoPrefix = args.quiet?"":"--] ";
 args.espruinoPostfix = "";
@@ -89,6 +103,9 @@ function setupConfig(Espruino) {
    throw new Error("--watch specified, with no file to watch!");
  if (args.updateFirmware && (args.file || args.expr))
    throw new Error("Can't update firmware *and* upload code right now.");
+ if (args.espruino) {  // job file injections
+   for (var key in args.espruino) Espruino.Config[key] = args.espruino[key];
+ }
 }
 
 //header
@@ -106,6 +123,7 @@ if (args.help) {
  ["USAGE: espruino ...options... [file_to_upload.js]",
   "",
   "  -h,--help               : Show this message",
+  "  -j job.json             : Load options from JSON job file",
   "  -v,--verbose            : Verbose",
   "  -q,--quiet              : Quiet - apart from Espruino output",
   "  -m,--minify             : Minify the code before sending it",

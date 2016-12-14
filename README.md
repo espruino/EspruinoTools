@@ -15,6 +15,8 @@ When installed as a Node module with `npm install -g espruino` you get a command
 USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help               : Show this message
+  -j job.json             : Load options from JSON job file - see configDefaults.json for example,
+  -c,--color              : Color mode,
   -v,--verbose            : Verbose
   -q,--quiet              : Quiet - apart from Espruino output
   -m,--minify             : Minify the code before sending it

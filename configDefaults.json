@@ -1,0 +1,31 @@
+{
+  "verbose": false,
+  "quiet": false,
+  "color": false,
+  "minify": false,
+  "setTime": false,
+  "watchFile": false,
+  "no-ble": false,
+  "showDevices": false,
+  "ports": [""],
+  "expr": "",
+  "baudRate": 0,
+  "outputJS": "",
+  "updateFirmware": "",
+  "firmwareFlashOffset": 0,
+  "file": "",
+  "espruino": {
+    "MODULE_URL": "http://www.espruino.com/modules",
+    "MODULE_EXTENSIONS": ".min.js|.js",
+    "MODULE_AS_FUNCTION": false,
+    "RESET_BEFORE_SEND": true,
+    "STORE_LINE_NUMBERS": true,
+    "ENV_ON_CONNECT": true,
+    "BAUD_RATE": 9600,
+    "SERIAL_AUDIO": 0,
+    "BLUETOOTH_LOW_ENERGY": true,
+    "SERIAL_TCPIP": "",
+    "WEB_BLUETOOTH": true
+  }
+}
+
