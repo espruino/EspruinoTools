@@ -118,15 +118,17 @@
             // otherwise try and load the module the old way...
             console.log("loadModule("+fullModuleName+")");
             
-            var urls; // Array of where to look for this module
+            var urls = []; // Array of where to look for this module
             var modName; // Simple name of the module
             if(Espruino.Core.Utils.isURL(fullModuleName)) {
               modName = fullModuleName.substr(fullModuleName.lastIndexOf("/") + 1).split(".")[0];
               urls = [ fullModuleName ];
             } else {
               modName = fullModuleName;
-              urls = Espruino.Config.MODULE_EXTENSIONS.split("|").map(function (extension) {
-                return Espruino.Config.MODULE_URL + "/" + fullModuleName + extension;
+              Espruino.Config.MODULE_URL.split("|").forEach(function (url) {
+                Espruino.Config.MODULE_EXTENSIONS.split("|").forEach(function (extension) {
+                  urls.push(url + "/" + fullModuleName + extension);
+                })
               });
             };
             
