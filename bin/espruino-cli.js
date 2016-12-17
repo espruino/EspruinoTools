@@ -16,11 +16,11 @@ var args = {
 var isNextValidPort = function(next) {
  return next && next.indexOf("-") == -1 && next.indexOf(".js") == -1;
 }
-var isNextValidJS = function(next) {
- return next && next.indexOf("-") == -1 && next.indexOf(".js") >= 0;
-}
 var isNextValidJSON = function(next) {
  return next && next.indexOf("-") == -1 && next.indexOf(".json") >= 0;
+}
+var isNextValidJS = function(next) {
+ return next && !isNextValidJSON(next) && next.indexOf(".js") >= 0;
 }
 var isNextValid = function(next) {
  return next && next.indexOf("-") == -1;
@@ -54,8 +54,8 @@ for (var i=2;i<process.argv.length;i++) {
      i++; args.baudRate = parseInt(next);
      if (!isNextValid(next) || isNaN(args.baudRate)) throw new Error("Expecting a numeric argument to -b");
    } else if (arg=="-j") {
-     i++; args.job = next;
-     if (!isNextValidJSON(next)) throw new Error("Expecting a JSON filename argument to -j");
+     args.job = "";                                          // will trigger makeJobFile 
+     if (isNextValidJSON(next)) { i++; args.job =  next; };  // optional
    } else if (arg=="-o") {
      i++; args.outputJS = next;
      if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o");
@@ -108,6 +108,26 @@ function setupConfig(Espruino) {
  }
 }
 
+// create a job file from commandline settings
+function makeJobFile(config) {
+  var job = {"espruino":{}};
+  // assign commandline values
+  for (var key in args) {
+    switch (key) {
+      case 'job': // remove job itself, and others set internally from the results
+      case 'espruinoPrefix':
+      case 'espruinoPostfix':
+        break;  
+      default: job[key] = args[key];  // otherwise just output each key: value
+    }
+    // write fields of Espruino.Config passed as config 
+    for (var k in config) { if (typeof config[k]!=='function') job.espruino[k] = config[k]; };
+  }
+  // name job file same as code file with json ending or default and save.
+  var jobFile = isNextValidJS(args.file) ? args.file.slice(0,args.file.lastIndexOf('.'))+'.json' : "job.json";
+  fs.writeFileSync(jobFile,JSON.stringify(job,null,2),{encoding:"utf8"});
+}
+
 //header
 if (!args.quiet) {
  var pjson = require(__dirname+'/../package.json');
@@ -123,7 +143,7 @@ if (args.help) {
  ["USAGE: espruino ...options... [file_to_upload.js]",
   "",
   "  -h,--help               : Show this message",
-  "  -j job.json             : Load options from JSON job file",
+  "  -j [job.json]           : Make or load options from JSON job file - See Job File.",
   "  -v,--verbose            : Verbose",
   "  -q,--quiet              : Quiet - apart from Espruino output",
   "  -m,--minify             : Minify the code before sending it",
@@ -328,6 +348,7 @@ function startConnect() {
 
 function main() {
   setupConfig(Espruino);
+  if (args.job==="") makeJobFile(Espruino.Config);
   if (args.ports.length == 0 || args.showDevices) {
     console.log("Searching for serial ports...");
     Espruino.Core.Serial.getPorts(function(ports) {

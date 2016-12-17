@@ -3,7 +3,7 @@ Espruino Tools
 
 This repository contains a set of tools for the [Espruino JavaScript Interpreter](http://www.espruino.com).
 
-While it is used directly by the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE), there's are also simple command-line and `node.js` interfaces.
+While it is used directly by the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE), there are also simple command-line and `node.js` interfaces.
 
 
 Command-line
@@ -15,7 +15,7 @@ When installed as a Node module with `npm install -g espruino` you get a command
 USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help               : Show this message
-  -j job.json             : Load options from JSON job file - see configDefaults.json for example,
+  -j [job.json]           : Make or load options from JSON job file - See Job File.
   -c,--color              : Color mode,
   -v,--verbose            : Verbose
   -q,--quiet              : Quiet - apart from Espruino output
@@ -133,6 +133,61 @@ esp.init(function() {
 });
 ```
 
+Job File
+--------
+A job file simplifies specifying the command-line and provides a future record of the run setup. Specifying the -j option without a job file name will generate a job file automatically using the given JS code file as the base name and any commandline arguments specified.
+
+For example,
+  espruino -j -t -w test.js; // will create test.json
+
+The following table provides a guide for setting configuration fields, but consult the code for certainty. Module/pluggin values generally override other keys. It is not necessary to include any fields except the ones you want.
+
+| Commandline Argument | JSON Key *1,2*         | Module/Pluggin *2,3*                               |        
+| -------------------- | --------------         | --------------------                               |
+| file_to_upload.js    | file ("")              |                                                    |
+| -b baudrate          | baudRate (0)           | BAUD_RATE (9600)                                   |
+| -c                   | color (false)          |                                                    |
+| -e command           | expr ("")              |                                                    |
+| -f firmware.bin      | updateFirmware ("")    |                                                    |
+|                      | firmwareFlashOffset(0) |                                                    |
+| --list               | showDevices (false)    |                                                    |
+| -m,-minify           | minify (false)         | MINIFICATION_LEVEL ("")                            |
+|                      |                        | MINIFICATION_Mangle (true) *4*                     |
+|                      |                        | MINIFICATION_Unreachable (true) *4*                |
+|                      |                        | MINIFICATION_Unused (true) *4*                     |
+|                      |                        | MINIFICATION_Literal (true) *4*                    |
+|                      |                        | MINIFICATION_DeadCode (true) *4*                   |
+| -no-ble              | no-ble (false)         | BLUETOOTH_LOW_ENERGY (true)                        |
+| -o out.js            | outputJS ("")          |                                                    |
+| -p,--port /dev/ttyX  | ports ([""])           |                                                    |
+| -q,--quiet           | quiet (false)          |                                                    |
+| -t,--time            | setTime (false)        | SET_TIME_ON_WRITE (false)                          |
+| -v,--verbose         | verbose (false)        |                                                    |
+| -w,--watch           | watchFile (false)      |                                                    |
+|                      |                        | BOARD_JSON_URL ("http://www.espruino.com/json")    |
+|                      |                        | COMPILATION (true)                                 |
+|                      |                        | COMPILATION_URL ("http://www.espruino.com:32766")  |
+|                      |                        | ENV_ON_CONNECT (true)                              |
+|                      |                        | MODULE_AS_FUNCTION (false)                         |
+|                      |                        | MODULE_EXTENSIONS (".min.js|.js")                  |
+|                      |                        | MODULE_MINIFICATION_LEVEL ("")                     |
+|                      |                        | MODULE_URL ("http://www.espruino.com/modules") *5* |
+|                      |                        | NPM_MODULES (false)                                |
+|                      |                        | RESET_BEFORE_SEND (true)                           |
+|                      |                        | SAVE_ON_SEND (0)                                   |
+|                      |                        | SERIAL_AUDIO (0)                                   |
+|                      |                        | SERIAL_TCPIP ("")                                  |
+|                      |                        | SERIAL_THROTTLE_SEND (false)                       |
+|                      |                        | STORE_LINE_NUMBERS (true)                          |
+|                      |                        | UI_MODE ("Normal")                                 |
+|                      |                        | WEB_BLUETOOTH (true)                               |
+
+Notes:
+  1. JSON keys equate to internal *args* variable keys.
+  2. Default values shown in parentheses or see configDefaults.json file under node_modules/espruino folder. Check code directly for issues.
+  3. Recommended for advanced users only. Module and plugin keys equate to internal *Espruino.Config* variable keys stored in job file as subkeys under *espruino* key. Consult code for possible values.
+  4. Minification parameters only work if level set, e.g. MINIFICATION_LEVEL: "ESPRIMA".
+  5. MODULE_URL accepts a pipe delimited (|) list of URLS, including local servers and absolute or relative paths based on the code file. For example, "../../modules|http://localhost:8080/modules|http://www.espruino.com/modules" will first look in the module folder located two folders up from the code, then query the localhost server, and then look in the Espruino repository.
 
 Internals
 ---------
