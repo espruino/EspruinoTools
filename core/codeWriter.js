@@ -205,11 +205,11 @@
     }
     //console.log(resultCode);
     if (brackets>0) {
-      Espruino.Core.Notifications.error("You haven more open brackets than close brackets. Please see the hints in the Editor window.");
+      Espruino.Core.Notifications.error("You have more open brackets than close brackets. Please see the hints in the Editor window.");
       return undefined;
     }
     if (brackets<0) {
-      Espruino.Core.Notifications.error("You haven more close brackets than open brackets. Please see the hints in the Editor window.");
+      Espruino.Core.Notifications.error("You have more close brackets than open brackets. Please see the hints in the Editor window.");
       return undefined;
     }
     return resultCode;
