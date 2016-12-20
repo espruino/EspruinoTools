@@ -23,21 +23,31 @@
   }
 
   function escapeUnicode(code, callback) {
-    var newCode = [];
-    var idx = 0;
-
-    for (var i = 0; i < code.length; ++i) {
-      var ch = code.charCodeAt(i);
-      if (ch >= 128 && ch!=172/*¬*/ && ch!=163/*£*/ && ch!=160/*non-breaking space*/) {
-        newCode.push(code.substring(idx, i));
-        newCode.push(escapeChar(code[i]));
-        idx = i + 1;
+    // Only correct unicode inside strings
+    var newCode = "";
+    var lex = Espruino.Core.Utils.getLexer(code);
+    var lastIdx = 0;
+    var tok = lex.next();
+    while (tok!==undefined) {
+      var previousString = code.substring(lastIdx, tok.startIdx);
+      var tokenString = code.substring(tok.startIdx, tok.endIdx);
+      if (tok.type=="STRING") {
+        var newTokenString = "";
+        for (var i=0;i<tokenString.length;i++) {
+          var ch = tokenString.charCodeAt(i);
+          if (ch >= 255)
+            newTokenString += escapeChar(tokenString[i]);
+          else
+            newTokenString += tokenString[i];
+        }
+        tokenString = newTokenString;
       }
+      newCode += previousString+tokenString;
+      // next
+      lastIdx = tok.endIdx;
+      tok = lex.next();
     }
-
-    newCode.push(code.substring(idx, code.length));
-
-    newCode = newCode.join('');
+    newCode += code.substring(lastIdx);
     callback(newCode);
   }
 
