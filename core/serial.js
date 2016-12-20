@@ -84,8 +84,12 @@
     }
 
     if (!(serialPort in portToDevice)) {
-      console.error("Port "+JSON.stringify(serialPort)+" not found");
-      return connectCallback(undefined);
+      if (serialPort.toLowerCase() in portToDevice) {
+        serialPort = serialPort.toLowerCase();
+      } else {
+        console.error("Port "+JSON.stringify(serialPort)+" not found");
+        return connectCallback(undefined);
+      }
     }
     connectionInfo = undefined;
     currentDevice = portToDevice[serialPort];
