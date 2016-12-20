@@ -13,6 +13,9 @@
 "use strict";
 (function(){
 
+  // Node.js doesn't have utf8 installed
+  if ("undefined"==typeof utf8) var utf8 = require('utf8');
+
   function init() {
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
       escapeUnicode(code, callback);
