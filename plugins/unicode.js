@@ -15,8 +15,8 @@
 
   // Node.js doesn't have utf8 installed
   if ("undefined"==typeof utf8) {
-    if ("undefined"!=typeof require) utf8 = require('utf8');
-    else utf8 = { encode : function(c){return c} };
+    if ("undefined"!=typeof require) var utf8 = require('utf8');
+    else var utf8 = { encode : function(c){return c} };
   }
 
   function init() {
