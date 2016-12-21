@@ -1,6 +1,6 @@
 {
   "name": "espruino",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "description": "Command Line Interface and library for Communications with Espruino JavaScript Microcontrollers",
   "main": "index.js",
   "bin": {
@@ -25,7 +25,8 @@
   },
   "optionalDependencies": {
     "noble": "^1.7.0",
-    "serialport": "^4.0.4"
+    "serialport": "^4.0.4",
+    "winnus": ""
   },
   "devDependencies": {},
   "keywords": [
