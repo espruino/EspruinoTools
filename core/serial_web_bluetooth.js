@@ -6,6 +6,14 @@ if (!navigator.bluetooth) {
   console.log("No navigator.bluetooth - Web Bluetooth not enabled");
   return;
 }
+if (navigator.platform.indexOf("Win")>=0 &&
+    (navigator.userAgent.indexOf("Chrome/54")>=0 ||
+     navigator.userAgent.indexOf("Chrome/55")>=0 ||
+     navigator.userAgent.indexOf("Chrome/56")>=0)
+    ) {
+  console.log("Web Bluetooth available, but Windows Web Bluetooth is broken in <=56 - not using it");
+  return;
+}
 if (window && window.location && window.location.protocol=="http:") {
   console.log("Serving off HTTP (not HTTPS) - Web Bluetooth not enabled");
   return;
@@ -66,13 +74,11 @@ var txInProgress = false;
 
     var btService;
 
-    // Ideally we could do {filters:[{services:[ NORDIC_SERVICE ]}]}, but it seems that
-    // on MacOS there are some problems requesting based on service...
-    // https://bugs.chromium.org/p/chromium/issues/detail?id=630598
     navigator.bluetooth.requestDevice({
         filters:[
           { namePrefix: 'Puck.js' },
-          { namePrefix: 'Espruino' }
+          { namePrefix: 'Espruino' },
+          { services: [ NORDIC_SERVICE ] }
         ], optionalServices: [ NORDIC_SERVICE ]}).then(function(device) {
       Espruino.Core.Status.setStatus("Connecting to "+device.name);
       console.log('BT>  Device Name:       ' + device.name);

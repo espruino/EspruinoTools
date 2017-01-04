@@ -37,7 +37,7 @@
     // this will issue a Ctrl+C
     Espruino.Core.Utils.getEspruinoPrompt(function() {
       // Make sure code ends in 2 newlines
-      while (code[code.length-2]!="\n") 
+      while (code[code.length-2]!="\n" || code[code.length-1]!="\n")
         code += "\n";
 
       // If we're supposed to reset Espruino before sending...
@@ -180,8 +180,8 @@
       0x10 (echo off for line) character. However DON'T do this if we had
       an alt-enter in the line, as it was there to stop us executing
       prematurely */
-      if (previousBrackets==0 && 
-          previousString.indexOf("\n")>=0 && 
+      if (previousBrackets==0 &&
+          previousString.indexOf("\n")>=0 &&
           previousString.indexOf("\x1B\x0A")<0)
         previousString = "\n\x10";
 

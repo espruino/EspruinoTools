@@ -14,6 +14,7 @@ When installed as a Node module with `npm install -g espruino` you get a command
 ```
 USAGE: espruino ...options... [file_to_upload.js]
 
+<<<<<<< HEAD
   -h,--help               : Show this message
   -j [job.json]           : Make or load options from JSON job file - See Job File.
   -c,--color              : Color mode,
@@ -35,6 +36,30 @@ USAGE: espruino ...options... [file_to_upload.js]
   -e command              : Evaluate the given expression on Espruino
                               If no file to upload is specified but you use -e,
                               Espruino will not be reset
+=======
+  -h,--help                : Show this message
+  -j job.json              : Load options from JSON job file - see configDefaults.json for example
+  -c,--color               : Color mode,
+  -v,--verbose             : Verbose
+  -q,--quiet               : Quiet - apart from Espruino output
+  -m,--minify              : Minify the code before sending it
+  -w,--watch               : If uploading a JS file, continue to watch it for
+                               changes and upload again if it does.
+  -p,--port /dev/ttyX      
+  -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to
+  -b baudRate              : Set the baud rate of the serial connection
+                               No effect when using USB, default: 9600
+  --no-ble                 : Disable Bluetooth Low Energy (used by default if the 'bleat' module exists)
+  --list                   : List all available devices and exit
+  -t,--time                : Set Espruino's time when uploading code
+  -o out.js                : Write the actual JS code sent to Espruino to a file
+  -f firmware.bin          : Update Espruino's firmware to the given file
+                               Espruino must be in bootloader mode
+                               Optionally skip N first bytes of the bin file,
+  -e command               : Evaluate the given expression on Espruino
+                               If no file to upload is specified but you use -e,
+                               Espruino will not be reset
+>>>>>>> 9765d986249c56ab9b7907b76faa2f58ab8a787b
 
 If no file, command, or firmware update is specified, this will act
 as a terminal for communicating directly with Espruino. Press Ctrl-C
