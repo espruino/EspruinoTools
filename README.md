@@ -15,14 +15,14 @@ When installed as a Node module with `npm install -g espruino` you get a command
 USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help                : Show this message
-  -j [job.json]            : Make or load options from JSON 'job file' section
+  -j [job.json]            : Make or load options from JSON. See 'job file' section below
   -c,--color               : Color mode,
   -v,--verbose             : Verbose
   -q,--quiet               : Quiet - apart from Espruino output
   -m,--minify              : Minify the code before sending it
   -w,--watch               : If uploading a JS file, continue to watch it for
                                changes and upload again if it does.
-  -p,--port /dev/ttyX      
+  -p,--port /dev/ttyX
   -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to
   -b baudRate              : Set the baud rate of the serial connection
                                No effect when using USB, default: 9600
@@ -74,7 +74,6 @@ espruino -e "digitalWrite(LED1,1);"
 
 Bluetooth
 ----------
-
 If the NPM module `noble` is installed, it'll be used to scan for Bluetooth LE UART devices like [Puck.js](http://puck-js.com). It's an optional dependency, so will be installed if possible - but if not you just won't get BLE support.
 
 If it is installed and you don't want it, you can use `./espruino --no-ble` to disable it for the one command, or can remove the module with `npm remove noble`.
@@ -136,6 +135,7 @@ esp.init(function() {
 
 Job File
 --------
+
 A job file simplifies specifying the command-line and provides a future record of the run setup. Specifying the -j option without a job file name will generate a job file automatically using the given JS code file as the base name and any commandline arguments specified.
 
 For example,
