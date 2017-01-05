@@ -15,7 +15,7 @@ When installed as a Node module with `npm install -g espruino` you get a command
 USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help                : Show this message
-  -j [job.json]            : Make or load options from JSON job file - See Job File.
+  -j [job.json]            : Make or load options from JSON 'job file' section
   -c,--color               : Color mode,
   -v,--verbose             : Verbose
   -q,--quiet               : Quiet - apart from Espruino output
@@ -36,7 +36,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   -e command               : Evaluate the given expression on Espruino
                                If no file to upload is specified but you use -e,
                                Espruino will not be reset
-
+#
 If no file, command, or firmware update is specified, this will act
 as a terminal for communicating directly with Espruino. Press Ctrl-C
 twice to exit.
