@@ -302,9 +302,10 @@
       if (result.data!==undefined) {
         callback(result.data);
       } else {
+        var resultUrl = result.url ? result.url : url;
         if (typeof process === 'undefined') {
           // Web browser
-          $.get( url, function(d) {
+          $.get( resultUrl, function(d) {
             callback(d);
           }, "text").error(function(xhr,status,err) {
             console.error(err);
@@ -312,8 +313,9 @@
           });
         } else {
           // Node.js
-          if (url.substr(0,4)=="http") {
-            require("http").get(url, function(res) {
+          if (resultUrl.substr(0,4)=="http") {
+            var m = resultUrl[4]=="s"?"https":"http";
+            require(m).get(resultUrl, function(res) {
               if (res.statusCode != 200) {
                 console.error("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
                 return callback(undefined);
@@ -328,7 +330,7 @@
               callback(undefined);
             });
           } else {
-            require("fs").readFile(url, function(err, d) {
+            require("fs").readFile(resultUrl, function(err, d) {
               if (err) {
                 console.error(err);
                 callback(undefined);
