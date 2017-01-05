@@ -143,7 +143,7 @@ if (args.help) {
  ["USAGE: espruino ...options... [file_to_upload.js]",
   "",
   "  -h,--help                : Show this message",
-  "  -j job.json              : Load options from JSON job file - see configDefaults.json for example",
+  "  -j [job.json]            : Make or load options from JSON job file - See Job File.",
   "  -v,--verbose             : Verbose",
   "  -q,--quiet               : Quiet - apart from Espruino output",
   "  -m,--minify              : Minify the code before sending it",
