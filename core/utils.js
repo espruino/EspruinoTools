@@ -195,7 +195,7 @@
     // when we're done...
     var nextStep = function() {
       // send data to console anyway...
-      prevReader(receivedData);
+      if(prevReader) prevReader(receivedData);
       receivedData = "";
       // start the previous reader listening again
       Espruino.Core.Serial.startListening(prevReader);
@@ -241,7 +241,7 @@
         // start the previous reader listing again
         Espruino.Core.Serial.startListening(prevReader);
         // forward the original text to the previous reader
-        prevReader(receivedData);
+        if(prevReader) prevReader(receivedData);
         // run the callback
         callback(result);
       };
