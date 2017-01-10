@@ -118,7 +118,9 @@ exports.sendFile = function(port, filename, callback) {
   sendCode(port, code, callback);
 };
 
-exports.sendCode = function sendCode(port, code, callback) {
+exports.sendCode = sendCode;
+
+function sendCode(port, code, callback) {
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
     Espruino.Core.Serial.open(port, function(status) {
