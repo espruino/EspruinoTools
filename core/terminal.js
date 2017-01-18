@@ -251,6 +251,11 @@
     });
   };
 
+  /// send the given characters as if they were typed
+  var typeCharacters = function(s) {
+    onInputData(s);
+  }
+
   var clearTerminal = function() {
     // Get just the last entered line
     var currentLine = Espruino.Core.Terminal.getInputLine();
@@ -562,6 +567,7 @@
   }
 
 
+
   Espruino.Core.Terminal = {
       init : init,
 
@@ -579,6 +585,7 @@
       grabSerialPort : grabSerialPort,
       setInputDataHandler : setInputDataHandler,
       outputDataHandler : outputDataHandler,
+      typeCharacters : typeCharacters
   };
 
 })();
