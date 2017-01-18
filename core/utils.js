@@ -17,7 +17,11 @@
   }
 
   function isWindows() {
-    return navigator.userAgent.indexOf("Windows")>=0;
+    return (typeof navigator!="undefined") && navigator.userAgent.indexOf("Windows")>=0;
+  }
+
+  function isAppleDevice() {
+    return (typeof navigator!="undefined") && (typeof window!="undefined") && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   }
 
   function getChromeVersion(){
@@ -368,6 +372,7 @@
   Espruino.Core.Utils = {
       init : init,
       isWindows : isWindows,
+      isAppleDevice : isAppleDevice,
       getChromeVersion : getChromeVersion,
       escapeHTML : escapeHTML,
       fixBrokenCode : fixBrokenCode,
