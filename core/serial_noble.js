@@ -22,7 +22,9 @@
   var NORDIC_RX = "6e400003b5a3f393e0a9e50e24dcca9e";
 
   var initialised = false;
+  var errored = false;
   var scanWhenInitialised = undefined;
+  var firstGetPortsCall = true;
 
   function str2buf(str) {
     var buf = new Buffer(str.length);
@@ -88,6 +90,7 @@
   });
   // if we didn't initialise for whatever reason, keep going anyway
   setTimeout(function() {
+    errored = true;
     if (scanWhenInitialised) {
       scanWhenInitialised([]);
       scanWhenInitialised = undefined;
@@ -112,7 +115,7 @@
 
 
   var getPorts = function (callback) {
-    if (!Espruino.Config.BLUETOOTH_LOW_ENERGY) {
+    if (errored || !Espruino.Config.BLUETOOTH_LOW_ENERGY) {
       callback([]);
     } else if (!initialised) {
       // if not initialised yet, wait until we are
@@ -126,15 +129,21 @@
         console.log("noble starting scan");
         lastDevices = [];
         newDevices = [];
+        noble.startScanning([], true);
       }
-      noble.startScanning([], true);
+      /* we want the first call to return immediately, so if the
+      user isn't after Bluetooth everything still works fast */
+      if (firstGetPortsCall) {
+        firstGetPortsCall = false;
+        return callback([]);
+      }
 
-      setTimeout(function () {
+      setTimeout(function() {
         scanStopTimeout = setTimeout(function () {
           scanStopTimeout = undefined;
           console.log("noble stopping scan");
           noble.stopScanning();
-        }, 2000);
+        }, 3000);
         // report back device list from both the last scan and this one...
         var reportedDevices = [];
         newDevices.forEach(function (d) {

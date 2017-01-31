@@ -54,7 +54,7 @@ for (var i=2;i<process.argv.length;i++) {
      i++; args.baudRate = parseInt(next);
      if (!isNextValid(next) || isNaN(args.baudRate)) throw new Error("Expecting a numeric argument to -b");
    } else if (arg=="-j") {
-     args.job = "";                                          // will trigger makeJobFile 
+     args.job = "";                                          // will trigger makeJobFile
      if (isNextValidJSON(next)) { i++; args.job =  next; };  // optional
    } else if (arg=="-o") {
      i++; args.outputJS = next;
@@ -117,10 +117,10 @@ function makeJobFile(config) {
       case 'job': // remove job itself, and others set internally from the results
       case 'espruinoPrefix':
       case 'espruinoPostfix':
-        break;  
+        break;
       default: job[key] = args[key];  // otherwise just output each key: value
     }
-    // write fields of Espruino.Config passed as config 
+    // write fields of Espruino.Config passed as config
     for (var k in config) { if (typeof config[k]!=='function') job.espruino[k] = config[k]; };
   }
   // name job file same as code file with json ending or default and save.
@@ -357,11 +357,15 @@ function main() {
     Espruino.Core.Serial.getPorts(function(ports) {
       // If we've been asked to list all devices, do it and exit
       if (args.showDevices) {
-        log("PORTS:\n  "+ports.map(function(p) {
-          if (p.description) return p.path + " ("+p.description+")";
-          return p.path;
-        }).join("\n  "));
-        process.exit(0);
+        /* Note - we want to search again because some things
+        like `noble` won't catch everything on the first try */
+        Espruino.Core.Serial.getPorts(function(ports) {
+          log("PORTS:\n  "+ports.map(function(p) {
+            if (p.description) return p.path + " ("+p.description+")";
+            return p.path;
+          }).join("\n  "));
+          process.exit(0);
+        });
         return;
       }
       console.log("PORTS:\n  "+ports.map(function(p) {
