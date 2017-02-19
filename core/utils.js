@@ -324,11 +324,9 @@
               host: Espruino.Config.MODULE_PROXY_URL,
               port: Espruino.Config.MODULE_PROXY_PORT,
               path: resultUrl,
-            } : {
-              host: resultUrl
-            };
+            } : resultUrl;
             
-            require(m).get(resultUrl, function(res) {
+            require(m).get(http_options, function(res) {
               if (res.statusCode != 200) {
                 console.error("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
                 return callback(undefined);
