@@ -347,7 +347,7 @@
         elements[y].html(line);
     }
     // now show the line where the cursor is
-    if (elements[termCursorY]!==undefined);
+    if (elements[termCursorY]!==undefined)
       elements[termCursorY][0].scrollIntoView();
     /* Move input box to the same place as the cursor, so Android devices
     keep that part of the screen in view */
