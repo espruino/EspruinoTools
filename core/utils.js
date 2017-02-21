@@ -319,7 +319,14 @@
           // Node.js
           if (resultUrl.substr(0,4)=="http") {
             var m = resultUrl[4]=="s"?"https":"http";
-            require(m).get(resultUrl, function(res) {
+
+            var http_options = Espruino.Config.MODULE_PROXY_ENABLED ? {
+              host: Espruino.Config.MODULE_PROXY_URL,
+              port: Espruino.Config.MODULE_PROXY_PORT,
+              path: resultUrl,
+            } : resultUrl;
+            
+            require(m).get(http_options, function(res) {
               if (res.statusCode != 200) {
                 console.error("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
                 return callback(undefined);

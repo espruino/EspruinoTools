@@ -32,8 +32,32 @@
       name : "Modules uploaded as functions (BETA)",
       description : "Espruino 1v90 and later ONLY. Upload modules as Functions, allowing any functions inside them to be loaded directly from flash when 'Save on Send' is enabled.",
       type : "boolean",
-      defaultValue : false, 
-    });    
+      defaultValue : false
+    });
+    
+    Espruino.Core.Config.add("MODULE_PROXY_ENABLED", {
+      section : "Communications",
+      name : "Enable Proxy",
+      description : "Enable Proxy for loading the modules when `require()` is used (only in native IDE)",
+      type : "boolean",
+      defaultValue : false
+    });
+
+    Espruino.Core.Config.add("MODULE_PROXY_URL", {
+      section : "Communications",
+      name : "Proxy URL",
+      description : "Proxy URL for loading the modules when `require()` is used (only in native IDE)",
+      type : "string",
+      defaultValue : ""
+    });
+
+    Espruino.Core.Config.add("MODULE_PROXY_PORT", {
+      section : "Communications",
+      name : "Proxy Port",
+      description : "Proxy Port for loading the modules when `require()` is used (only in native IDE)",
+      type : "string",
+      defaultValue : ""
+    });
     
     // When code is sent to Espruino, search it for modules and add extra code required to load them 
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
