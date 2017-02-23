@@ -69,14 +69,20 @@
     });
 
     var mouseDownTime = Date.now();
+    var mouseUpTime = Date.now();
     window.addEventListener("mousedown", function() {
       mouseDownTime = Date.now();
     });
     terminal.addEventListener("mouseup" , function(e) {
       var selection = window.getSelection();
-      /* Maybe we basically just clicked (>100ms)
-       in which case we don't want to copy */
-      if (Date.now() < mouseDownTime+200) {
+      var shortClick = Date.now() < mouseDownTime+200;
+      var doubleClick = Date.now() < mouseUpTime+600;
+      mouseUpTime = Date.now();
+      /* Maybe we basically just clicked (<200ms)
+       in which case we don't want to copy but just
+       move the cursor. DON'T move cursor
+       for double-clicks */
+      if (shortClick && !doubleClick) {
         // Move cursor, if we can...
         if (selection &&
             selection.baseNode &&
