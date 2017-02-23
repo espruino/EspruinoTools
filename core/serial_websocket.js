@@ -23,29 +23,40 @@ Gordon Williams (gw@pur3.co.uk)
   };
 
   var getPorts=function(callback) {
-    Espruino.Core.Utils.getJSONURL("/serial/ports", function(ports) {
-       if (!Array.isArray(ports)) callback([]);
-       else callback(ports);
-    });
+    if (Espruino.Config.RELAY_KEY) {
+      callback([{path:'Web IDE Relay', description:'BLE connection via a second device', type : "bluetooth"}]);
+    } else {
+      Espruino.Core.Utils.getJSONURL("/serial/ports", function(ports) {
+         if (!Array.isArray(ports)) callback([]);
+         else callback(ports);
+      });
+    }
   };
 
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
-    ws = new WebSocket("ws://" + location.host + "/" + serialPort, "serial");
+    if (Espruino.Config.RELAY_KEY) {
+      ws = new WebSocket("wss://" + window.location.host + ":8443/", "espruino");
+    } else {
+      ws = new WebSocket("ws://" + window.location.host + "/" + serialPort, "serial");
+    }
     dataWrittenCallbacks = [];
     ws.onerror = function(event) {
       connectCallback(undefined);
       ws = undefined;
     };
     ws.onopen = function() {
+      if (Espruino.Config.RELAY_KEY) {
+        ws.send("\x10"+Espruino.Config.RELAY_KEY);
+      }
       Espruino.callProcessor("connected", undefined, function() {
         openCallback("Hello");
       });
       ws.onerror = undefined;
       ws.onmessage = function (event) {
         //console.log("MSG:"+event.data);
-        if (event.data[0]=="R") {
+        if (event.data[0]=="\x00") {
           receiveCallback(str2ab(event.data.substr(1)));
-        } else {
+        } else if (event.data[0]=="\x02") {
           // if it's a data written callback, execute it
           var c = dataWrittenCallbacks.shift();
           if (c) c();
@@ -70,7 +81,7 @@ Gordon Williams (gw@pur3.co.uk)
 
   var writeSerial = function(data, callback) {
     dataWrittenCallbacks.push(callback);
-    if (ws) ws.send(data);
+    if (ws) ws.send("\x01"+data);
   };
 
   // ----------------------------------------------------------
@@ -81,4 +92,15 @@ Gordon Williams (gw@pur3.co.uk)
     "write": writeSerial,
     "close": closeSerial,
   });
+  Espruino.Core.SerialWebSocket = {
+    "init": function() {
+      Espruino.Core.Config.add("RELAY_KEY", {
+        section : "Communications",
+        name : "Relay Key",
+        description : "The key used when using https://www.espruino.com/ide/relay on a phone to use the Web IDE on your PC",
+        type : "string",
+        defaultValue : ""
+      });
+    }
+  };
 })();
