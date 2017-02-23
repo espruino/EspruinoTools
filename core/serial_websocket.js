@@ -24,7 +24,7 @@ Gordon Williams (gw@pur3.co.uk)
 
   var getPorts=function(callback) {
     if (Espruino.Config.RELAY_KEY) {
-      callback([{path:'Web IDE Relay', description:'BLE connection via a second device', type : "bluetooth"}]);
+      callback([{path:'Web IDE Relay', description:'BLE connection via a phone', type : "bluetooth"}]);
     } else {
       Espruino.Core.Utils.getJSONURL("/serial/ports", function(ports) {
          if (!Array.isArray(ports)) callback([]);
@@ -92,15 +92,17 @@ Gordon Williams (gw@pur3.co.uk)
     "write": writeSerial,
     "close": closeSerial,
   });
-  Espruino.Core.SerialWebSocket = {
-    "init": function() {
-      Espruino.Core.Config.add("RELAY_KEY", {
-        section : "Communications",
-        name : "Relay Key",
-        description : "The key used when using https://www.espruino.com/ide/relay on a phone to use the Web IDE on your PC",
-        type : "string",
-        defaultValue : ""
-      });
-    }
-  };
+  if (window.location.host.substr(-16) == "www.espruino.com") {
+    Espruino.Core.SerialWebSocket = {
+      "init": function() {
+        Espruino.Core.Config.add("RELAY_KEY", {
+          section : "Communications",
+          name : "Relay Key",
+          description : "The key displayed when https://www.espruino.com/ide/relay is viewed on a phone. You'll then be able to use the Web IDE on your PC",
+          type : "string",
+          defaultValue : ""
+        });
+      }
+    };
+  }
 })();
