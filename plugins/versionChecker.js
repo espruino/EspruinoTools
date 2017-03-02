@@ -57,7 +57,7 @@
       var vCurrent = Espruino.Core.Utils.versionToFloat(tCurrent);
 
       if (vCurrent > 1.43 &&
-          (env.CONSOLE=="USB"||env.CONSOLE=="Bluetooth"||env.CONSOLE=="Telnet"))) {
+          (env.CONSOLE=="USB"||env.CONSOLE=="Bluetooth"||env.CONSOLE=="Telnet")) {
         console.log("Firmware >1.43 supports faster writes over USB");
         Espruino.Core.Serial.setSlowWrite(false);
       } else {
