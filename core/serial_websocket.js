@@ -48,7 +48,7 @@ Gordon Williams (gw@pur3.co.uk)
       if (Espruino.Config.RELAY_KEY) {
         ws.send("\x10"+Espruino.Config.RELAY_KEY);
       }
-      Espruino.callProcessor("connected", undefined, function() {
+      Espruino.callProcessor("connected", {port:serialPort}, function() {
         openCallback("Hello");
       });
       ws.onerror = undefined;

@@ -115,7 +115,7 @@
         connectionInfo = cInfo;
         connectedPort = serialPort;
         console.log("Connected", cInfo);
-        Espruino.callProcessor("connected", undefined, function() {
+        Espruino.callProcessor("connected", {port:serialPort}, function() {
           connectCallback(cInfo);
         });
       }
