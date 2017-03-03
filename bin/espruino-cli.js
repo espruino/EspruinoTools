@@ -125,7 +125,12 @@ function makeJobFile(config) {
   }
   // name job file same as code file with json ending or default and save.
   var jobFile = isNextValidJS(args.file) ? args.file.slice(0,args.file.lastIndexOf('.'))+'.json' : "job.json";
-  fs.writeFileSync(jobFile,JSON.stringify(job,null,2),{encoding:"utf8"});
+
+  if (!fs.existsSync(jobFile)) {
+    log("Creating job file "+JSON.stringify(jobFile));
+    fs.writeFileSync(jobFile,JSON.stringify(job,null,2),{encoding:"utf8"});
+  } else
+    log("WARNING: File "+JSON.stringify(jobFile)+" already exists - not overwriting.");
 }
 
 //header
