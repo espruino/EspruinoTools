@@ -18,7 +18,7 @@
       name : "Module URL",
       description : "Where to search online for modules when `require()` is used",
       type : "string",
-      defaultValue : (Espruino.Core.Utils.needsHTTPS()?"https":"http")+"://www.espruino.com/modules"
+      defaultValue : "https://www.espruino.com/modules"
     });
     Espruino.Core.Config.add("MODULE_EXTENSIONS", {
       section : "Communications",
