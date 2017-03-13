@@ -14,7 +14,7 @@ var args = {
 };
 
 var isNextValidPort = function(next) {
- return next && next.indexOf("-") == -1 && next.indexOf(".js") == -1;
+ return next && next.substring(0,1) !== '-' && next.indexOf(".js") == -1;
 }
 var isNextValidJSON = function(next) {
  return next && next.indexOf("-") == -1 && next.indexOf(".json") >= 0;
