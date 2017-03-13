@@ -14,16 +14,16 @@ var args = {
 };
 
 var isNextValidPort = function(next) {
- return next && next.substring(0,1) !== '-' && next.indexOf(".js") == -1;
+ return next && next[0]!=='-' && next.indexOf(".js") == -1;
 }
 var isNextValidJSON = function(next) {
- return next && next.indexOf("-") == -1 && next.indexOf(".json") >= 0;
+ return next && next[0]!=='-' && next.indexOf(".json") >= 0;
 }
 var isNextValidJS = function(next) {
  return next && !isNextValidJSON(next) && next.indexOf(".js") >= 0;
 }
 var isNextValid = function(next) {
- return next && next.indexOf("-") == -1;
+ return next && next[0]!=='-';
 }
 
 for (var i=2;i<process.argv.length;i++) {
