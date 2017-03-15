@@ -489,6 +489,7 @@ require.define("/escodegen.js",function(require,module,exports,__dirname,__filen
         quotes,
         escapeless,
         newline,
+        globalnewline,
         space,
         parentheses,
         semicolons,
@@ -2196,7 +2197,7 @@ require.define("/escodegen.js",function(require,module,exports,__dirname,__filen
                 );
                 result.push(fragment);
                 if (i + 1 < len && !endsWithLineTerminator(toSourceNode(fragment).toString())) {
-                    result.push(newline);
+                    result.push(globalnewline);
                 }
             }
             break;
@@ -2301,6 +2302,7 @@ require.define("/escodegen.js",function(require,module,exports,__dirname,__filen
         hexadecimal = json ? false : options.format.hexadecimal;
         quotes = json ? 'double' : options.format.quotes;
         escapeless = options.format.escapeless;
+        globalnewline = '\n';        
         if (options.format.compact) {
             newline = space = indent = base = '';
         } else {
@@ -2983,4 +2985,3 @@ require.define("/tools/entry-point.js",function(require,module,exports,__dirname
 });
 require("/tools/entry-point.js");
 })();
-
