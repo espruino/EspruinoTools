@@ -42,7 +42,7 @@ var connectionDisconnectCallback;
 
 var txCharacteristic;
 var rxCharacteristic;
-var txDataQueue = undefined;
+var txDataQueue = [];
 var txInProgress = false;
 
   function init() {
@@ -120,7 +120,7 @@ var txInProgress = false;
       console.log("BT> TX characteristic:"+JSON.stringify(txCharacteristic));
     }).then(function() {
       Espruino.Core.Status.setStatus("Configuring BLE.....");
-      txDataQueue = undefined;
+      txDataQueue = [];
       txInProgress = false;
       Espruino.Core.Serial.setSlowWrite(false, true); // hack - leave throttling up to this implementation
       setTimeout(function() {
@@ -152,40 +152,39 @@ var txInProgress = false;
   // Throttled serial write
   var writeSerial = function(data, callback) {
     if (!txCharacteristic) return;
-    if (typeof txDataQueue != "undefined" || txInProgress) {
-      if (txDataQueue===undefined)
-        txDataQueue="";
-      txDataQueue += data;
-      return callback();
-    } else {
-      txDataQueue = data;
-    }
+    txDataQueue.push({data:data, callback:callback});
+    if (txInProgress) return;
 
     function writeChunk() {
       var chunk;
       var CHUNKSIZE = 20;
-      if (txDataQueue.length <= CHUNKSIZE) {
-        chunk = txDataQueue;
-        txDataQueue = undefined;
+      if (!txDataQueue.length) return;
+      if (txDataQueue[0].data.length <= CHUNKSIZE) {
+        chunk = txDataQueue[0].data;
+        txDataQueue[0].data = "";
       } else {
-        chunk = txDataQueue.substr(0,CHUNKSIZE);
-        txDataQueue = txDataQueue.substr(CHUNKSIZE);
+        chunk = txDataQueue[0].data.substr(0,CHUNKSIZE);
+        txDataQueue[0].data = txDataQueue[0].data.substr(CHUNKSIZE);
       }
       txInProgress = true;
       console.log("BT> Sending "+ JSON.stringify(chunk));
       txCharacteristic.writeValue(str2ab(chunk)).then(function() {
-        console.log("BT> Sent");
+        console.log("BT> Sent");        
+        if (txDataQueue[0].data.length==0) {
+          var cb = txDataQueue[0].callback;
+          txDataQueue.shift(); // remove the first item
+          if (cb) cb();          
+        }
         txInProgress = false;
-        if (txDataQueue)
-          writeChunk();
+        // if more data, keep sending
+        writeChunk();         
       }).catch(function(error) {
        console.log('BT> SEND ERROR: ' + error);
-       txDataQueue = undefined;
+       txDataQueue = [];
        closeSerial();
       });
     }
     writeChunk();
-    return callback();
   };
 
   // ----------------------------------------------------------
