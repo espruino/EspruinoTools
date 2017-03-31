@@ -108,7 +108,7 @@ var txInProgress = false;
         // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.
         var value = event.target.value.buffer;
         console.log("BT> RX:"+JSON.stringify(ab2str(value)));
-        receiveCallback(value);
+        receiveCallback(value.buffer);
       });
       return rxCharacteristic.startNotifications();
     }).then(function() {
