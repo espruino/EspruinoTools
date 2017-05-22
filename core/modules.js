@@ -150,9 +150,11 @@
             } else {
               modName = fullModuleName;
               Espruino.Config.MODULE_URL.split("|").forEach(function (url) {
-                Espruino.Config.MODULE_EXTENSIONS.split("|").forEach(function (extension) {
-                  urls.push(url + "/" + fullModuleName + extension);
-                })
+                url = url.trim();
+                if (url.length!=0) 
+                  Espruino.Config.MODULE_EXTENSIONS.split("|").forEach(function (extension) {
+                    urls.push(url + "/" + fullModuleName + extension);
+                  })
               });
             };
             
