@@ -375,6 +375,36 @@
     return window.location.protocol=="https:";
   }
 
+  /* Open a file load dialog. ID is to ensure that subsequent calls with
+  the same ID remember the last used directory. 
+    type=="arraybuffer" => Callback is called with an arraybuffer
+    type=="text" => Callback is called with a string
+  */
+  function fileOpenDialog(id, type, callback) {
+    var loaderId = id+"FileLoader";
+    var fileLoader = document.getElementById(loaderId);
+    if (!fileLoader) {
+      fileLoader = document.createElement("input");      
+      fileLoader.setAttribute("id", loaderId);
+      fileLoader.setAttribute("type", "file");
+      fileLoader.setAttribute("style", "z-index:-2000;position:absolute;top:0px;left:0px;");
+      fileLoader.addEventListener('change', function(e) {
+        if (!fileLoader.callback) return;
+        var files = e.target.files;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          fileLoader.callback(e.target.result);
+          fileLoader.callback = undefined;
+        };
+        if (type=="text") reader.readAsText(files[0]);
+        else if (type=="arraybuffer") reader.readAsArrayBuffer(files[0]);
+        else throw new Error("fileOpenDialog: unknown type "+type);
+      }, false);
+      document.body.appendChild(fileLoader);
+    }
+    fileLoader.callback = callback;
+    fileLoader.click();        
+  }
 
   Espruino.Core.Utils = {
       init : init,
@@ -394,6 +424,7 @@
       getURL : getURL,
       getJSONURL : getJSONURL,
       isURL : isURL,
-      needsHTTPS : needsHTTPS
+      needsHTTPS : needsHTTPS,
+      fileOpenDialog : fileOpenDialog
   };
 }());
