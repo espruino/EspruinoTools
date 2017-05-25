@@ -293,6 +293,8 @@
   function markdownToHTML(markdown) {
     var html = markdown;
     //console.log(JSON.stringify(html));
+    html = html.replace(/([^\n]*)\n=====*\n/g, "<h1>$1</h1>"); // heading 1
+    html = html.replace(/([^\n]*)\n-----*\n/g, "<h2>$1</h2>"); // heading 2    
     html = html.replace(/\n\s*\n/g, "\n<br/><br/>\n"); // newlines
     html = html.replace(/\*\*(.*)\*\*/g, "<strong>$1</strong>"); // bold
     html = html.replace(/```(.*)```/g, "<span class=\"code\">$1</span>"); // code
