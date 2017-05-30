@@ -37,6 +37,7 @@ for (var i=2;i<process.argv.length;i++) {
    else if (arg=="-m" || arg=="--minify") args.minify = true;
    else if (arg=="-t" || arg=="--time") args.setTime = true;
    else if (arg=="-w" || arg=="--watch") args.watchFile = true;
+   else if (arg=="-n" || arg=="--nosend") args.nosend = true;
    else if (arg=="--no-ble") args.noBle = true;
    else if (arg=="--list") args.showDevices = true;
    else if (arg=="-p" || arg=="--port") {
@@ -164,6 +165,7 @@ if (args.help) {
   "  --list                   : List all available devices and exit",
   "  -t,--time                : Set Espruino's time when uploading code",
   "  -o out.js                : Write the actual JS code sent to Espruino to a file",
+  "  -n                       : Do not connect to Espruino to upload code",
   "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
   "                               Espruino must be in bootloader mode.",
   "                               Optionally skip N first bytes of the bin file.",
@@ -200,7 +202,10 @@ function sendCode(callback) {
         log("Writing output to "+args.outputJS);
         require("fs").writeFileSync(args.outputJS, code);
       }
-      Espruino.Core.CodeWriter.writeToEspruino(code, callback);
+      if (! args.nosend)
+        Espruino.Core.CodeWriter.writeToEspruino(code, callback);
+      else
+        callback();
     });
   } else {
     callback();
@@ -209,7 +214,7 @@ function sendCode(callback) {
 
 /* Connect and send file/expression/etc */
 function connect(port, exitCallback) {
-  if (!args.quiet) log("Connecting to '"+port+"'");
+  if (!args.quiet) if (! args.nosend) log("Connecting to '"+port+"'");
   var currentLine = "";
   var exitTimeout;
   Espruino.Core.Serial.startListening(function(data) {
@@ -228,32 +233,38 @@ function connect(port, exitCallback) {
      exitTimeout = setTimeout(exitCallback, 500);
    }
   });
-  Espruino.Core.Serial.open(port, function(status) {
-    if (status === undefined) {
-      console.error("Unable to connect!");
-      return exitCallback();
-    }
-    if (!args.quiet) log("Connected");
-    // Do we need to update firmware?
-    if (args.updateFirmware) {
-      var bin = fs.readFileSync(args.updateFirmware, {encoding:"binary"});
-      var flashOffset = args.firmwareFlashOffset || 0;
-      Espruino.Core.Flasher.flashBinaryToDevice(bin, flashOffset, function(err) {
-        log(err ? "Error!" : "Success!");
-        exitTimeout = setTimeout(exitCallback, 500);
-      });
-    } else {
-      // figure out what code we need to send (if any)
-      sendCode(function() {
-        exitTimeout = setTimeout(exitCallback, 500);
-      });
-    }
-    // send code over here...
+  if (! args.nosend) {
+    Espruino.Core.Serial.open(port, function(status) {
+      if (status === undefined) {
+        console.error("Unable to connect!");
+        return exitCallback();
+      }
+      if (!args.quiet) log("Connected");
+      // Do we need to update firmware?
+      if (args.updateFirmware) {
+        var bin = fs.readFileSync(args.updateFirmware, {encoding:"binary"});
+        var flashOffset = args.firmwareFlashOffset || 0;
+        Espruino.Core.Flasher.flashBinaryToDevice(bin, flashOffset, function(err) {
+          log(err ? "Error!" : "Success!");
+          exitTimeout = setTimeout(exitCallback, 500);
+        });
+      } else {
+        // figure out what code we need to send (if any)
+        sendCode(function() {
+          exitTimeout = setTimeout(exitCallback, 500);
+        });
+      }
+      // send code over here...
 
-    // ----------------------
-   }, function() {
-     log("Disconnected.");
-   });
+      // ----------------------
+     }, function() {
+       log("Disconnected.");
+     });
+  } else {
+    sendCode(function() {
+          exitTimeout = setTimeout(exitCallback, 500);
+        });
+  }
 }
 
 /* Connect and enter terminal mode */
@@ -378,7 +389,7 @@ function main() {
         return p.path;
       }).join("\n  "));
       if (ports.length>0) {
-        log("Using first port, "+JSON.stringify(ports[0]));
+        if (! args.nosend) log("Using first port, "+JSON.stringify(ports[0]));
         args.ports = [ports[0].path];
         startConnect();
       } else
