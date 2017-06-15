@@ -73,6 +73,7 @@ var txInProgress = false;
     connectionDisconnectCallback = disconnectCallback;
 
     var btService;
+    var deviceName;
 
     navigator.bluetooth.requestDevice({
         filters:[
@@ -80,6 +81,8 @@ var txInProgress = false;
           { namePrefix: 'Espruino' },
           { services: [ NORDIC_SERVICE ] }
         ], optionalServices: [ NORDIC_SERVICE ]}).then(function(device) {
+
+      deviceName = device.name;
       Espruino.Core.Status.setStatus("Connecting to "+device.name);
       console.log('BT>  Device Name:       ' + device.name);
       console.log('BT>  Device ID:         ' + device.id);
@@ -125,7 +128,7 @@ var txInProgress = false;
       Espruino.Core.Serial.setSlowWrite(false, true); // hack - leave throttling up to this implementation
       setTimeout(function() {
         Espruino.Core.Status.setStatus("BLE configured. Receiving data...");
-        openCallback("All ok");
+        openCallback({ portName : deviceName });
       }, 500);
     }).catch(function(error) {
       console.log('BT> ERROR: ' + error);
@@ -169,15 +172,15 @@ var txInProgress = false;
       txInProgress = true;
       console.log("BT> Sending "+ JSON.stringify(chunk));
       txCharacteristic.writeValue(str2ab(chunk)).then(function() {
-        console.log("BT> Sent");        
+        console.log("BT> Sent");
         if (txDataQueue[0].data.length==0) {
           var cb = txDataQueue[0].callback;
           txDataQueue.shift(); // remove the first item
-          if (cb) cb();          
+          if (cb) cb();
         }
         txInProgress = false;
         // if more data, keep sending
-        writeChunk();         
+        writeChunk();
       }).catch(function(error) {
        console.log('BT> SEND ERROR: ' + error);
        txDataQueue = [];
