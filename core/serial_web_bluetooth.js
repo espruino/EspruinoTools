@@ -6,12 +6,18 @@ if (!navigator.bluetooth) {
   console.log("No navigator.bluetooth - Web Bluetooth not enabled");
   return;
 }
-if (navigator.platform.indexOf("Win")>=0 &&
+if (navigator.bluetooth.requestDevice.toString().indexOf('callExtension') >= 0)
+  console.log("Using Urish's Windows 10 Web Bluetooth Polyfill");
+} else if (navigator.platform.indexOf("Win")>=0 &&
     (navigator.userAgent.indexOf("Chrome/54")>=0 ||
      navigator.userAgent.indexOf("Chrome/55")>=0 ||
-     navigator.userAgent.indexOf("Chrome/56")>=0)
+     navigator.userAgent.indexOf("Chrome/56")>=0 ||
+     navigator.userAgent.indexOf("Chrome/57")>=0 ||
+     navigator.userAgent.indexOf("Chrome/58")>=0 ||
+     navigator.userAgent.indexOf("Chrome/59")>=0 ||
+     navigator.userAgent.indexOf("Chrome/60")>=0)
     ) {
-  console.log("Web Bluetooth available, but Windows Web Bluetooth is broken in <=56 - not using it");
+  console.log("Web Bluetooth available, but Windows Web Bluetooth is broken in <=60 - not using it");
   return;
 }
 if (window && window.location && window.location.protocol=="http:") {
