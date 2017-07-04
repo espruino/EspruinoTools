@@ -36,6 +36,7 @@ var WEB_BLUETOOTH_OK = true;
 var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+var testedCompatibility = false;
 
 function ab2str(buf) {
   return String.fromCharCode.apply(null, new Uint8Array(buf));
@@ -67,12 +68,6 @@ var txInProgress = false;
       return;
     }
     
-    /* Check compatibility here - the Web Bluetooth Polyfill for windows 
-    loads after everything else, so we can't check when this page is
-    parsed.*/
-    if (!checkCompatibility())
-      WEB_BLUETOOTH_OK = false;
-
     Espruino.Core.Config.add("WEB_BLUETOOTH", {
       section : "Communications",
       name : "Connect over Bluetooth Smart (Web Bluetooth)",
@@ -83,6 +78,14 @@ var txInProgress = false;
   }
 
   var getPorts = function(callback) {
+    if (!testedCompatibility) {
+      testedCompatibility = true;
+      /* Check compatibility here - the Web Bluetooth Polyfill for windows 
+      loads after everything else, so we can't check when this page is
+      parsed.*/
+      if (!checkCompatibility())
+        WEB_BLUETOOTH_OK = false;
+    }
     if (Espruino.Config.WEB_BLUETOOTH && WEB_BLUETOOTH_OK)
       callback([{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth"}]);
     else
