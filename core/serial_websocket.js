@@ -4,7 +4,14 @@ Gordon Williams (gw@pur3.co.uk)
 (function() {
 
   if (typeof window == "undefined" || typeof WebSocket == undefined) return;
+  
+  if (window.location.origin=="https://www.espruino.com" ||
+      window.location.origin=="https://espruino.github.io") {
+    console.log("Running from github/espruino.com  - WebSocket support disabled");
+    return;
+  }
   console.log("WebSockets support enabled - running in web browser");
+  
   var WS_ENABLED = true;
   var ws;
   var dataWrittenCallbacks = [];
