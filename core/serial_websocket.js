@@ -5,9 +5,9 @@ Gordon Williams (gw@pur3.co.uk)
 
   if (typeof window == "undefined" || typeof WebSocket == undefined) return;
   
-  if (window.location.origin=="https://www.espruino.com" ||
+  if (/*window.location.origin=="https://www.espruino.com" || */
       window.location.origin=="https://espruino.github.io") {
-    console.log("Running from github/espruino.com  - WebSocket support disabled");
+    console.log("Running from github - WebSocket support disabled");
     return;
   }
   console.log("WebSockets support enabled - running in web browser");
