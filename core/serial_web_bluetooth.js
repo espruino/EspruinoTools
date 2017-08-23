@@ -102,6 +102,8 @@ var txInProgress = false;
         filters:[
           { namePrefix: 'Puck.js' },
           { namePrefix: 'Espruino' },
+          { namePrefix: 'Badge' },
+          { namePrefix: 'RuuviTag' },
           { services: [ NORDIC_SERVICE ] }
         ], optionalServices: [ NORDIC_SERVICE ]}).then(function(device) {
 
