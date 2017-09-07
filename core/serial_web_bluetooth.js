@@ -1,64 +1,64 @@
 (function() {
 
-// Fix up prefixing
-if (typeof navigator == "undefined") {
-  console.log("Not running in a browser - Web Bluetooth not enabled");
-  return;
-}
-
-function checkCompatibility() {
-  if (!navigator.bluetooth) {
-    console.log("No navigator.bluetooth - Web Bluetooth not enabled");
-    return false;
+  // Fix up prefixing
+  if (typeof navigator == "undefined") {
+    console.log("Not running in a browser - Web Bluetooth not enabled");
+    return;
   }
-  if (navigator.bluetooth.requestDevice.toString().indexOf('callExtension') >= 0) {
-    console.log("Using Urish's Windows 10 Web Bluetooth Polyfill");
-  } else if (navigator.platform.indexOf("Win")>=0 &&
-      (navigator.userAgent.indexOf("Chrome/54")>=0 ||
-       navigator.userAgent.indexOf("Chrome/55")>=0 ||
-       navigator.userAgent.indexOf("Chrome/56")>=0 ||
-       navigator.userAgent.indexOf("Chrome/57")>=0 ||
-       navigator.userAgent.indexOf("Chrome/58")>=0 ||
-       navigator.userAgent.indexOf("Chrome/59")>=0 ||
-       navigator.userAgent.indexOf("Chrome/60")>=0)
-      ) {
-    console.log("Web Bluetooth available, but Windows Web Bluetooth is broken in <=60 - not using it");
-    return false;
+
+  function checkCompatibility() {
+    if (!navigator.bluetooth) {
+      console.log("No navigator.bluetooth - Web Bluetooth not enabled");
+      return false;
+    }
+    if (navigator.bluetooth.requestDevice.toString().indexOf('callExtension') >= 0) {
+      console.log("Using Urish's Windows 10 Web Bluetooth Polyfill");
+    } else if (navigator.platform.indexOf("Win")>=0 &&
+        (navigator.userAgent.indexOf("Chrome/54")>=0 ||
+         navigator.userAgent.indexOf("Chrome/55")>=0 ||
+         navigator.userAgent.indexOf("Chrome/56")>=0 ||
+         navigator.userAgent.indexOf("Chrome/57")>=0 ||
+         navigator.userAgent.indexOf("Chrome/58")>=0 ||
+         navigator.userAgent.indexOf("Chrome/59")>=0 ||
+         navigator.userAgent.indexOf("Chrome/60")>=0)
+        ) {
+      console.log("Web Bluetooth available, but Windows Web Bluetooth is broken in <=60 - not using it");
+      return false;
+    }
+    if (window && window.location && window.location.protocol=="http:") {
+      console.log("Serving off HTTP (not HTTPS) - Web Bluetooth not enabled");
+      return false;
+    }
+    return true;
   }
-  if (window && window.location && window.location.protocol=="http:") {
-    console.log("Serving off HTTP (not HTTPS) - Web Bluetooth not enabled");
-    return false;
+
+  var WEB_BLUETOOTH_OK = true;
+  var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+  var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+  var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+  var testedCompatibility = false;
+
+  function ab2str(buf) {
+    return String.fromCharCode.apply(null, new Uint8Array(buf));
   }
-  return true;
-}
 
-var WEB_BLUETOOTH_OK = true;
-var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
-var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-var testedCompatibility = false;
-
-function ab2str(buf) {
-  return String.fromCharCode.apply(null, new Uint8Array(buf));
-}
-
-function str2ab(str) {
-  var buf = new ArrayBuffer(str.length);
-  var bufView = new Uint8Array(buf);
-  for (var i=0, strLen=str.length; i<strLen; i++) {
-    bufView[i] = str.charCodeAt(i);
+  function str2ab(str) {
+    var buf = new ArrayBuffer(str.length);
+    var bufView = new Uint8Array(buf);
+    for (var i=0, strLen=str.length; i<strLen; i++) {
+      bufView[i] = str.charCodeAt(i);
+    }
+    return buf;
   }
-  return buf;
-}
 
 
-var btServer = undefined;
-var connectionDisconnectCallback;
+  var btServer = undefined;
+  var connectionDisconnectCallback;
 
-var txCharacteristic;
-var rxCharacteristic;
-var txDataQueue = [];
-var txInProgress = false;
+  var txCharacteristic;
+  var rxCharacteristic;
+  var txDataQueue = [];
+  var txInProgress = false;
 
   function init() {
     /* If BLE is handled some other way (eg winnus), then it
@@ -77,7 +77,7 @@ var txInProgress = false;
     });
   }
 
-  var getPorts = function(callback) {
+  function getPorts(callback) {
     if (!testedCompatibility) {
       testedCompatibility = true;
       /* Check compatibility here - the Web Bluetooth Polyfill for windows 
@@ -90,9 +90,9 @@ var txInProgress = false;
       callback([{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth"}]);
     else
       callback();
-  };
+  }
 
-  var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
+  function openSerial(serialPort, openCallback, receiveCallback, disconnectCallback) {
     connectionDisconnectCallback = disconnectCallback;
 
     var btService;
@@ -116,7 +116,7 @@ var txInProgress = false;
       device.addEventListener('gattserverdisconnected', function() {
         console.log("BT> Disconnected (gattserverdisconnected)");
         closeSerial();
-      });
+      }, {once:true});
       return device.gatt.connect();
     }).then(function(server) {
       Espruino.Core.Status.setStatus("Connected to BLE");
@@ -163,22 +163,28 @@ var txInProgress = false;
         txCharacteristic = undefined;
         rxCharacteristic = undefined;
       }
-      disconnectCallback(undefined);
+      if (connectionDisconnectCallback) {
+        connectionDisconnectCallback(undefined);
+        connectionDisconnectCallback = undefined;  
+      }
     });
-  };
+  }
 
-  var closeSerial=function() {
+  function closeSerial() {
     if (btServer) {
       btServer.disconnect();
       btServer = undefined;
       txCharacteristic = undefined;
       rxCharacteristic = undefined;
     }
-    connectionDisconnectCallback();
-  };
+    if (connectionDisconnectCallback) {
+      connectionDisconnectCallback();
+      connectionDisconnectCallback = undefined;
+    }
+  }
 
   // Throttled serial write
-  var writeSerial = function(data, callback) {
+  function writeSerial(data, callback) {
     if (!txCharacteristic) return;
     txDataQueue.push({data:data, callback:callback});
     if (txInProgress) return;
@@ -213,7 +219,7 @@ var txInProgress = false;
       });
     }
     writeChunk();
-  };
+  }
 
   // ----------------------------------------------------------
 
