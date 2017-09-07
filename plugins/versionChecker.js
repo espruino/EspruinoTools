@@ -71,7 +71,11 @@
 
         console.log("FIRMWARE: Current "+tCurrent+", Available "+tAvailable);
 
-        if (vAvailable > vCurrent && (env.BOARD=="ESPRUINOBOARD" || env.BOARD.substr(0,4)=="PICO")) {
+        if (vAvailable > vCurrent && 
+          (env.BOARD=="ESPRUINOBOARD" || 
+           env.BOARD.substr(0,4)=="PICO" ||
+           env.BOARD=="ESPRUINOWIFI" || 
+           env.BOARD=="PUCKJS")) {
           console.log("New Firmware "+tAvailable+" available");
 
           if (Espruino.Core.App) Espruino.Core.App.addIcon({
