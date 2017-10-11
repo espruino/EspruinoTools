@@ -78,7 +78,6 @@ espruino -p /dev/ttyACM0 mycode.js -e "save()"
 espruino -e "digitalWrite(LED1,1);"
 ```
 
-
 Bluetooth
 ----------
 If the NPM module `noble` is installed, it'll be used to scan for Bluetooth LE UART devices like [Puck.js](http://puck-js.com). It's an optional dependency, so will be installed if possible - but if not you just won't get BLE support.
@@ -89,6 +88,36 @@ On linux, you'll need to run as superuser to access Bluetooth Low Energy. To avo
 
 ```
 sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
+```
+
+Not Connecting
+--------------
+
+Sometimes, you might want to run your JS file(s) through the Espruino Tools
+to create an output file that contains everything required, including modules.
+This file can then be sent directly to Espruino at some later time -
+sometimes just `cat file.js > /dev/ttyACM0` is enough.
+
+To do this, you don't need to connect, you just need to be able to specify the 
+board type, which corresponds to a JSON file in http://www.espruino.com/json/
+
+```
+# Get a minified, complete JS file
+espruino --board PUCKJS --minify mycode.js -o output.js
+```
+
+You can also request an Intel Hex style output. This only works on some
+devices, but allows you to write directly into Espruino's memory space
+with a flashing tool.
+
+This is as if `E.setBootCode(your_code)` was called in the interpreter,
+except it doesn't have any code size limitations. It means that any
+functions that are defined in your program will be executed directly
+from Flash, without taking up any RAM.
+
+```
+# Get a hex file that can be flashed directly to the board
+espruino --board PUCKJS mycode.js -ohex output.hex
 ```
 
 

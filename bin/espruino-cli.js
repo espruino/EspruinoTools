@@ -142,7 +142,7 @@ if (args.color) {
 }
 //this is called after Espruino tools are loaded, and
 //sets up configuration as requested by the command-line options
-function setupConfig(Espruino) {
+function setupConfig(Espruino, callback) {
  if (args.minify)
    Espruino.Config.MINIFICATION_LEVEL = "ESPRIMA";
  if (args.baudRate && !isNaN(args.baudRate))
@@ -158,8 +158,12 @@ function setupConfig(Espruino) {
  if (args.espruino) {  // job file injections
    for (var key in args.espruino) Espruino.Config[key] = args.espruino[key];
  }
+ if (args.outputHEX) {
+   log("-ohex used - enabling MODULE_AS_FUNCTION");
+   Espruino.Config.MODULE_AS_FUNCTION = true;
+ }
  if (args.board) {
-   console.log("Manually loading board JSON "+JSON.stringify(args.board));
+   log("Explicit board JSON supplied: "+JSON.stringify(args.board));
    Espruino.Config.ENV_ON_CONNECT = false;
    var env = Espruino.Core.Env.getData();
    env.BOARD = args.board;
@@ -169,20 +173,27 @@ function setupConfig(Espruino) {
        env[key] = data[key];
      Espruino.callProcessor("boardJSONLoaded", env, function() {
        console.log("Manual board JSON load complete");
+       callback();
      });   
    } else { // download the JSON     
      Espruino.Plugins.BoardJSON.loadJSON(env, Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json", function() {
        console.log("Manual board JSON load complete");
+       callback();
      });
    }
- }
+ } else callback();
 }
 
 // convert the given code to intel hex at the given location
 function toIntelHex(code) {
-  var saveAddress = Espruino.Core.Env.getData().chip.saved_code.address;
-  var saveSize = Espruino.Core.Env.getData().chip.saved_code.page_size * 
-                 Espruino.Core.Env.getData().chip.saved_code.pages;
+  var saveAddress, saveSize;
+  try {
+    saveAddress = Espruino.Core.Env.getData().chip.saved_code.address;
+    saveSize = Espruino.Core.Env.getData().chip.saved_code.page_size * 
+               Espruino.Core.Env.getData().chip.saved_code.pages;
+  } catch (e) {
+    throw new Error("Board JSON not found or doesn't contain the relevant saved_code section");
+  }
   var codeLen = code.length;
   var endOfCode = 8+codeLen+1;
   if (codeLen>saveSize-16) throw new Error("Too big ("+codeLen+" to fit in available flash: "+(saveSize-16));
@@ -297,7 +308,7 @@ function sendCode(callback) {
         log("Writing hex output to "+args.outputHEX);
         require("fs").writeFileSync(args.outputHEX, toIntelHex(code));
       }
-      if (! args.nosend)
+      if (!args.nosend)
         Espruino.Core.CodeWriter.writeToEspruino(code, callback);
       else
         callback();
@@ -362,6 +373,27 @@ function connect(port, exitCallback) {
   }
 }
 
+function sendOnFileChanged() {
+  var busy = false;
+  var watcher = require("fs").watch(args.file, { persistent : false }, function(eventType) {
+    if (busy) return;
+    /* stop watching - some apps delete & recreate, so continuing
+     to watch would break */
+    if (watcher) watcher.close();
+    watcher = undefined;
+    busy = true;
+    console.log(args.file+" changed, reloading");
+    setTimeout(function() {
+      sendCode(function() {
+        console.log("File sent!");
+        busy = false;
+      });
+      // start watching again
+      sendOnFileChanged(); 
+    }, 500);
+  });
+}
+
 /* Connect and enter terminal mode */
 function terminal(port, exitCallback) {
   if (!args.quiet) log("Connecting to '"+port+"'");
@@ -421,18 +453,7 @@ function terminal(port, exitCallback) {
 
     // figure out what code we need to send (if any)
     sendCode(function() {
-      if (args.watchFile) {
-        var busy = false;
-        require("fs").watch(args.file, { persistent : false,}, function(eventType) {
-          if (busy || eventType!='change') return;
-          busy = true;
-          console.log(args.file+" changed, reloading");
-          sendCode(function() {
-            console.log("Done!");
-            busy = false;
-          });
-        });
-      }
+      if (args.watchFile) sendOnFileChanged();
     });
 
    }, function() {
@@ -462,36 +483,44 @@ function startConnect() {
 }
 
 function main() {
-  setupConfig(Espruino);
-  if (args.job==="") makeJobFile(Espruino.Config);
-  if (args.ports.length == 0 || args.showDevices) {
-    console.log("Searching for serial ports...");
-    Espruino.Core.Serial.getPorts(function(ports) {
-      // If we've been asked to list all devices, do it and exit
-      if (args.showDevices) {
-        /* Note - we want to search again because some things
-        like `noble` won't catch everything on the first try */
-        Espruino.Core.Serial.getPorts(function(ports) {
-          log("PORTS:\n  "+ports.map(function(p) {
-            if (p.description) return p.path + " ("+p.description+")";
-            return p.path;
-          }).join("\n  "));
-          process.exit(0);
-        });
-        return;
-      }
-      console.log("PORTS:\n  "+ports.map(function(p) {
-        if (p.description) return p.path + " ("+p.description+")";
-        return p.path;
-      }).join("\n  "));
-      if (ports.length>0) {
-        if (! args.nosend) log("Using first port, "+JSON.stringify(ports[0]));
-        args.ports = [ports[0].path];
-        startConnect();
-      } else
-        throw new Error("No Ports Found");
-    });
-  } else startConnect();
+  setupConfig(Espruino, function() {
+    if (args.job==="") makeJobFile(Espruino.Config);
+    if (args.ports.length == 0 && (args.outputJS || args.outputHEX)) {
+      console.log("No port supplied, but output file listed - not connecting");
+      args.nosend = true;
+      sendCode(function() {
+        log("File written. Exiting.");
+        process.exit(1);
+      });
+    } if (args.ports.length == 0 || args.showDevices) {
+      console.log("Searching for serial ports...");
+      Espruino.Core.Serial.getPorts(function(ports) {
+        // If we've been asked to list all devices, do it and exit
+        if (args.showDevices) {
+          /* Note - we want to search again because some things
+          like `noble` won't catch everything on the first try */
+          Espruino.Core.Serial.getPorts(function(ports) {
+            log("PORTS:\n  "+ports.map(function(p) {
+              if (p.description) return p.path + " ("+p.description+")";
+              return p.path;
+            }).join("\n  "));
+            process.exit(0);
+          });
+          return;
+        }
+        console.log("PORTS:\n  "+ports.map(function(p) {
+          if (p.description) return p.path + " ("+p.description+")";
+          return p.path;
+        }).join("\n  "));
+        if (ports.length>0) {
+          if (! args.nosend) log("Using first port, "+JSON.stringify(ports[0]));
+          args.ports = [ports[0].path];
+          startConnect();
+        } else
+          throw new Error("No Ports Found");
+      });
+    } else startConnect();
+  });
 }
 
 // Start up
