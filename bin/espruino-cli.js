@@ -20,7 +20,9 @@ function getHelp() {
    "  -b baudRate              : Set the baud rate of the serial connection",
    "                               No effect when using USB, default: 9600",
    "  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)",
-   "  --list                   : List all available devices and exit",
+   "  --list                   : List all available devices and exit",   
+   "  --listconfigs            : Show all available config options and exit",
+   "  --config key=value       : Set internal Espruino config option",   
    "  -t,--time                : Set Espruino's time when uploading code",
    "  -o out.js                : Write the actual JS code sent to Espruino to a file",
    "  -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode",
@@ -49,7 +51,8 @@ console.log = function() {
 }
 //Parse Arguments
 var args = {
- ports: []
+ ports: [], 
+ config: {}
 };
 
 var isNextValidPort = function(next) {
@@ -85,6 +88,7 @@ for (var i=2;i<process.argv.length;i++) {
    else if (arg=="-n" || arg=="--nosend") args.nosend = true;
    else if (arg=="--no-ble") args.noBle = true;
    else if (arg=="--list") args.showDevices = true;
+   else if (arg=="--listconfigs") args.showConfigs = true;
    else if (arg=="-p" || arg=="--port") {
      args.ports.push(next);
      var j = (++i) + 1;
@@ -92,7 +96,16 @@ for (var i=2;i<process.argv.length;i++) {
        args.ports.push(process.argv[j++]);
        i++;
      }
-     if (!isNextValidPort(next)) throw new Error("Expecting a port argument to -p, --port");
+     if (!isNextValidPort(next)) throw new Error("Expecting a port argument to -p, --port");   
+   } else if (arg=="--config") {
+     i++;
+     if (!next || next.indexOf("=")==-1) throw new Error("Expecting a key=value argument to --config");
+     var kidx = next.indexOf("=");
+     try {
+       args.config[next.substr(0,kidx)] = JSON.parse(next.substr(kidx+1));
+     } catch (e) {
+       throw new Error("Expecting valid JSON argument key --config");
+     }     
    } else if (arg=="-e") {
      i++; args.expr = next;
      if (!isNextValid(next)) throw new Error("Expecting an expression argument to -e");
@@ -161,6 +174,40 @@ function setupConfig(Espruino, callback) {
  if (args.outputHEX) {
    log("-ohex used - enabling MODULE_AS_FUNCTION");
    Espruino.Config.MODULE_AS_FUNCTION = true;
+ }
+ if (args.config) {
+   for (var key in args.config) {
+     console.log("Command-line option set Espruino.Config."+key+" to "+JSON.stringify(args.config[key]));
+     Espruino.Config[key] = args.config[key];
+   }
+ }
+ if (args.showConfigs) {
+   Espruino.Core.Config.getSections().forEach(function(section) {
+     log(" "+section.name);
+     log("==================================".substr(0,section.name.length+2));
+     log("");
+     if (section.description) {
+       log(section.description);
+       log("");
+     }
+     var configItems = Espruino.Core.Config.data;
+     for (var configName in configItems) {
+       var configItem = configItems[configName];
+       if (configItem.section == section.name) {
+         var d = configItem.name+" ("+configName+")";
+         log(d);
+         log("-------------------------------------------------------------------------------".substr(0,d.length+2));
+         if (configItem.description) log(configItem.description);
+         log("Type: "+JSON.stringify(configItem.type,null,2));
+         log("Default: --config "+configName+"="+JSON.stringify(configItem.defaultValue));
+         log("Current: --config "+configName+"="+JSON.stringify(Espruino.Config[configName]));
+         log("");
+       }
+     }
+     log("");
+   });
+   process.exit(1);
+   //Espruino.Core.Config.getSection(sectionName);
  }
  if (args.board) {
    log("Explicit board JSON supplied: "+JSON.stringify(args.board));
@@ -492,7 +539,7 @@ function main() {
         log("File written. Exiting.");
         process.exit(1);
       });
-    } if (args.ports.length == 0 || args.showDevices) {
+    } else if (args.ports.length == 0 || args.showDevices) {
       console.log("Searching for serial ports...");
       Espruino.Core.Serial.getPorts(function(ports) {
         // If we've been asked to list all devices, do it and exit

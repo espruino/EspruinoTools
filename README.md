@@ -33,6 +33,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)
   --list                   : List all available devices and exit
   -t,--time                : Set Espruino's time when uploading code
+  --config key=value       : Set internal Espruino config option
   -o out.js                : Write the actual JS code sent to Espruino to a file
   -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode
   -n                       : Do not connect to Espruino to upload code
@@ -52,7 +53,7 @@ twice to exit.
 For instance:
 
 ```
-# Connect to Espruno and act as a terminal app  (IF Espruino is the only serial port reported)
+# Connect to Espruino and act as a terminal app  (IF Espruino is the only serial port reported)
 espruino
 
 # Connect to Espruino on the specified port, act as a terminal
@@ -120,6 +121,20 @@ from Flash, without taking up any RAM.
 espruino --board PUCKJS mycode.js -ohex output.hex
 ```
 
+Configuration
+-------------
+
+In Espruino's Web IDE there are a lot of different config options. These
+end up toggling Config settings in Espruino. You can find what these are
+by going into the Web IDE, changing the option in Settings, then going
+to the `Console` window and scrolling to the bottom. You should see
+something like `Config.RESET_BEFORE_SEND => true`
+
+You can then add the command-line option `--config RESET_BEFORE_SEND=true`
+to recreate this.
+
+You can also use `--listconfigs` to give you a nice list of configs with
+their descriptions.
 
 NPM Module
 ----------

@@ -16,7 +16,7 @@ function loadDir(dir) {
   var files = fs.readdirSync(dir);
   for (var i in files) {
     var filePath = dir+"/"+files[i];
-    if (files[i].substr(-3)==".js")
+    if (files[i].substr(-3)==".js" && files[i][0]!="_")
       loadJS(filePath);
     /*else if (fs.lstatSync(filePath).isDirectory()) 
       loadDir(filePath); // recursive */
