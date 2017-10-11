@@ -94,12 +94,17 @@ function init(callback) {
   // Various plugins
   loadDir(__dirname+"/plugins");
 
-  // Bodge up notifications
+  // Bodge up notifications  
   Espruino.Core.Notifications = {
-    success : function(e) { log(e); },
+    success : function(e) { console.log(e); },
     error : function(e) { console.error(e); },
     warning : function(e) { console.warn(e); },
     info : function(e) { console.log(e); }, 
+  };  
+  Espruino.Core.Status = {
+    setStatus : function(e,len) { console.log(e); },
+    hasProgress : function() { return false; },
+    incrementProgress : function(amt) {}
   };
   
   // Finally init everything
