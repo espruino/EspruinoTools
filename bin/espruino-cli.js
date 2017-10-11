@@ -104,7 +104,8 @@ for (var i=2;i<process.argv.length;i++) {
      try {
        args.config[next.substr(0,kidx)] = JSON.parse(next.substr(kidx+1));
      } catch (e) {
-       throw new Error("Expecting valid JSON argument key --config");
+       // treat as a string
+       args.config[next.substr(0,kidx)] = next.substr(kidx+1);
      }     
    } else if (arg=="-e") {
      i++; args.expr = next;
@@ -199,8 +200,8 @@ function setupConfig(Espruino, callback) {
          log("-------------------------------------------------------------------------------".substr(0,d.length+2));
          if (configItem.description) log(configItem.description);
          log("Type: "+JSON.stringify(configItem.type,null,2));
-         log("Default: --config "+configName+"="+JSON.stringify(configItem.defaultValue));
-         log("Current: --config "+configName+"="+JSON.stringify(Espruino.Config[configName]));
+         log("Default: --config "+configName+"="+configItem.defaultValue);
+         log("Current: --config "+configName+"="+Espruino.Config[configName]);
          log("");
        }
      }
@@ -240,10 +241,12 @@ function toIntelHex(code) {
                Espruino.Core.Env.getData().chip.saved_code.pages;
   } catch (e) {
     throw new Error("Board JSON not found or doesn't contain the relevant saved_code section");
-  }
+  }  
   var codeLen = code.length;
   var endOfCode = 8+codeLen+1;
-  if (codeLen>saveSize-16) throw new Error("Too big ("+codeLen+" to fit in available flash: "+(saveSize-16));
+  var maxSize = saveSize-16;
+  if (codeLen>maxSize) throw new Error("Too big ("+codeLen+" to fit in available flash: "+maxSize);
+  console.log("Using "+codeLen+" bytes out of "+maxSize);
   var buffer = new Uint8Array(saveSize);  
   buffer.fill(0xFF); // fill with 255 for emptiness
   // write code length
