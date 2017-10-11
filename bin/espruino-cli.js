@@ -2,6 +2,45 @@
 /* Entrypoint for node module command-line app. Not used for Web IDE */
 var fs = require("fs");
 
+function getHelp() {
+  return [
+   "USAGE: espruino ...options... [file_to_upload.js]",
+   "",
+   "  -h,--help                : Show this message",
+   "  -j [job.json]            : Load options from JSON job file - see configDefaults.json",
+   "                               Calling without a job filename creates a new job file ",
+   "                               named after the uploaded file",
+   "  -v,--verbose             : Verbose",
+   "  -q,--quiet               : Quiet - apart from Espruino output",
+   "  -m,--minify              : Minify the code before sending it",
+   "  -w,--watch               : If uploading a JS file, continue to watch it for",
+   "                               changes and upload again if it does.",
+   "  -p,--port /dev/ttyX",
+   "  -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to",
+   "  -b baudRate              : Set the baud rate of the serial connection",
+   "                               No effect when using USB, default: 9600",
+   "  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)",
+   "  --list                   : List all available devices and exit",
+   "  -t,--time                : Set Espruino's time when uploading code",
+   "  -o out.js                : Write the actual JS code sent to Espruino to a file",
+   "  -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode",
+   "  -n                       : Do not connect to Espruino to upload code",
+   "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",  
+   "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
+   "                               Espruino must be in bootloader mode.",
+   "                               Optionally skip N first bytes of the bin file.",
+   "  -e command               : Evaluate the given expression on Espruino",
+   "                               If no file to upload is specified but you use -e,",
+   "                               Espruino will not be reset",
+   "",
+   "If no file, command, or firmware update is specified, this will act",
+   "as a terminal for communicating directly with Espruino. Press Ctrl-C",
+   "twice to exit.",
+   "",
+   "Please report bugs via https://github.com/espruino/EspruinoTool/issues",
+   ""]
+}
+
 //override default console.log
 var log = console.log;
 console.log = function() {
@@ -16,8 +55,14 @@ var args = {
 var isNextValidPort = function(next) {
  return next && next[0]!=='-' && next.indexOf(".js") == -1;
 }
+var isNextValidFileType = function(next, fileType) {
+ return next && next[0]!=='-' && next.indexOf(fileType) >= 0;
+}
 var isNextValidJSON = function(next) {
- return next && next[0]!=='-' && next.indexOf(".json") >= 0;
+ return isNextValidFileType(next, ".json");
+}
+var isNextValidHEX = function(next) {
+ return isNextValidFileType(next, ".hex");
 }
 var isNextValidJS = function(next) {
  return next && !isNextValidJSON(next) && next.indexOf(".js") >= 0;
@@ -60,6 +105,9 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="-o") {
      i++; args.outputJS = next;
      if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o");
+   } else if (arg=="-ohex") {
+     i++; args.outputHEX = next;
+     if (!isNextValidHEX(next)) throw new Error("Expecting a .hex file argument to -ohex");
    } else if (arg=="-f") {
      i++; var arg = next;
      if (!isNextValid(next)) throw new Error("Expecting a filename argument to -f");
@@ -130,6 +178,61 @@ function setupConfig(Espruino) {
  }
 }
 
+// convert the given code to intel hex at the given location
+function toIntelHex(code) {
+  var saveAddress = Espruino.Core.Env.getData().chip.saved_code.address;
+  var saveSize = Espruino.Core.Env.getData().chip.saved_code.page_size * 
+                 Espruino.Core.Env.getData().chip.saved_code.pages;
+  var codeLen = code.length;
+  var endOfCode = 8+codeLen+1;
+  if (codeLen>saveSize-16) throw new Error("Too big ("+codeLen+" to fit in available flash: "+(saveSize-16));
+  var buffer = new Uint8Array(saveSize);  
+  buffer.fill(0xFF); // fill with 255 for emptiness
+  // write code length
+  buffer[0] = codeLen&255;
+  buffer[1] = (codeLen>>8)&255;
+  buffer[2] = (codeLen>>16)&255;
+  buffer[3] = (codeLen>>24)&255;
+  // write end of code
+  buffer[4] = endOfCode&255;
+  buffer[5] = (endOfCode>>8)&255;
+  buffer[6] = (endOfCode>>16)&255;
+  buffer[7] = (endOfCode>>24)&255;
+  // write in our code
+  for (var i=0;i<codeLen;i++)
+    buffer[8+i] = code.charCodeAt(i);
+  buffer[8+codeLen] = 0; // null terminate
+  // write magic byte
+  buffer[saveSize-1] = 0xDE;
+  buffer[saveSize-2] = 0xAD;
+  buffer[saveSize-3] = 0xBE;
+  buffer[saveSize-4] = 0xEF;
+  // Now work out intel hex
+  function h(d) { var n = "0123456789ABCDEF"; return n[(d>>4)&15]+n[d&15]; }
+  function ihexline(bytes) {
+    bytes.push(1+(~bytes.reduce((a,b)=>a+b)&255)); // checksum - yay JS!
+    return ":"+bytes.map(h).join("")+"\r\n";
+  }
+  var lastHighAddr = -1;
+  var ihex = "";
+  for (var idx=0;idx<saveSize;idx+=16) {
+    var addr = saveAddress+idx;
+    var highAddr = addr>>16;
+    if (highAddr != lastHighAddr) {
+      lastHighAddr = highAddr;
+      ihex += ihexline([2,0,0,4,(highAddr>>8)&255,highAddr&255]);
+    }
+    var bytes = [ 
+      16/*bytes*/, 
+      (addr>>8)&0xFF, addr&0xFF, 
+      0]; // record type
+    for (var j=0;j<16;j++) bytes.push(buffer[idx+j]);
+    ihex += ihexline(bytes);
+  }
+  ihex += ":00000001FF\r\n";
+  return ihex;
+}
+
 // create a job file from commandline settings
 function makeJobFile(config) {
   var job = {"espruino":{}};
@@ -167,41 +270,7 @@ if (!args.quiet) {
 
 //Help
 if (args.help) {
- ["USAGE: espruino ...options... [file_to_upload.js]",
-  "",
-  "  -h,--help                : Show this message",
-  "  -j [job.json]            : Load options from JSON job file - see configDefaults.json",
-  "                               Calling without a job filename creates a new job file ",
-  "                               named after the uploaded file",
-  "  -v,--verbose             : Verbose",
-  "  -q,--quiet               : Quiet - apart from Espruino output",
-  "  -m,--minify              : Minify the code before sending it",
-  "  -w,--watch               : If uploading a JS file, continue to watch it for",
-  "                               changes and upload again if it does.",
-  "  -p,--port /dev/ttyX",
-  "  -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to",
-  "  -b baudRate              : Set the baud rate of the serial connection",
-  "                               No effect when using USB, default: 9600",
-  "  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)",
-  "  --list                   : List all available devices and exit",
-  "  -t,--time                : Set Espruino's time when uploading code",
-  "  -o out.js                : Write the actual JS code sent to Espruino to a file",
-  "  -n                       : Do not connect to Espruino to upload code",
-  "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",  
-  "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
-  "                               Espruino must be in bootloader mode.",
-  "                               Optionally skip N first bytes of the bin file.",
-  "  -e command               : Evaluate the given expression on Espruino",
-  "                               If no file to upload is specified but you use -e,",
-  "                               Espruino will not be reset",
-  "",
-  "If no file, command, or firmware update is specified, this will act",
-  "as a terminal for communicating directly with Espruino. Press Ctrl-C",
-  "twice to exit.",
-  "",
-  "Please report bugs via https://github.com/espruino/EspruinoTool/issues",
-  ""].
-   forEach(function(l) {log(l);});
+ getHelp().forEach(function(l) {log(l);});
  process.exit(1);
 }
 
@@ -223,6 +292,10 @@ function sendCode(callback) {
       if (args.outputJS) {
         log("Writing output to "+args.outputJS);
         require("fs").writeFileSync(args.outputJS, code);
+      }
+      if (args.outputHEX) {
+        log("Writing hex output to "+args.outputHEX);
+        require("fs").writeFileSync(args.outputHEX, toIntelHex(code));
       }
       if (! args.nosend)
         Espruino.Core.CodeWriter.writeToEspruino(code, callback);

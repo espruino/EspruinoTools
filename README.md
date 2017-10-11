@@ -34,6 +34,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   --list                   : List all available devices and exit
   -t,--time                : Set Espruino's time when uploading code
   -o out.js                : Write the actual JS code sent to Espruino to a file
+  -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode
   -n                       : Do not connect to Espruino to upload code
   --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file
   -f firmware.bin[:N]      : Update Espruino's firmware to the given file
