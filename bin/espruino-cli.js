@@ -67,6 +67,9 @@ for (var i=2;i<process.argv.length;i++) {
      args.updateFirmware = arg[0];
      args.firmwareFlashOffset = parseInt(arg[1] || '0');
      if (isNaN(args.firmwareFlashOffset)) throw new Error("Expecting a numeric offset for -f");
+   } else if (arg=="--board") {
+     i++; args.board = next;
+     if (!isNextValid(next)) throw new Error("Expecting an argument to --board");     
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -106,6 +109,24 @@ function setupConfig(Espruino) {
    throw new Error("Can't update firmware *and* upload code right now.");
  if (args.espruino) {  // job file injections
    for (var key in args.espruino) Espruino.Config[key] = args.espruino[key];
+ }
+ if (args.board) {
+   console.log("Manually loading board JSON "+JSON.stringify(args.board));
+   Espruino.Config.ENV_ON_CONNECT = false;
+   var env = Espruino.Core.Env.getData();
+   env.BOARD = args.board;
+   if (args.board.indexOf(".")>=0) {
+     var data = JSON.parse(require("fs").readFileSync(args.board).toString());
+     for (var key in data)
+       env[key] = data[key];
+     Espruino.callProcessor("boardJSONLoaded", env, function() {
+       console.log("Manual board JSON load complete");
+     });   
+   } else { // download the JSON     
+     Espruino.Plugins.BoardJSON.loadJSON(env, Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json", function() {
+       console.log("Manual board JSON load complete");
+     });
+   }
  }
 }
 
@@ -161,11 +182,12 @@ if (args.help) {
   "  -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to",
   "  -b baudRate              : Set the baud rate of the serial connection",
   "                               No effect when using USB, default: 9600",
-  "  --no-ble                 : Disables Bluetooth Low Energy (using the 'bleat' module)",
+  "  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)",
   "  --list                   : List all available devices and exit",
   "  -t,--time                : Set Espruino's time when uploading code",
   "  -o out.js                : Write the actual JS code sent to Espruino to a file",
   "  -n                       : Do not connect to Espruino to upload code",
+  "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",  
   "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
   "                               Espruino must be in bootloader mode.",
   "                               Optionally skip N first bytes of the bin file.",
@@ -309,6 +331,7 @@ function terminal(port, exitCallback) {
               process.stdout.write("\r\n");
               exitCallback();
             } else {
+              // if we had ctrl-c, but didn't receive anything
               setTimeout(function() {
                 if (hadCtrlC) process.stdout.write("\nPress Ctrl-C again to exit\n>");
               }, 200);

@@ -12,11 +12,15 @@ Command-line
 When installed as a Node module with `npm install -g espruino` you get a command-line tool called `espruino`:
 
 ```
+Espruino Command-line Tool 0.0.33
+-----------------------------------
+
 USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help                : Show this message
-  -j [job.json]            : Make or load options from JSON. See 'job file' section below
-  -c,--color               : Color mode,
+  -j [job.json]            : Load options from JSON job file - see configDefaults.json
+                               Calling without a job filename creates a new job file 
+                               named after the uploaded file
   -v,--verbose             : Verbose
   -q,--quiet               : Quiet - apart from Espruino output
   -m,--minify              : Minify the code before sending it
@@ -26,17 +30,19 @@ USAGE: espruino ...options... [file_to_upload.js]
   -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to
   -b baudRate              : Set the baud rate of the serial connection
                                No effect when using USB, default: 9600
-  --no-ble                 : Disable Bluetooth Low Energy (used by default if the 'bleat' module exists)
+  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)
   --list                   : List all available devices and exit
   -t,--time                : Set Espruino's time when uploading code
   -o out.js                : Write the actual JS code sent to Espruino to a file
-  -f firmware.bin          : Update Espruino's firmware to the given file
-                               Espruino must be in bootloader mode
-                               Optionally skip N first bytes of the bin file,
+  -n                       : Do not connect to Espruino to upload code
+  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file
+  -f firmware.bin[:N]      : Update Espruino's firmware to the given file
+                               Espruino must be in bootloader mode.
+                               Optionally skip N first bytes of the bin file.
   -e command               : Evaluate the given expression on Espruino
                                If no file to upload is specified but you use -e,
                                Espruino will not be reset
-#
+
 If no file, command, or firmware update is specified, this will act
 as a terminal for communicating directly with Espruino. Press Ctrl-C
 twice to exit.
