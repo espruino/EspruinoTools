@@ -104,8 +104,9 @@
     var name = dev.advertisement.localName;
     var hasUartService = dev.advertisement.serviceUuids.indexOf(NORDIC_SERVICE)>=0;
     if (hasUartService ||
-        (name &&
+        (name &&      
           (name.substr(0, 7) == "Puck.js" ||
+           name.substr(0, 7) == "Badge" ||
            name.substr(0, 8) == "Espruino"))) {
       console.log("Found UART device:", name, dev.address);
       newDevices.push({ path: dev.address, description: name, type : "bluetooth" });
