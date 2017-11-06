@@ -106,7 +106,7 @@
     if (hasUartService ||
         (name &&      
           (name.substr(0, 7) == "Puck.js" ||
-           name.substr(0, 7) == "Badge" ||
+           name.substr(0, 5) == "Badge" ||
            name.substr(0, 8) == "Espruino"))) {
       console.log("Found UART device:", name, dev.address);
       newDevices.push({ path: dev.address, description: name, type : "bluetooth" });
