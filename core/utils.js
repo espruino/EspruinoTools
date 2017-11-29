@@ -330,7 +330,7 @@
 
             require(m).get(http_options, function(res) {
               if (res.statusCode != 200) {
-                console.error("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
+                console.log("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
                 return callback(undefined);
               }
               var data = "";

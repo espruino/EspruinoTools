@@ -349,6 +349,14 @@ function sendCode(callback) {
     code += args.expr+"\n";
   }
   if (code) {
+    var env = Espruino.Core.Env.getData();
+    if (!env.info || !env.info.builtin_modules) {
+      log("********************************************************************");
+      log("* No list of built-in modules found. If you get 'Module not found' *");
+      log("* messages for built-in modules you may want to connect to a board *");
+      log("* with '-p devicePath' or use '--board BOARDNAME'                  *");
+      log("********************************************************************");
+    }
     Espruino.callProcessor("transformForEspruino", code, function(code) {
       if (args.outputJS) {
         log("Writing output to "+args.outputJS);
