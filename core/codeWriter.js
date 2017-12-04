@@ -97,7 +97,8 @@
     if (APPLY_LINE_NUMBERS) {
       var l = code.split("\n");
       var i = 0;
-      while (l[i] && l[i].substr(0,8)=="Modules.") i++;
+      while (l[i] && (l[i].substr(0,8)=="Modules." ||
+                      l[i].substr(0,8)=="setTime(")) i++;
       lineNumberOffset = -i;
     }
 
