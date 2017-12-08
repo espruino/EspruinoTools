@@ -79,9 +79,8 @@ Gordon Williams (gw@pur3.co.uk)
       };
       ws.onclose = function(event) {
         currentDevice = undefined;
-        Espruino.callProcessor("disconnected", undefined, function() {
-          disconnectCallback();
-        });
+        if (disconnectCallback) disconnectCallback();
+        disconnectCallback = undefined;
         ws = undefined;
       };
     }
