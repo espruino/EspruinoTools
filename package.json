@@ -19,6 +19,7 @@
     "escodegen": "",
     "esmangle": "",
     "esprima": "",
+    "google-closure-compiler-js": "",
     "request": "^2.74.0",
     "tar.gz": "^1.0.5",
     "utf8": "^2.1.2"

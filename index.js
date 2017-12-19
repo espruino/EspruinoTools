@@ -66,6 +66,11 @@ function init(callback) {
     console.log("Acorn library not found - you'll need it for compiled code");
   }
   try {
+    global.compile = require('google-closure-compiler-js').compile;
+  } catch(e) {
+    console.log("google-closure-compiler-js library not found - you'll need it to minify code");
+  }
+  try {
     global.esprima = require("esprima");
   } catch(e) {
     console.log("esprima library not found - you'll need it to minify code");

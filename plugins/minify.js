@@ -12,7 +12,6 @@
 "use strict";
 (function(){
   
-  var minifyUrl = "https://closure-compiler.appspot.com/compile";
   var minifyCache = [];
   
   function init() {
@@ -200,7 +199,8 @@
         return;
       }
     }
-    closureCompilerGoogle(code,  minificationLevel, 'compiled_code', function(minified) {
+    closureCompilerGoogle(code,  minificationLevel, 'compiled_code', function(result) {
+      const minified = result.compiledCode;
       if (minified.trim()!="") {
         Espruino.Core.Notifications.info('No error. Minifying ' + code.length + ' bytes to ' + minified.length + ' bytes.');
         if (minifyCache.length>100)
@@ -210,36 +210,34 @@
       } else {
         Espruino.Core.Notifications.warning("Errors while minifying - sending unminified code.");
         callback(code);
-        // get errors...
-        closureCompilerGoogle(code,  minificationLevel, 'errors',function(errors) {
-          errors.split("\n").forEach(function (err) {
-            if (err.trim()!="")
-              Espruino.Core.Notifications.error(err.trim());
-          });
+        result.errors.forEach(function (err) {
+          if (err.description.trim()!="")
+              Espruino.Core.Notifications.error(err.description.trim());
         });
       }
     });
   }
   function closureCompilerGoogle(code, minificationLevel, output_info, callback){
     if(minificationLevel !== ""){
-      var minifyObj = $.param({
-        compilation_level: minificationLevel,
-        output_format: "text",
-        output_info: output_info,
-        js_code: code,
-        language : "ECMASCRIPT6", // so no need to mess with binary numbers now. \o/
-        language_out : "ECMASCRIPT5" // ES6 output uses some now features now that Espruino doesn't like
-      });      
-      $.post(minifyUrl, minifyObj, function(minifiedCode) {      
-        code = minifiedCode;          
-      },"text")
-      .error(function() { 
-        Espruino.Core.Notifications.error("HTTP error while minifying.");
-      })
-      .complete(function() {
-        // ensure we call the callback even if minification failes
-        callback(code);
-      });
+       const flags = {
+         jsCode: [{src: code}],
+         compilationLevel: minificationLevel.replace(/_.*/, ''),
+         // outputFormat: "text",
+         // outputInfo: output_info,
+         languageIn : "ECMASCRIPT6", // so no need to mess with binary numbers now. \o/
+         languageOut : "ECMASCRIPT5" // ES6 output uses some now features now that Espruino doesn't like
+       };
+
+       // The google-closure-compiler-js is brought in as global.compile in index.js or via a <script>
+       // tag in IDE similarly as if it were done using the following:
+       //
+       // const compile = require('google-closure-compiler-js').compile;
+
+       const result = compile(flags);
+       if (result.errors.length) {
+         Espruino.Core.Notifications.error("HTTP error while minifying.");
+       }
+       callback(result);
     }
   }
 
