@@ -199,7 +199,7 @@
         return;
       }
     }
-    closureCompilerGoogle(code,  minificationLevel, 'compiled_code', function(result) {
+    closureCompilerGoogle(code,  minificationLevel, function(result) {
       const minified = result.compiledCode;
       if (minified.trim()!="") {
         Espruino.Core.Notifications.info('No error. Minifying ' + code.length + ' bytes to ' + minified.length + ' bytes.');
@@ -217,13 +217,11 @@
       }
     });
   }
-  function closureCompilerGoogle(code, minificationLevel, output_info, callback){
+  function closureCompilerGoogle(code, minificationLevel, callback){
     if(minificationLevel !== ""){
        const flags = {
          jsCode: [{src: code}],
          compilationLevel: minificationLevel.replace(/_.*/, ''),
-         // outputFormat: "text",
-         // outputInfo: output_info,
          languageIn : "ECMASCRIPT6", // so no need to mess with binary numbers now. \o/
          languageOut : "ECMASCRIPT5" // ES6 output uses some now features now that Espruino doesn't like
        };
