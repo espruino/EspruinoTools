@@ -39,7 +39,7 @@ function getHelp() {
    "as a terminal for communicating directly with Espruino. Press Ctrl-C",
    "twice to exit.",
    "",
-   "Please report bugs via https://github.com/espruino/EspruinoTool/issues",
+   "Please report bugs via https://github.com/espruino/EspruinoTools/issues",
    ""]
 }
 
