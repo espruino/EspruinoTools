@@ -1,5 +1,8 @@
 /*
 Gordon Williams (gw@pur3.co.uk)
+
+Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
+`espruino-server`.
 */
 (function() {
 
