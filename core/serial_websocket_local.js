@@ -166,7 +166,7 @@ Gordon Williams (gw@pur3.co.uk)
 
   // ----------------------------------------------------------
   Espruino.Core.Serial.devices.push({
-    "name" : "Websocket",
+    "name" : "Websocket to EspruinoHost",
     "getPorts": getPorts,
     "open": openSerial,
     "write": writeSerial,

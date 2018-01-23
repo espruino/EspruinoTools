@@ -205,7 +205,7 @@ inputNode.onaudioprocess = function(e) {
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
-    "name" : "Audio",
+    "name" : "Web Audio",
     "init" : init,
     "getPorts": getPorts,
     "open": openSerial,

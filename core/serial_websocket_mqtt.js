@@ -26,6 +26,7 @@ messages it creates.
   }
   
   function websocketConnect() {
+    // for now, always connect to where we were served from
     var serverName = location.hostname;
     var serverPort = parseInt(location.port);    
     
@@ -171,7 +172,7 @@ messages it creates.
   };
   
   Espruino.Core.Serial.devices.push({
-    "name" : "Test",
+    "name" : "MQTT over Websockets",
     "init" : init,
     "getPorts": getPorts,
     "open": openSerial,

@@ -271,7 +271,7 @@
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
-    "name" : "Noble",
+    "name" : "Noble Bluetooth LE",
     "init": init,
     "getPorts": getPorts,
     "open": openSerial,

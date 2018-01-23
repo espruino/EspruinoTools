@@ -18,7 +18,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
 
 (function() {
   if (typeof chrome === 'undefined' || chrome.sockets===undefined) {
-    console.log("No chrome.sockets - serial_socket disabled");
+    console.log("No chrome.sockets - Chrome Socket disabled");
     return;
   }
 
