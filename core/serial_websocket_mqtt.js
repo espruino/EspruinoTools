@@ -12,6 +12,8 @@ messages it creates.
   console.log("WebSocket MQTT support enabled - running in web browser");
   
   function init() {
+    // Try and connect right away - it makes the connection window snappier
+    websocketConnect();
     // Check for old devices and remove them from the list
     setInterval(function() {
       for (var i=0;i<foundDevices.length;i++) {
