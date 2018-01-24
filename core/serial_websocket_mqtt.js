@@ -146,7 +146,7 @@ messages it creates.
       console.log("sendMessage when not connected");
       return;
     }
-    var message = new Paho.MQTT.Message(msg);
+    var message = new Paho.MQTT.Message(JSON.stringify(msg));
     message.destinationName = topic;
     websocket.send(message);
   }
