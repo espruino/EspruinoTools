@@ -407,6 +407,24 @@
     fileLoader.callback = callback;
     fileLoader.click();
   }
+  
+  /** Bluetooth device names that we KNOW run Espruino */
+  function recognisedBluetoothDevices() {
+    return [
+       "Puck.js", "Espruino", "Badge", "Thingy", "RuuviTag"
+    ];
+  }  
+  
+  /** If we can't find service info, add devices
+  based only on their name */
+  function isRecognisedBluetoothDevice(name) {
+    if (!name) return false;
+    var devs = recognisedBluetoothDevices();
+    for (var i=0;i<devs.length;i++)
+      if (name.substr(0, devs[i].length) == devs[i])
+        return true;
+    return false;
+  }
 
   Espruino.Core.Utils = {
       init : init,
@@ -427,6 +445,8 @@
       getJSONURL : getJSONURL,
       isURL : isURL,
       needsHTTPS : needsHTTPS,
-      fileOpenDialog : fileOpenDialog
+      fileOpenDialog : fileOpenDialog,
+      recognisedBluetoothDevices : recognisedBluetoothDevices,
+      isRecognisedBluetoothDevice : isRecognisedBluetoothDevice
   };
 }());

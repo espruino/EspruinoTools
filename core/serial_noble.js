@@ -11,12 +11,12 @@
   try {
     noble = require('noble');
   } catch (e) {
-    console.log("'noble' module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
+    console.log("Noble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
     // super nasty workaround for https://github.com/sandeepmistry/noble/issues/502
     process.removeAllListeners('exit');
     return;
   }
-
+  
   var NORDIC_SERVICE = "6e400001b5a3f393e0a9e50e24dcca9e";
   var NORDIC_TX = "6e400002b5a3f393e0a9e50e24dcca9e";
   var NORDIC_RX = "6e400003b5a3f393e0a9e50e24dcca9e";
@@ -73,11 +73,12 @@
 
 
   noble.on('stateChange', function(state) {
+    console.log("Noble: stateChange -> "+state);
     if (state=="poweredOn") {
       if (Espruino.Config.WEB_BLUETOOTH) {
         // Everything has already initialised, so we must disable
         // web bluetooth this way instead
-        console.log("Disable Web Bluetooth as we have Noble instead");
+        console.log("Noble: Disable Web Bluetooth as we have Noble instead");
         Espruino.Config.WEB_BLUETOOTH = false;
       }
       initialised = true;
@@ -90,12 +91,14 @@
   });
   // if we didn't initialise for whatever reason, keep going anyway
   setTimeout(function() {
+    if (initialised) return;
+    console.log("Noble: Didn't initialise in 2 seconds, disabling.");
     errored = true;
     if (scanWhenInitialised) {
       scanWhenInitialised([]);
       scanWhenInitialised = undefined;
     }
-  }, 1000);
+  }, 2000);
 
   noble.on('discover', function(dev) {
     if (!dev.advertisement) return;
@@ -104,14 +107,11 @@
     var name = dev.advertisement.localName;
     var hasUartService = dev.advertisement.serviceUuids.indexOf(NORDIC_SERVICE)>=0;
     if (hasUartService ||
-        (name &&      
-          (name.substr(0, 7) == "Puck.js" ||
-           name.substr(0, 5) == "Badge" ||
-           name.substr(0, 8) == "Espruino"))) {
-      console.log("Found UART device:", name, dev.address);
+        Espruino.Core.Utils.isRecognisedBluetoothDevice(name)) {
+      console.log("Noble: Found UART device:", name, dev.address);
       newDevices.push({ path: dev.address, description: name, type : "bluetooth" });
       btDevices[dev.address] = dev;
-    } else console.log("Found device:", name, dev.address);
+    } else console.log("Noble: Found device:", name, dev.address);
   });
 
 
@@ -127,7 +127,7 @@
         clearTimeout(scanStopTimeout);
         scanStopTimeout = undefined;
       } else {
-        console.log("noble starting scan");
+        console.log("Noble: Starting scan");
         lastDevices = [];
         newDevices = [];
         noble.startScanning([], true);
@@ -142,7 +142,7 @@
       setTimeout(function() {
         scanStopTimeout = setTimeout(function () {
           scanStopTimeout = undefined;
-          console.log("noble stopping scan");
+          console.log("Noble: Stopping scan");
           noble.stopScanning();
         }, 3000);
         // report back device list from both the last scan and this one...
@@ -172,7 +172,7 @@
     if (scanStopTimeout) {
       clearTimeout(scanStopTimeout);
       scanStopTimeout = undefined;
-      console.log("noble stopping scan");
+      console.log("Noble: Stopping scan (openSerial)");
       noble.stopScanning();
     }
 

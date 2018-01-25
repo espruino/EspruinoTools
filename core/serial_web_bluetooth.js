@@ -98,14 +98,15 @@
     var btService;
     var deviceName;
 
+    var filters = [];
+    Espruino.Core.Utils.recognisedBluetoothDevices().forEach(function(namePrefix) {
+      filters.push({ namePrefix: namePrefix });
+    });
+    filters.push({ services: [ NORDIC_SERVICE ] });
+
     navigator.bluetooth.requestDevice({
-        filters:[
-          { namePrefix: 'Puck.js' },
-          { namePrefix: 'Espruino' },
-          { namePrefix: 'Badge' },
-          { namePrefix: 'RuuviTag' },
-          { services: [ NORDIC_SERVICE ] }
-        ], optionalServices: [ NORDIC_SERVICE ]}).then(function(device) {
+        filters: filters, 
+        optionalServices: [ NORDIC_SERVICE ]}).then(function(device) {
 
       deviceName = device.name;
       Espruino.Core.Status.setStatus("Connecting to "+device.name);

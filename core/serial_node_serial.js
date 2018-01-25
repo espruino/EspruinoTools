@@ -20,29 +20,32 @@ Gordon Williams (gw@pur3.co.uk)
 
   var getPorts=function(callback) {
     serialport.list(function(err, ports) {
-      if (ports===undefined) callback([]);
-      else callback(ports
-          /**
-           * Filter the available serial ports to find the one(s)
-           * most likely to be an espruino (genuine, or at least STM32Fxxx based
-           *
-           * According to http://www.linux-usb.org/usb.ids
-           * vendorId === '0x0483' -> STMicroelectronics
-           * productId === '0x5740' -> STM32F407
-           *
-           * What is below works great for both Espruino boards, but fails for:
-           *   * USB-TTL adaptors
-           *   * Bluetooth Serial
-           *   * BBC micro:bit, Nordic devkits, etc
-           *
-           * So can't be left in. TODO: return an object for each USB serial device
-           * and have a `preferred : bool` field in it. Then if many devices are found
-           * but only one is preferred, use that.
-           */
+      if (ports===undefined) return callback([]);
+      // On Linux we get spammed with ttySx ports - remove these
+      if (process.platform == 'linux')
+        ports = ports.filter(function(port) { return !port.comName.match(/^\/dev\/ttyS[0-9]*$/); });
+
+        /**
+         * Filter the available serial ports to find the one(s)
+         * most likely to be an espruino (genuine, or at least STM32Fxxx based
+         *
+         * According to http://www.linux-usb.org/usb.ids
+         * vendorId === '0x0483' -> STMicroelectronics
+         * productId === '0x5740' -> STM32F407
+         *
+         * What is below works great for both Espruino boards, but fails for:
+         *   * USB-TTL adaptors
+         *   * Bluetooth Serial
+         *   * BBC micro:bit, Nordic devkits, etc
+         *
+         * So can't be left in. TODO: return an object for each USB serial device
+         * and have a `preferred : bool` field in it. Then if many devices are found
+         * but only one is preferred, use that.
+         */
 //          .filter(function(e) {
 //            return (e.vendorId === '0x0483' && e.productId === '0x5740');
-//          })
-          .map(function(port) {
+//          })        
+      callback(ports.map(function(port) {
             // port.pnpId could be handy
             var vid = parseInt(port.vendorId);
             var pid = parseInt(port.productId);

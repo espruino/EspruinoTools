@@ -53,8 +53,7 @@ messages it creates.
         var address = message.destinationName.substr(15);
         try {
           var j = JSON.parse(message.payloadString);
-          if (j.name) {
-            // TODO: filter by name?
+          if (j.name && Espruino.Core.Utils.isRecognisedBluetoothDevice(j.name)) {
             var dev = foundDevices.find(dev => dev.path==address);
             if (!dev) {
               dev = {
