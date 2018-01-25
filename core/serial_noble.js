@@ -92,13 +92,13 @@
   // if we didn't initialise for whatever reason, keep going anyway
   setTimeout(function() {
     if (initialised) return;
-    console.log("Noble: Didn't initialise in 2 seconds, disabling.");
+    console.log("Noble: Didn't initialise in 10 seconds, disabling.");
     errored = true;
     if (scanWhenInitialised) {
       scanWhenInitialised([]);
       scanWhenInitialised = undefined;
     }
-  }, 2000);
+  }, 10000);
 
   noble.on('discover', function(dev) {
     if (!dev.advertisement) return;
