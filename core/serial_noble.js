@@ -81,9 +81,17 @@
         Espruino.Config.WEB_BLUETOOTH = false;
       }
       initialised = true;
+      /* if getPorts was called before initialisation, be sure
+      to wait for stuff to arrive before just calling back
+      with nothing - we're in the CLI */
       if (scanWhenInitialised) {
-        getPorts(scanWhenInitialised);
+        var scb = scanWhenInitialised;
         scanWhenInitialised = undefined;
+        getPorts(function() {
+          setTimeout(function() {
+            getPorts(scb);
+          }, 1500);
+        });        
       }
     }
     if (state=="poweredOff") initialised = false;
