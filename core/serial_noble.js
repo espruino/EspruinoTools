@@ -16,7 +16,7 @@
     process.removeAllListeners('exit');
     return;
   }
-  
+
   var NORDIC_SERVICE = "6e400001b5a3f393e0a9e50e24dcca9e";
   var NORDIC_TX = "6e400002b5a3f393e0a9e50e24dcca9e";
   var NORDIC_RX = "6e400003b5a3f393e0a9e50e24dcca9e";
@@ -24,7 +24,6 @@
   var initialised = false;
   var errored = false;
   var scanWhenInitialised = undefined;
-  var firstGetPortsCall = true;
 
   function str2buf(str) {
     var buf = new Buffer(str.length);
@@ -117,12 +116,15 @@
 
   var getPorts = function (callback) {
     if (errored || !Espruino.Config.BLUETOOTH_LOW_ENERGY) {
+      console.log("Noble: getPorts - disabled");
       callback([]);
     } else if (!initialised) {
+      console.log("Noble: getPorts - not initialises");
       // if not initialised yet, wait until we are
       if (scanWhenInitialised) scanWhenInitialised([]);
       scanWhenInitialised = callback;
     } else { // all ok - let's go!
+      // Ensure we're scanning
       if (scanStopTimeout) {
         clearTimeout(scanStopTimeout);
         scanStopTimeout = undefined;
@@ -132,36 +134,28 @@
         newDevices = [];
         noble.startScanning([], true);
       }
-      /* we want the first call to return immediately, so if the
-      user isn't after Bluetooth everything still works fast */
-      if (firstGetPortsCall) {
-        firstGetPortsCall = false;
-        return callback([]);
-      }
-
-      setTimeout(function() {
-        scanStopTimeout = setTimeout(function () {
-          scanStopTimeout = undefined;
-          console.log("Noble: Stopping scan");
-          noble.stopScanning();
-        }, 3000);
-        // report back device list from both the last scan and this one...
-        var reportedDevices = [];
-        newDevices.forEach(function (d) {
-          reportedDevices.push(d);
+      scanStopTimeout = setTimeout(function () {
+        scanStopTimeout = undefined;
+        console.log("Noble: Stopping scan");
+        noble.stopScanning();
+      }, 3000);
+      // report back device list from both the last scan and this one...
+      var reportedDevices = [];
+      newDevices.forEach(function (d) {
+        reportedDevices.push(d);
+      });
+      lastDevices.forEach(function (d) {
+        var found = false;
+        reportedDevices.forEach(function (dv) {
+          if (dv.path == d.path) found = true;
         });
-        lastDevices.forEach(function (d) {
-          var found = false;
-          reportedDevices.forEach(function (dv) {
-            if (dv.path == d.path) found = true;
-          });
-          if (!found) reportedDevices.push(d);
-        });
-        reportedDevices.sort(function (a, b) { return a.path.localeCompare(b.path); });
-        lastDevices = newDevices;
-        newDevices = [];
-        callback(reportedDevices);
-      }, 1500);
+        if (!found) reportedDevices.push(d);
+      });
+      reportedDevices.sort(function (a, b) { return a.path.localeCompare(b.path); });
+      lastDevices = newDevices;
+      newDevices = [];
+      //console.log("Noble: reportedDevices",reportedDevices);
+      callback(reportedDevices);
     }
   };
 
