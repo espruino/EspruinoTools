@@ -73,20 +73,36 @@
   };
 
   var openSerial=function(serialPort, connectCallback, disconnectCallback) {
+    return openSerialInternal(serialPort, connectCallback, disconnectCallback, 2);
+  }
+
+  var openSerialInternal=function(serialPort, connectCallback, disconnectCallback, attempts) {
     /* If openSerial is called, we need to have called getPorts first
       in order to figure out which one of the serial_ implementations
       we must call into. */
     if (portToDevice === undefined) {
       portToDevice = []; // stop recursive calls if something errors
       return getPorts(function() {
-        openSerial(serialPort, connectCallback, disconnectCallback);
+        openSerialInternal(serialPort, connectCallback, disconnectCallback, attempts);
       });
     }
 
     if (!(serialPort in portToDevice)) {
-      console.error("Port "+JSON.stringify(serialPort)+" not found");
-      return connectCallback(undefined);
+      if (serialPort.toLowerCase() in portToDevice) {
+        serialPort = serialPort.toLowerCase();
+      } else {
+        if (attempts>0) {
+          console.log("Port "+JSON.stringify(serialPort)+" not found - checking ports again ("+attempts+" attempts left)");
+          return getPorts(function() {
+            openSerialInternal(serialPort, connectCallback, disconnectCallback, attempts-1);
+          });
+        } else {
+          console.error("Port "+JSON.stringify(serialPort)+" not found");
+          return connectCallback(undefined);
+        }
+      }
     }
+
     connectionInfo = undefined;
     currentDevice = portToDevice[serialPort];
     currentDevice.open(serialPort, function(cInfo) {
@@ -99,7 +115,10 @@
         connectionInfo = cInfo;
         connectedPort = serialPort;
         console.log("Connected", cInfo);
-        Espruino.callProcessor("connected", undefined, function() {
+        var portInfo = { port:serialPort };
+        if (connectionInfo.portName)
+          portInfo.portName = connectionInfo.portName;
+        Espruino.callProcessor("connected", portInfo, function() {
           connectCallback(cInfo);
         });
       }

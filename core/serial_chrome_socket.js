@@ -18,7 +18,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
 
 (function() {
   if (typeof chrome === 'undefined' || chrome.sockets===undefined) {
-    console.log("No chrome.sockets - serial_socket disabled");
+    console.log("No chrome.sockets - Chrome Socket disabled");
     return;
   }
 
@@ -43,7 +43,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
       var portList = [];
       ips.forEach(function(s) {
         s = s.trim();
-        if (s.length) portList.push({path:'TCP/IP: '+s, description:"Network connection"});
+        if (s.length) portList.push({path:'TCP/IP: '+s, description:"Network connection", type:"socket"});
       })
       callback(portList);
     } else

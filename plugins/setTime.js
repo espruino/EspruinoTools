@@ -31,7 +31,7 @@
    });
   }
   
-  Espruino.Plugins.ExamplePlugin = {
+  Espruino.Plugins.SetTime = {
     init : init,
   };
 }());

@@ -1,0 +1,56 @@
+/*
+Gordon Williams (gw@pur3.co.uk)
+
+Simple loopback test
+*/
+
+(function() {
+  function init() {
+  }
+
+  var getPorts = function(callback) {
+    callback([{path:"TEST", description:"test", type:"test"}]);
+  };
+
+  var rcb, dcb;
+
+  var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
+    rcb = receiveCallback;
+    dcb = disconnectCallback;
+    setTimeout(function() {
+      openCallback({ hello : 42 });
+    }, 500);
+  };
+
+  var str2ab = function(str) {
+    var buf=new ArrayBuffer(str.length);
+    var bufView=new Uint8Array(buf);
+    for (var i=0; i<str.length; i++) {
+      bufView[i]=str.charCodeAt(i);
+    }
+    return buf;
+  };
+
+
+  var closeSerial = function() {
+    if (dcb) {
+      dcb();
+      dcb = rcb = undefined;
+    }
+  };
+
+  var writeSerial = function(data, callback) {
+    callback();
+    setTimeout(function() {
+      rcb(str2ab(data));
+    }, 10);
+  };
+  Espruino.Core.Serial.devices.push({
+    "name" : "Test",
+    "init" : init,
+    "getPorts": getPorts,
+    "open": openSerial,
+    "write": writeSerial,
+    "close": closeSerial,
+  });
+})();

@@ -1,5 +1,10 @@
 (function () {
   if (typeof require === 'undefined') return;
+  var isWindows = /^win/.test(process.platform);
+  if (!isWindows) {
+    console.log("Not on Windows, Winnus not needed");
+    return;  
+  }
   var winnus = undefined;
   try {
     winnus = require('winnus');
@@ -30,7 +35,7 @@
     var devices = [];
     try {
       winnus.getDevices().forEach(function(dev) {
-        devices.push({ description : dev.name, path: dev.address });
+        devices.push({ description : dev.name, path: dev.address, type : "bluetooth" });
       });
     } catch (e) {
       console.log(e);
@@ -117,7 +122,7 @@
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
-    "name" : "Windows NUS BLE",
+    "name" : "Windows Bluetooth LE",
     "init": init,
     "getPorts": getPorts,
     "open": openSerial,

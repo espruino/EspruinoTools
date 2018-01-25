@@ -36,8 +36,9 @@
     // We want to make sure we've got a prompt before sending. If not,
     // this will issue a Ctrl+C
     Espruino.Core.Utils.getEspruinoPrompt(function() {
-      // Make sure code ends in a newline
-      if (code[code.length]!="\n") code += "\n";
+      // Make sure code ends in 2 newlines
+      while (code[code.length-2]!="\n" || code[code.length-1]!="\n")
+        code += "\n";
 
       // If we're supposed to reset Espruino before sending...
       if (Espruino.Config.RESET_BEFORE_SEND) {
@@ -96,7 +97,8 @@
     if (APPLY_LINE_NUMBERS) {
       var l = code.split("\n");
       var i = 0;
-      while (l[i] && l[i].substr(0,8)=="Modules.") i++;
+      while (l[i] && (l[i].substr(0,8)=="Modules." ||
+                      l[i].substr(0,8)=="setTime(")) i++;
       lineNumberOffset = -i;
     }
 
@@ -136,7 +138,9 @@
       var tokenString = code.substring(tok.startIdx, tok.endIdx);
       //console.log("prev "+JSON.stringify(previousString)+"   next "+tokenString);
 
-      if (brackets>0 || // we have brackets - sending the special newline means Espruino doesn't have to do a search itself - faster.
+      /* Inserting Alt-Enter newline, which adds newline without trying
+      to execute */
+      if (brackets>0 || // we have brackets - sending the alt-enter special newline means Espruino doesn't have to do a search itself - faster.
           statement || // statement was before brackets - expecting something else
           statementBeforeBrackets ||  // we have an 'if'/etc
           varDeclaration || // variable declaration then newline
@@ -171,7 +175,19 @@
           statement = false;
           statementBeforeBrackets = false;
         }
+      }
+      /* If we're at root scope and had whitespace/comments between code,
+      remove it all and replace it with a single newline and a
+      0x10 (echo off for line) character. However DON'T do this if we had
+      an alt-enter in the line, as it was there to stop us executing
+      prematurely */
+      if (previousBrackets==0 &&
+          previousString.indexOf("\n")>=0 &&
+          previousString.indexOf("\x1B\x0A")<0)
+        previousString = "\n\x10";
 
+
+      if (brackets==0) {
         /* For functions defined at the global scope, we want to shove
          * an escape code before them that tells Espruino what their
          * line number is */
@@ -181,11 +197,6 @@
           previousString += "\x1B\x5B"+(tok.lineNumber+lineNumberOffset)+"d";
         }
       }
-      /* If we're at root scope and had whitespace/comments between code,
-      remove it all and replace it with a single newline and a
-      0x10 (echo off for line) character*/
-      if (previousBrackets==0 && previousString.indexOf("\n")>=0)
-        previousString = "\n\x10";
       // add our stuff back together
       resultCode += previousString+tokenString;
       // next
@@ -195,11 +206,11 @@
     }
     //console.log(resultCode);
     if (brackets>0) {
-      Espruino.Core.Notifications.error("You haven more open brackets than close brackets. Please see the hints in the Editor window.");
+      Espruino.Core.Notifications.error("You have more open brackets than close brackets. Please see the hints in the Editor window.");
       return undefined;
     }
     if (brackets<0) {
-      Espruino.Core.Notifications.error("You haven more close brackets than open brackets. Please see the hints in the Editor window.");
+      Espruino.Core.Notifications.error("You have more close brackets than open brackets. Please see the hints in the Editor window.");
       return undefined;
     }
     return resultCode;

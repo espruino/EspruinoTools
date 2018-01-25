@@ -12,7 +12,7 @@
 "use strict";
 (function(){
   
-  var minifyUrl = "http://closure-compiler.appspot.com/compile";
+  var minifyUrl = "https://closure-compiler.appspot.com/compile";
   var minifyCache = [];
   
   function init() {

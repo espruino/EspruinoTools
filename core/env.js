@@ -4,17 +4,17 @@
  This Source Code is subject to the terms of the Mozilla Public
  License, v2.0. If a copy of the MPL was not distributed with this
  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
+
  ------------------------------------------------------------------
-  Board Environment variables (process.env) - queried when board connects 
+  Board Environment variables (process.env) - queried when board connects
  ------------------------------------------------------------------
 **/
 "use strict";
 (function(){
-  
+
   var environmentData = {};
   var boardData = {};
-  
+
   function init() {
     Espruino.Core.Config.add("ENV_ON_CONNECT", {
       section : "Communications",
@@ -22,16 +22,16 @@
       description : 'Just after the board is connected, should we query `process.env` to find out which board we\'re connected to? '+
                     'This enables the Web IDE\'s code completion, compiler features, and firmware update notice.',
       type : "boolean",
-      defaultValue : true, 
-    });    
-    
+      defaultValue : true,
+    });
+
     Espruino.addProcessor("connected", function(data, callback) {
       // Give us some time for any stored data to come in
       setTimeout(queryBoardProcess, 200, data, callback);
     });
   }
-  
-  function queryBoardProcess(data, callback) {    
+
+  function queryBoardProcess(data, callback) {
     if (!Espruino.Config.ENV_ON_CONNECT) {
       return callback(data);
     }
@@ -39,7 +39,7 @@
     Espruino.Core.Utils.executeExpression("process.env", function(result) {
       var json = {};
       if (result!==undefined) {
-        try {       
+        try {
           json = JSON.parse(result);
         } catch (e) {
           console.log("JSON parse failed - " + e + " in " + JSON.stringify(result));
@@ -63,24 +63,24 @@
             environmentData.VERSION_MINOR = parseFloat(minor);
         }
       }
-      
-      Espruino.callProcessor("environmentVar", environmentData, function(data) { 
-        environmentData = data; 
-      }); 
-      callback(data);
-    });    
+
+      Espruino.callProcessor("environmentVar", environmentData, function(envData) {
+        environmentData = envData;
+        callback(data);
+      });
+    });
   }
-  
+
   /** Get all data merged in from the board */
   function getData() {
     return environmentData;
   }
-  
+
   /** Get just the board's environment data */
   function getBoardData() {
     return boardData;
   }
-  
+
   /** Get a list of boards that we know about */
   function getBoardList(callback) {
     var jsonDir = Espruino.Config.BOARD_JSON_URL;
@@ -91,8 +91,8 @@
     }
 
     Espruino.Core.Utils.getJSONURL(jsonDir + "boards.json", function(boards){
-     // now load all the individual JSON files 
-      var promises = [];      
+      // now load all the individual JSON files
+      var promises = [];
       for (var boardId in boards) {
         promises.push((function() {
           var id = boardId;
@@ -104,14 +104,14 @@
           });
         })());
       }
-      
+
       // When all are loaded, load the callback
-      Promise.all(promises).then(function(){ 
-        callback(boards); 
-      });      
+      Promise.all(promises).then(function() {
+        callback(boards);
+      });
     });
   }
-  
+
   Espruino.Core.Env = {
     init : init,
     getData : getData,

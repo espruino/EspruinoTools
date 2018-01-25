@@ -33,7 +33,7 @@
   }
 
   function wrap(code, callback) {
-    if (!Espruino.Config.SAVE_ON_SEND) return callback(code);
+    if (!(0|Espruino.Config.SAVE_ON_SEND)) return callback(code);
 
     var newCode = [];
     newCode.push("E.setBootCode(");

@@ -18,7 +18,7 @@
       name : "Module URL",
       description : "Where to search online for modules when `require()` is used",
       type : "string",
-      defaultValue : (Espruino.Core.Utils.needsHTTPS()?"https":"http")+"://www.espruino.com/modules"
+      defaultValue : "https://www.espruino.com/modules"
     });
     Espruino.Core.Config.add("MODULE_EXTENSIONS", {
       section : "Communications",
@@ -26,7 +26,38 @@
       description : "The file extensions to use for each module. These are checked in order and the first that exists is used. One or more file extensions (including the dot) separated by `|`",
       type : "string",
       defaultValue : ".min.js|.js"
-    });    
+    });
+    Espruino.Core.Config.add("MODULE_AS_FUNCTION", {
+      section : "Communications",
+      name : "Modules uploaded as functions (BETA)",
+      description : "Espruino 1v90 and later ONLY. Upload modules as Functions, allowing any functions inside them to be loaded directly from flash when 'Save on Send' is enabled.",
+      type : "boolean",
+      defaultValue : false
+    });
+    
+    Espruino.Core.Config.add("MODULE_PROXY_ENABLED", {
+      section : "Communications",
+      name : "Enable Proxy",
+      description : "Enable Proxy for loading the modules when `require()` is used (only in native IDE)",
+      type : "boolean",
+      defaultValue : false
+    });
+
+    Espruino.Core.Config.add("MODULE_PROXY_URL", {
+      section : "Communications",
+      name : "Proxy URL",
+      description : "Proxy URL for loading the modules when `require()` is used (only in native IDE)",
+      type : "string",
+      defaultValue : ""
+    });
+
+    Espruino.Core.Config.add("MODULE_PROXY_PORT", {
+      section : "Communications",
+      name : "Proxy Port",
+      description : "Proxy Port for loading the modules when `require()` is used (only in native IDE)",
+      type : "string",
+      defaultValue : ""
+    });
     
     // When code is sent to Espruino, search it for modules and add extra code required to load them 
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
@@ -83,7 +114,10 @@
 
     var loadProcessedModule = function (moduleCode) {
       // add the module to the beginning of our array
-      loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
+      if (Espruino.Config.MODULE_AS_FUNCTION)
+        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + ",function(){" + moduleCode + "});");
+      else 
+        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
       // if we needed to load something, wait until we have all promises complete before resolving our promise!
       Promise.all(newPromises).then(function(){ resolve(); });
     }
@@ -108,15 +142,19 @@
             // otherwise try and load the module the old way...
             console.log("loadModule("+fullModuleName+")");
             
-            var urls; // Array of where to look for this module
+            var urls = []; // Array of where to look for this module
             var modName; // Simple name of the module
             if(Espruino.Core.Utils.isURL(fullModuleName)) {
               modName = fullModuleName.substr(fullModuleName.lastIndexOf("/") + 1).split(".")[0];
               urls = [ fullModuleName ];
             } else {
               modName = fullModuleName;
-              urls = Espruino.Config.MODULE_EXTENSIONS.split("|").map(function (extension) {
-                return Espruino.Config.MODULE_URL + "/" + fullModuleName + extension;
+              Espruino.Config.MODULE_URL.split("|").forEach(function (url) {
+                url = url.trim();
+                if (url.length!=0) 
+                  Espruino.Config.MODULE_EXTENSIONS.split("|").forEach(function (extension) {
+                    urls.push(url + "/" + fullModuleName + extension);
+                  })
               });
             };
             

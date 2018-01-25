@@ -3,7 +3,7 @@ Espruino Tools
 
 This repository contains a set of tools for the [Espruino JavaScript Interpreter](http://www.espruino.com).
 
-While it is used directly by the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE), there's are also simple command-line and `node.js` interfaces.
+While it is used directly by the [Espruino Web IDE](http://www.github.com/espruino/EspruinoWebIDE), there are also simple command-line and `node.js` interfaces.
 
 
 Command-line
@@ -12,27 +12,38 @@ Command-line
 When installed as a Node module with `npm install -g espruino` you get a command-line tool called `espruino`:
 
 ```
+Espruino Command-line Tool 0.0.33
+-----------------------------------
+
 USAGE: espruino ...options... [file_to_upload.js]
 
-  -h,--help               : Show this message
-  -v,--verbose            : Verbose
-  -q,--quiet              : Quiet - apart from Espruino output
-  -m,--minify             : Minify the code before sending it
-  -w,--watch              : If uploading a JS file, continue to watch it for
-                            changes and upload again if it does.
-  -p,--port /dev/ttyX     : Specify port(s) to connect to
-  -b baudRate             : Set the baud rate of the serial connection
-                            No effect when using USB, default: 9600
-  --no-ble                : Disable Bluetooth Low Energy (used by default if the 'bleat' module exists)
-  --list                  : List all available devices and exit
-  -t,--time               : Set Espruino's time when uploading code
-  -o out.js               : Write the actual JS code sent to Espruino to a file
-  -f firmware.bin         : Update Espruino's firmware to the given file
-                              Espruino must be in bootloader mode
-                              Optionally skip N first bytes of the bin file,
-  -e command              : Evaluate the given expression on Espruino
-                              If no file to upload is specified but you use -e,
-                              Espruino will not be reset
+  -h,--help                : Show this message
+  -j [job.json]            : Load options from JSON job file - see configDefaults.json
+                               Calling without a job filename creates a new job file 
+                               named after the uploaded file
+  -v,--verbose             : Verbose
+  -q,--quiet               : Quiet - apart from Espruino output
+  -m,--minify              : Minify the code before sending it
+  -w,--watch               : If uploading a JS file, continue to watch it for
+                               changes and upload again if it does.
+  -p,--port /dev/ttyX
+  -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to
+  -b baudRate              : Set the baud rate of the serial connection
+                               No effect when using USB, default: 9600
+  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)
+  --list                   : List all available devices and exit
+  -t,--time                : Set Espruino's time when uploading code
+  --config key=value       : Set internal Espruino config option
+  -o out.js                : Write the actual JS code sent to Espruino to a file
+  -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode
+  -n                       : Do not connect to Espruino to upload code
+  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file
+  -f firmware.bin[:N]      : Update Espruino's firmware to the given file
+                               Espruino must be in bootloader mode.
+                               Optionally skip N first bytes of the bin file.
+  -e command               : Evaluate the given expression on Espruino
+                               If no file to upload is specified but you use -e,
+                               Espruino will not be reset
 
 If no file, command, or firmware update is specified, this will act
 as a terminal for communicating directly with Espruino. Press Ctrl-C
@@ -42,7 +53,7 @@ twice to exit.
 For instance:
 
 ```
-# Connect to Espruno and act as a terminal app  (IF Espruino is the only serial port reported)
+# Connect to Espruino and act as a terminal app  (IF Espruino is the only serial port reported)
 espruino
 
 # Connect to Espruino on the specified port, act as a terminal
@@ -68,10 +79,8 @@ espruino -p /dev/ttyACM0 mycode.js -e "save()"
 espruino -e "digitalWrite(LED1,1);"
 ```
 
-
 Bluetooth
 ----------
-
 If the NPM module `noble` is installed, it'll be used to scan for Bluetooth LE UART devices like [Puck.js](http://puck-js.com). It's an optional dependency, so will be installed if possible - but if not you just won't get BLE support.
 
 If it is installed and you don't want it, you can use `./espruino --no-ble` to disable it for the one command, or can remove the module with `npm remove noble`.
@@ -82,6 +91,50 @@ On linux, you'll need to run as superuser to access Bluetooth Low Energy. To avo
 sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
 ```
 
+Not Connecting
+--------------
+
+Sometimes, you might want to run your JS file(s) through the Espruino Tools
+to create an output file that contains everything required, including modules.
+This file can then be sent directly to Espruino at some later time -
+sometimes just `cat file.js > /dev/ttyACM0` is enough.
+
+To do this, you don't need to connect, you just need to be able to specify the 
+board type, which corresponds to a JSON file in http://www.espruino.com/json/
+
+```
+# Get a minified, complete JS file
+espruino --board PUCKJS --minify mycode.js -o output.js
+```
+
+You can also request an Intel Hex style output. This only works on some
+devices, but allows you to write directly into Espruino's memory space
+with a flashing tool.
+
+This is as if `E.setBootCode(your_code)` was called in the interpreter,
+except it doesn't have any code size limitations. It means that any
+functions that are defined in your program will be executed directly
+from Flash, without taking up any RAM.
+
+```
+# Get a hex file that can be flashed directly to the board
+espruino --board PUCKJS mycode.js -ohex output.hex
+```
+
+Configuration
+-------------
+
+In Espruino's Web IDE there are a lot of different config options. These
+end up toggling Config settings in Espruino. You can find what these are
+by going into the Web IDE, changing the option in Settings, then going
+to the `Console` window and scrolling to the bottom. You should see
+something like `Config.RESET_BEFORE_SEND => true`
+
+You can then add the command-line option `--config RESET_BEFORE_SEND=true`
+to recreate this.
+
+You can also use `--listconfigs` to give you a nice list of configs with
+their descriptions.
 
 NPM Module
 ----------
@@ -131,6 +184,62 @@ esp.init(function() {
 });
 ```
 
+Job File
+--------
+
+A job file simplifies specifying the command-line and provides a future record of the run setup. Specifying the -j option without a job file name will generate a job file automatically using the given JS code file as the base name and any commandline arguments specified.
+
+For example,
+  espruino -j -t -w test.js; // will create test.json
+
+The following table provides a guide for setting configuration fields, but consult the code for certainty. Module/pluggin values generally override other keys. It is not necessary to include any fields except the ones you want.
+
+| Commandline Argument | JSON Key *1,2*         | Module/Pluggin *2,3*                               |        
+| -------------------- | --------------         | --------------------                               |
+| file_to_upload.js    | file ("")              |                                                    |
+| -b baudrate          | baudRate (0)           | BAUD_RATE (9600)                                   |
+| -c                   | color (false)          |                                                    |
+| -e command           | expr ("")              |                                                    |
+| -f firmware.bin      | updateFirmware ("")    |                                                    |
+|                      | firmwareFlashOffset(0) |                                                    |
+| --list               | showDevices (false)    |                                                    |
+| -m,-minify           | minify (false)         | MINIFICATION_LEVEL ("")                            |
+|                      |                        | MINIFICATION_Mangle (true) *4*                     |
+|                      |                        | MINIFICATION_Unreachable (true) *4*                |
+|                      |                        | MINIFICATION_Unused (true) *4*                     |
+|                      |                        | MINIFICATION_Literal (true) *4*                    |
+|                      |                        | MINIFICATION_DeadCode (true) *4*                   |
+| -no-ble              | no-ble (false)         | BLUETOOTH_LOW_ENERGY (true)                        |
+| -o out.js            | outputJS ("")          |                                                    |
+| -p,--port /dev/ttyX  | ports ([""])           |                                                    |
+| -q,--quiet           | quiet (false)          |                                                    |
+| -t,--time            | setTime (false)        | SET_TIME_ON_WRITE (false)                          |
+| -v,--verbose         | verbose (false)        |                                                    |
+| -w,--watch           | watchFile (false)      |                                                    |
+|                      |                        | BOARD_JSON_URL ("http://www.espruino.com/json")    |
+|                      |                        | COMPILATION (true)                                 |
+|                      |                        | COMPILATION_URL ("http://www.espruino.com:32766")  |
+|                      |                        | ENV_ON_CONNECT (true)                              |
+|                      |                        | MODULE_AS_FUNCTION (false)                         |
+|                      |                        | MODULE_EXTENSIONS (".min.js|.js")                  |
+|                      |                        | MODULE_MINIFICATION_LEVEL ("")                     |
+|                      |                        | MODULE_URL ("http://www.espruino.com/modules") *5* |
+|                      |                        | NPM_MODULES (false)                                |
+|                      |                        | RESET_BEFORE_SEND (true)                           |
+|                      |                        | SAVE_ON_SEND (0)                                   |
+|                      |                        | SERIAL_AUDIO (0)                                   |
+|                      |                        | SERIAL_TCPIP ("")                                  |
+|                      |                        | SERIAL_THROTTLE_SEND (false)                       |
+|                      |                        | STORE_LINE_NUMBERS (true)                          |
+|                      |                        | UI_MODE ("Normal")                                 |
+|                      |                        | WEB_BLUETOOTH (true)                               |
+
+Notes:
+  1. JSON keys equate to internal *args* variable keys.
+  2. Default values shown in parentheses or see configDefaults.json file under node_modules/espruino folder. Check code directly for issues.
+  3. Recommended for advanced users only. Module and plugin keys equate to internal *Espruino.Config* variable keys stored in job file as subkeys under *espruino* key. Consult code for possible values.
+  4. Minification parameters only work if level set, e.g. MINIFICATION_LEVEL: "ESPRIMA".
+  5. MODULE_URL accepts a pipe delimited (|) list of URLS, including local servers and absolute or relative paths based on the code file. For example, "../../modules|http://localhost:8080/modules|http://www.espruino.com/modules" will first look in the module folder located two folders up from the code, then query the localhost server, and then look in the Espruino repository.
 
 Internals
 ---------

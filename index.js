@@ -16,7 +16,7 @@ function loadDir(dir) {
   var files = fs.readdirSync(dir);
   for (var i in files) {
     var filePath = dir+"/"+files[i];
-    if (files[i].substr(-3)==".js")
+    if (files[i].substr(-3)==".js" && files[i][0]!="_")
       loadJS(filePath);
     /*else if (fs.lstatSync(filePath).isDirectory()) 
       loadDir(filePath); // recursive */
@@ -94,12 +94,17 @@ function init(callback) {
   // Various plugins
   loadDir(__dirname+"/plugins");
 
-  // Bodge up notifications
+  // Bodge up notifications  
   Espruino.Core.Notifications = {
-    success : function(e) { log(e); },
+    success : function(e) { console.log(e); },
     error : function(e) { console.error(e); },
     warning : function(e) { console.warn(e); },
     info : function(e) { console.log(e); }, 
+  };  
+  Espruino.Core.Status = {
+    setStatus : function(e,len) { console.log(e); },
+    hasProgress : function() { return false; },
+    incrementProgress : function(amt) {}
   };
   
   // Finally init everything
@@ -118,7 +123,9 @@ exports.sendFile = function(port, filename, callback) {
   sendCode(port, code, callback);
 };
 
-exports.sendCode = function sendCode(port, code, callback) {
+exports.sendCode = sendCode;
+
+function sendCode(port, code, callback) {
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
     Espruino.Core.Serial.open(port, function(status) {

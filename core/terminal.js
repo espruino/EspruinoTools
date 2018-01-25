@@ -69,14 +69,20 @@
     });
 
     var mouseDownTime = Date.now();
+    var mouseUpTime = Date.now();
     window.addEventListener("mousedown", function() {
       mouseDownTime = Date.now();
     });
     terminal.addEventListener("mouseup" , function(e) {
       var selection = window.getSelection();
-      /* Maybe we basically just clicked (>100ms)
-       in which case we don't want to copy */
-      if (Date.now() < mouseDownTime+200) {
+      var shortClick = Date.now() < mouseDownTime+200;
+      var doubleClick = Date.now() < mouseUpTime+600;
+      mouseUpTime = Date.now();
+      /* Maybe we basically just clicked (<200ms)
+       in which case we don't want to copy but just
+       move the cursor. DON'T move cursor
+       for double-clicks */
+      if (shortClick && !doubleClick) {
         // Move cursor, if we can...
         if (selection &&
             selection.baseNode &&
@@ -251,6 +257,11 @@
     });
   };
 
+  /// send the given characters as if they were typed
+  var typeCharacters = function(s) {
+    onInputData(s);
+  }
+
   var clearTerminal = function() {
     // Get just the last entered line
     var currentLine = Espruino.Core.Terminal.getInputLine();
@@ -342,7 +353,7 @@
         elements[y].html(line);
     }
     // now show the line where the cursor is
-    if (elements[termCursorY]!==undefined);
+    if (elements[termCursorY]!==undefined)
       elements[termCursorY][0].scrollIntoView();
     /* Move input box to the same place as the cursor, so Android devices
     keep that part of the screen in view */
@@ -350,7 +361,8 @@
     if (cursor.length) {
       var pos = cursor[0].getBoundingClientRect();
       var terminalfocus = document.getElementById("terminalfocus");
-      terminalfocus.style.left=pos.left+"px";
+      var x = Math.min(pos.left, terminal.offsetWidth);
+      terminalfocus.style.left=x+"px";
       terminalfocus.style.top=pos.top+"px";
       terminalfocus.style["z-index"]=-100;
     }
@@ -561,6 +573,7 @@
   }
 
 
+
   Espruino.Core.Terminal = {
       init : init,
 
@@ -578,6 +591,7 @@
       grabSerialPort : grabSerialPort,
       setInputDataHandler : setInputDataHandler,
       outputDataHandler : outputDataHandler,
+      typeCharacters : typeCharacters
   };
 
 })();

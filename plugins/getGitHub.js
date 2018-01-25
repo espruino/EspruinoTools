@@ -17,9 +17,7 @@
   }
   
   function getGitHub(data, callback) {
-    var match = undefined;
-    if (!match) match = data.url.match(/^https?:\/\/github.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.*)$/);
-    if (!match) match = data.url.match(/^https?:\/\/raw.githubusercontent.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.*)$/);
+    var match = data.url.match(/^https?:\/\/github.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.*)$/);
     if (match) {
       var git = {
           owner : match[1],
@@ -28,19 +26,9 @@
           path : match[4]
           };
       
+      var url = "https://raw.githubusercontent.com/"+git.owner+"/"+git.repo+"/"+git.branch+"/"+git.path;
       console.log("Found GitHub", JSON.stringify(git));
-      var apiURL = "https://api.github.com/repos/"+git.owner+"/"+git.repo+"/contents/"+git.path+"?ref="+git.branch;
-      Espruino.Core.Utils.getJSONURL(apiURL, function(json) {
-        if (json &&
-            json.type=="file" &&
-            json.encoding=="base64") {
-          // just load it...
-          data.data = window.atob(json.content);
-        } else {
-          console.log("GET of "+apiURL+" returned JSON that wasn't a base64 encoded file");          
-        }
-        callback(data);
-      });
+      callback({url: url});
     } else
       callback(data); // no match - continue as normal
   }

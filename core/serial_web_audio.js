@@ -158,7 +158,7 @@ inputNode.onaudioprocess = function(e) {
 
   var getPorts=function(callback) {
     if (Espruino.Config.SERIAL_AUDIO != 0)
-      callback([{path:'Audio',description:'Serial over Audio'}]);
+      callback([{path:'Audio',description:'Serial over Audio', type:"audio"}]);
     else
       callback();
   };
@@ -205,7 +205,7 @@ inputNode.onaudioprocess = function(e) {
   // ----------------------------------------------------------
 
   Espruino.Core.Serial.devices.push({
-    "name" : "Audio",
+    "name" : "Web Audio",
     "init" : init,
     "getPorts": getPorts,
     "open": openSerial,

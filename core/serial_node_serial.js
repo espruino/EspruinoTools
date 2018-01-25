@@ -8,7 +8,13 @@ Gordon Williams (gw@pur3.co.uk)
     return;
   }
   if (typeof require === 'undefined') return;
-  var serialport = require('serialport');
+  var serialport;
+  try {
+    serialport = require('serialport');
+  } catch (e) {
+    console.log("No 'serialport' module found");
+    return;
+  }
 
   var connection = undefined;
 
@@ -53,7 +59,7 @@ Gordon Williams (gw@pur3.co.uk)
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     // https://github.com/voodootikigod/node-serialport#reference-guide
     connection = new serialport(serialPort, {
-        baudrate: parseInt(Espruino.Config.BAUD_RATE)
+        baudRate: parseInt(Espruino.Config.BAUD_RATE)
     });
     connection.on('open', function() {
       openCallback("Ok");

@@ -17,7 +17,11 @@
   }
 
   function isWindows() {
-    return navigator.userAgent.indexOf("Windows")>=0;
+    return (typeof navigator!="undefined") && navigator.userAgent.indexOf("Windows")>=0;
+  }
+
+  function isAppleDevice() {
+    return (typeof navigator!="undefined") && (typeof window!="undefined") && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   }
 
   function getChromeVersion(){
@@ -195,7 +199,7 @@
     // when we're done...
     var nextStep = function() {
       // send data to console anyway...
-      prevReader(receivedData);
+      if(prevReader) prevReader(receivedData);
       receivedData = "";
       // start the previous reader listening again
       Espruino.Core.Serial.startListening(prevReader);
@@ -241,7 +245,7 @@
         // start the previous reader listing again
         Espruino.Core.Serial.startListening(prevReader);
         // forward the original text to the previous reader
-        prevReader(receivedData);
+        if(prevReader) prevReader(receivedData);
         // run the callback
         callback(result);
       };
@@ -289,6 +293,8 @@
   function markdownToHTML(markdown) {
     var html = markdown;
     //console.log(JSON.stringify(html));
+    html = html.replace(/([^\n]*)\n=====*\n/g, "<h1>$1</h1>"); // heading 1
+    html = html.replace(/([^\n]*)\n-----*\n/g, "<h2>$1</h2>"); // heading 2
     html = html.replace(/\n\s*\n/g, "\n<br/><br/>\n"); // newlines
     html = html.replace(/\*\*(.*)\*\*/g, "<strong>$1</strong>"); // bold
     html = html.replace(/```(.*)```/g, "<span class=\"code\">$1</span>"); // code
@@ -302,20 +308,29 @@
       if (result.data!==undefined) {
         callback(result.data);
       } else {
+        var resultUrl = result.url ? result.url : url;
         if (typeof process === 'undefined') {
           // Web browser
-          $.get( url, function(d) {
+          $.get( resultUrl, function(d) {
             callback(d);
           }, "text").error(function(xhr,status,err) {
-            console.error(err);
+            console.error("getURL("+JSON.stringify(url)+") error : "+err);
             callback(undefined);
           });
         } else {
           // Node.js
-          if (url.substr(0,4)=="http") {
-            require("http").get(url, function(res) {
+          if (resultUrl.substr(0,4)=="http") {
+            var m = resultUrl[4]=="s"?"https":"http";
+
+            var http_options = Espruino.Config.MODULE_PROXY_ENABLED ? {
+              host: Espruino.Config.MODULE_PROXY_URL,
+              port: Espruino.Config.MODULE_PROXY_PORT,
+              path: resultUrl,
+            } : resultUrl;
+
+            require(m).get(http_options, function(res) {
               if (res.statusCode != 200) {
-                console.error("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
+                console.log("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
                 return callback(undefined);
               }
               var data = "";
@@ -324,11 +339,11 @@
                 callback(data);
               });
             }).on('error', function(err) {
-              console.error(err);
+              console.error("getURL("+JSON.stringify(url)+") error : "+err);
               callback(undefined);
             });
           } else {
-            require("fs").readFile(url, function(err, d) {
+            require("fs").readFile(resultUrl, function(err, d) {
               if (err) {
                 console.error(err);
                 callback(undefined);
@@ -362,10 +377,41 @@
     return window.location.protocol=="https:";
   }
 
+  /* Open a file load dialog. ID is to ensure that subsequent calls with
+  the same ID remember the last used directory.
+    type=="arraybuffer" => Callback is called with an arraybuffer
+    type=="text" => Callback is called with a string
+  */
+  function fileOpenDialog(id, type, callback) {
+    var loaderId = id+"FileLoader";
+    var fileLoader = document.getElementById(loaderId);
+    if (!fileLoader) {
+      fileLoader = document.createElement("input");
+      fileLoader.setAttribute("id", loaderId);
+      fileLoader.setAttribute("type", "file");
+      fileLoader.setAttribute("style", "z-index:-2000;position:absolute;top:0px;left:0px;");
+      fileLoader.addEventListener('change', function(e) {
+        if (!fileLoader.callback) return;
+        var files = e.target.files;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          fileLoader.callback(e.target.result);
+          fileLoader.callback = undefined;
+        };
+        if (type=="text") reader.readAsText(files[0]);
+        else if (type=="arraybuffer") reader.readAsArrayBuffer(files[0]);
+        else throw new Error("fileOpenDialog: unknown type "+type);
+      }, false);
+      document.body.appendChild(fileLoader);
+    }
+    fileLoader.callback = callback;
+    fileLoader.click();
+  }
 
   Espruino.Core.Utils = {
       init : init,
       isWindows : isWindows,
+      isAppleDevice : isAppleDevice,
       getChromeVersion : getChromeVersion,
       escapeHTML : escapeHTML,
       fixBrokenCode : fixBrokenCode,
@@ -380,6 +426,7 @@
       getURL : getURL,
       getJSONURL : getJSONURL,
       isURL : isURL,
-      needsHTTPS : needsHTTPS
+      needsHTTPS : needsHTTPS,
+      fileOpenDialog : fileOpenDialog
   };
 }());
