@@ -67,6 +67,7 @@
     try {
       winnus.disconnect();
     } catch (e) {
+      console.log("WINNUS ERROR:"+e.toString());
     }
     if (onDisconnect) {
       onDisconnect();
