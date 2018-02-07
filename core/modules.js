@@ -4,14 +4,14 @@
  This Source Code is subject to the terms of the Mozilla Public
  License, v2.0. If a copy of the MPL was not distributed with this
  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
+
  ------------------------------------------------------------------
   Automatically load any referenced modules
  ------------------------------------------------------------------
 **/
 "use strict";
 (function(){
-  
+
   function init() {
     Espruino.Core.Config.add("MODULE_URL", {
       section : "Communications",
@@ -34,7 +34,7 @@
       type : "boolean",
       defaultValue : false
     });
-    
+
     Espruino.Core.Config.add("MODULE_PROXY_ENABLED", {
       section : "Communications",
       name : "Enable Proxy",
@@ -58,17 +58,32 @@
       type : "string",
       defaultValue : ""
     });
-    
-    // When code is sent to Espruino, search it for modules and add extra code required to load them 
+
+    // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
       loadModules(code, callback);
     });
   }
 
+  function isBuiltIn(module) {
+    var d = Espruino.Core.Env.getData();
+    // If we got data from the device itself, use that as the
+    // definitive answer
+    if ("MODULES" in d)
+      return d.MODULES.split(",").indexOf("fs");
+    // Otherwise try and figure it out from JSON
+    if ("info" in d &&
+        "builtin_modules" in d.info &&
+        d.info.builtin_modules.indexOf(module)>=0)
+      return true;
+    // Otherwise assume we don't have it
+    return false;
+  }
+
   /** Find any instances of require(...) in the code string and return a list */
   var getModulesRequired = function(code) {
     var modules = [];
-    
+
     var lex = Espruino.Core.Utils.getLexer(code);
     var tok = lex.next();
     var state = 0;
@@ -80,20 +95,16 @@
       } else if (state==2 && (tok.type=="STRING")) {
         state=0;
         var module = tok.value;
-        var d = Espruino.Core.Env.getData();
-        var built_in = false;
-        if ("info" in d && "builtin_modules" in d.info)
-          built_in = d.info.builtin_modules.indexOf(module)>=0;
-        if (!built_in && modules.indexOf(module)<0)
+        if (!isBuiltIn(module) && modules.indexOf(module)<0)
           modules.push(module);
       } else
         state = 0;
       tok = lex.next();
     }
-        
+
     return modules;
   };
-  
+
   /** Called from loadModule when a module is loaded. Parse it for other modules it might use
    *  and resolve dfd after all submodules have been loaded */
   function moduleLoaded(resolve, requires, modName, data, loadedModuleData, alreadyMinified){
@@ -116,7 +127,7 @@
       // add the module to the beginning of our array
       if (Espruino.Config.MODULE_AS_FUNCTION)
         loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + ",function(){" + moduleCode + "});");
-      else 
+      else
         loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
       // if we needed to load something, wait until we have all promises complete before resolving our promise!
       Promise.all(newPromises).then(function(){ resolve(); });
@@ -125,23 +136,23 @@
       loadProcessedModule(data);
     else
       Espruino.callProcessor("transformModuleForEspruino", data, loadProcessedModule);
-  }      
-  
+  }
+
   /** Given a module name (which could be a URL), try and find it. Return
    * a deferred thingybob which signals when we're done. */
   function loadModule(requires, fullModuleName, loadedModuleData) {
     return new Promise(function(resolve, reject) {
-      // First off, try and find this module using callProcessor 
-      Espruino.callProcessor("getModule", 
+      // First off, try and find this module using callProcessor
+      Espruino.callProcessor("getModule",
         { moduleName:fullModuleName, moduleCode:undefined },
         function(data) {
           if (data.moduleCode!==undefined) {
             // great! it found something. Use it.
-            moduleLoaded(resolve, requires, fullModuleName, data.moduleCode, loadedModuleData, false); 
+            moduleLoaded(resolve, requires, fullModuleName, data.moduleCode, loadedModuleData, false);
           } else {
             // otherwise try and load the module the old way...
             console.log("loadModule("+fullModuleName+")");
-            
+
             var urls = []; // Array of where to look for this module
             var modName; // Simple name of the module
             if(Espruino.Core.Utils.isURL(fullModuleName)) {
@@ -151,13 +162,13 @@
               modName = fullModuleName;
               Espruino.Config.MODULE_URL.split("|").forEach(function (url) {
                 url = url.trim();
-                if (url.length!=0) 
+                if (url.length!=0)
                   Espruino.Config.MODULE_EXTENSIONS.split("|").forEach(function (extension) {
                     urls.push(url + "/" + fullModuleName + extension);
                   })
               });
             };
-            
+
             // Recursively go through all the urls
             (function download(urls) {
               if (urls.length==0) {
@@ -168,7 +179,7 @@
               Espruino.Core.Utils.getURL(dlUrl, function (data) {
                 if (data!==undefined) {
                   // we got it!
-                  moduleLoaded(resolve, requires, fullModuleName, data, loadedModuleData, dlUrl.substr(-7)==".min.js"); 
+                  moduleLoaded(resolve, requires, fullModuleName, data, loadedModuleData, dlUrl.substr(-7)==".min.js");
                 } else {
                   // else try next
                   download(urls.slice(1));
@@ -177,11 +188,11 @@
             })(urls);
           }
         });
-      
+
     });
   }
 
-  /** Finds instances of 'require' and then ensures that 
+  /** Finds instances of 'require' and then ensures that
    those modules are loaded into the module cache beforehand
    (by inserting the relevant 'addCached' commands into 'code' */
   function loadModules(code, callback){
@@ -196,13 +207,13 @@
         return loadModule(requires, moduleName, loadedModuleData);
       });
       // When all promises are complete
-      Promise.all(promises).then(function(){ 
-        callback("Modules.removeAllCached();\n" + loadedModuleData.join("\n") + "\n" + code); 
+      Promise.all(promises).then(function(){
+        callback(loadedModuleData.join("\n") + "\n" + code);
       });
     }
   };
-  
-  
+
+
   Espruino.Core.Modules = {
     init : init
   };
