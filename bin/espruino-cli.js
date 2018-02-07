@@ -17,17 +17,18 @@ function getHelp() {
    "                               changes and upload again if it does.",
    "  -p,--port /dev/ttyX",
    "  -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to",
+   "  -d deviceName            : Connect to the first device with a name containing deviceName",
    "  -b baudRate              : Set the baud rate of the serial connection",
    "                               No effect when using USB, default: 9600",
    "  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)",
-   "  --list                   : List all available devices and exit",   
+   "  --list                   : List all available devices and exit",
    "  --listconfigs            : Show all available config options and exit",
-   "  --config key=value       : Set internal Espruino config option",   
+   "  --config key=value       : Set internal Espruino config option",
    "  -t,--time                : Set Espruino's time when uploading code",
    "  -o out.js                : Write the actual JS code sent to Espruino to a file",
    "  -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode",
    "  -n                       : Do not connect to Espruino to upload code",
-   "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",  
+   "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",
    "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
    "                               Espruino must be in bootloader mode.",
    "                               Optionally skip N first bytes of the bin file.",
@@ -51,7 +52,7 @@ console.log = function() {
 }
 //Parse Arguments
 var args = {
- ports: [], 
+ ports: [],
  config: {}
 };
 
@@ -90,13 +91,16 @@ for (var i=2;i<process.argv.length;i++) {
    else if (arg=="--list") args.showDevices = true;
    else if (arg=="--listconfigs") args.showConfigs = true;
    else if (arg=="-p" || arg=="--port") {
-     args.ports.push(next);
+     args.ports.push({type:"path",name:next});
      var j = (++i) + 1;
      while (isNextValidPort(process.argv[j])) {
-       args.ports.push(process.argv[j++]);
+       args.ports.push({type:"path",name:process.argv[j++]});
        i++;
      }
-     if (!isNextValidPort(next)) throw new Error("Expecting a port argument to -p, --port");   
+     if (!isNextValidPort(next)) throw new Error("Expecting a port argument to -p, --port");
+   } else if (arg=="-d") {
+     i++; args.ports.push({type:"name",name:next});
+     if (!isNextValid(next)) throw new Error("Expecting a name argument to -d");
    } else if (arg=="--config") {
      i++;
      if (!next || next.indexOf("=")==-1) throw new Error("Expecting a key=value argument to --config");
@@ -106,7 +110,7 @@ for (var i=2;i<process.argv.length;i++) {
      } catch (e) {
        // treat as a string
        args.config[next.substr(0,kidx)] = next.substr(kidx+1);
-     }     
+     }
    } else if (arg=="-e") {
      i++; args.expr = next;
      if (!isNextValid(next)) throw new Error("Expecting an expression argument to -e");
@@ -131,7 +135,7 @@ for (var i=2;i<process.argv.length;i++) {
      if (isNaN(args.firmwareFlashOffset)) throw new Error("Expecting a numeric offset for -f");
    } else if (arg=="--board") {
      i++; args.board = next;
-     if (!isNextValid(next)) throw new Error("Expecting an argument to --board");     
+     if (!isNextValid(next)) throw new Error("Expecting an argument to --board");
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -222,8 +226,8 @@ function setupConfig(Espruino, callback) {
      Espruino.callProcessor("boardJSONLoaded", env, function() {
        console.log("Manual board JSON load complete");
        callback();
-     });   
-   } else { // download the JSON     
+     });
+   } else { // download the JSON
      Espruino.Plugins.BoardJSON.loadJSON(env, Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json", function() {
        console.log("Manual board JSON load complete");
        callback();
@@ -237,17 +241,17 @@ function toIntelHex(code) {
   var saveAddress, saveSize;
   try {
     saveAddress = Espruino.Core.Env.getData().chip.saved_code.address;
-    saveSize = Espruino.Core.Env.getData().chip.saved_code.page_size * 
+    saveSize = Espruino.Core.Env.getData().chip.saved_code.page_size *
                Espruino.Core.Env.getData().chip.saved_code.pages;
   } catch (e) {
     throw new Error("Board JSON not found or doesn't contain the relevant saved_code section");
-  }  
+  }
   var codeLen = code.length;
   var endOfCode = 8+codeLen+1;
   var maxSize = saveSize-16;
   if (codeLen>maxSize) throw new Error("Too big ("+codeLen+" to fit in available flash: "+maxSize);
   console.log("Using "+codeLen+" bytes out of "+maxSize);
-  var buffer = new Uint8Array(saveSize);  
+  var buffer = new Uint8Array(saveSize);
   buffer.fill(0xFF); // fill with 255 for emptiness
   // write code length
   buffer[0] = codeLen&255;
@@ -283,9 +287,9 @@ function toIntelHex(code) {
       lastHighAddr = highAddr;
       ihex += ihexline([2,0,0,4,(highAddr>>8)&255,highAddr&255]);
     }
-    var bytes = [ 
-      16/*bytes*/, 
-      (addr>>8)&0xFF, addr&0xFF, 
+    var bytes = [
+      16/*bytes*/,
+      (addr>>8)&0xFF, addr&0xFF,
       0]; // record type
     for (var j=0;j<16;j++) bytes.push(buffer[idx+j]);
     ihex += ihexline(bytes);
@@ -377,8 +381,8 @@ function sendCode(callback) {
 }
 
 /* Connect and send file/expression/etc */
-function connect(port, exitCallback) {
-  if (!args.quiet) if (! args.nosend) log("Connecting to '"+port+"'");
+function connect(devicePath, exitCallback) {
+  if (!args.quiet) if (! args.nosend) log("Connecting to '"+devicePath+"'");
   var currentLine = "";
   var exitTimeout;
   Espruino.Core.Serial.startListening(function(data) {
@@ -398,7 +402,7 @@ function connect(port, exitCallback) {
    }
   });
   if (! args.nosend) {
-    Espruino.Core.Serial.open(port, function(status) {
+    Espruino.Core.Serial.open(devicePath, function(status) {
       if (status === undefined) {
         console.error("Unable to connect!");
         return exitCallback();
@@ -447,14 +451,14 @@ function sendOnFileChanged() {
         busy = false;
       });
       // start watching again
-      sendOnFileChanged(); 
+      sendOnFileChanged();
     }, 500);
   });
 }
 
 /* Connect and enter terminal mode */
-function terminal(port, exitCallback) {
-  if (!args.quiet) log("Connecting to '"+port+"'");
+function terminal(devicePath, exitCallback) {
+  if (!args.quiet) log("Connecting to '"+devicePath+"'");
   var hadCtrlC = false;
   var hadCR = false;
   process.stdin.setRawMode(true);
@@ -475,7 +479,7 @@ function terminal(port, exitCallback) {
       }
     }
   });
-  Espruino.Core.Serial.open(port, function(status) {
+  Espruino.Core.Serial.open(devicePath, function(status) {
     if (status === undefined) {
       console.error("Unable to connect!");
       return exitCallback();
@@ -520,11 +524,39 @@ function terminal(port, exitCallback) {
    });
 }
 
+/* If the user's asked us to find a device by name, list
+all devices and search */
+function getPortPath(port, callback) {
+  if (port.type=="path") callback(port.name);
+  else if (port.type=="name") {
+    log("Searching for device named "+JSON.stringify(port.name));
+    var searchString = port.name.toLowerCase();
+    var timeout = 2;
+    Espruino.Core.Serial.getPorts(function cb(ports) {
+      //log(JSON.stringify(ports,null,2));
+      var found = ports.find(function(p) { return p.description.toLowerCase().indexOf(searchString)>=0; });
+      if (found) {
+        log("Found "+JSON.stringify(found.description)+" ("+JSON.stringify(found.path)+")");
+        callback(found.path);
+      } else {
+        if (timeout-- > 0) // try again - sometimes BLE devices take a while
+          Espruino.Core.Serial.getPorts(cb);
+        else {
+         log("Port named "+JSON.stringify(port.name)+" not found");
+         process.exit(1);
+       }
+      }
+    });
+  } else throw new Error("Unknown port type! "+JSON.stringify(port));
+}
+
 function startConnect() {
   if ((!args.file && !args.updateFirmware && !args.expr) || (args.file && args.watchFile)) {
     if (args.ports.length != 1)
       throw new Error("Can only have one port when using terminal mode");
-    terminal(args.ports[0], function() { process.exit(0); });
+    getPortPath(args.ports[0], function(path) {
+      terminal(path, function() { process.exit(0); });
+    });
   } else {
     //closure for stepping through each port
     //and connect + upload (use timeout callback [iterate] for proceeding)
@@ -533,8 +565,11 @@ function startConnect() {
       this.idx = 0;
       this.connect = connect;
       this.iterate = function() {
-        (idx>=ports.length?process.exit(0):connect(ports[idx++],iterate));
-      }
+        if (idx>=ports.length) process.exit(0);
+        else getPortPath(ports[idx++], function(path) {
+          connect(path,iterate);
+        });
+      };
       iterate();
     })(args.ports, connect);
   }
@@ -572,7 +607,7 @@ function main() {
         }).join("\n  "));
         if (ports.length>0) {
           if (! args.nosend) log("Using first port, "+JSON.stringify(ports[0]));
-          args.ports = [ports[0].path];
+          args.ports = [{type:"path",name:ports[0].path}];
           startConnect();
         } else
           throw new Error("No Ports Found");

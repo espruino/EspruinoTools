@@ -12,14 +12,14 @@ Command-line
 When installed as a Node module with `npm install -g espruino` you get a command-line tool called `espruino`:
 
 ```
-Espruino Command-line Tool 0.0.33
+Espruino Command-line Tool 0.1.3
 -----------------------------------
 
 USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help                : Show this message
   -j [job.json]            : Load options from JSON job file - see configDefaults.json
-                               Calling without a job filename creates a new job file 
+                               Calling without a job filename creates a new job file
                                named after the uploaded file
   -v,--verbose             : Verbose
   -q,--quiet               : Quiet - apart from Espruino output
@@ -28,12 +28,14 @@ USAGE: espruino ...options... [file_to_upload.js]
                                changes and upload again if it does.
   -p,--port /dev/ttyX
   -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to
+  -d deviceName            : Connect to the first device with a name containing deviceName
   -b baudRate              : Set the baud rate of the serial connection
                                No effect when using USB, default: 9600
   --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)
   --list                   : List all available devices and exit
-  -t,--time                : Set Espruino's time when uploading code
+  --listconfigs            : Show all available config options and exit
   --config key=value       : Set internal Espruino config option
+  -t,--time                : Set Espruino's time when uploading code
   -o out.js                : Write the actual JS code sent to Espruino to a file
   -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode
   -n                       : Do not connect to Espruino to upload code
@@ -48,6 +50,7 @@ USAGE: espruino ...options... [file_to_upload.js]
 If no file, command, or firmware update is specified, this will act
 as a terminal for communicating directly with Espruino. Press Ctrl-C
 twice to exit.
+
 ```
 
 For instance:
@@ -58,6 +61,9 @@ espruino
 
 # Connect to Espruino on the specified port, act as a terminal
 espruino -p /dev/ttyACM0
+
+# Connect to the first device found with 'Puck' in the name (eg. a Puck.js via Bluetooth)
+espruino -d puck
 
 # Write a program to Espruino (IF Espruino is the only serial port reported)
 espruino myprogram.js
@@ -99,7 +105,7 @@ to create an output file that contains everything required, including modules.
 This file can then be sent directly to Espruino at some later time -
 sometimes just `cat file.js > /dev/ttyACM0` is enough.
 
-To do this, you don't need to connect, you just need to be able to specify the 
+To do this, you don't need to connect, you just need to be able to specify the
 board type, which corresponds to a JSON file in http://www.espruino.com/json/
 
 ```
