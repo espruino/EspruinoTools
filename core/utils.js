@@ -407,14 +407,14 @@
     fileLoader.callback = callback;
     fileLoader.click();
   }
-  
+
   /** Bluetooth device names that we KNOW run Espruino */
   function recognisedBluetoothDevices() {
     return [
        "Puck.js", "Espruino", "Badge", "Thingy", "RuuviTag"
     ];
-  }  
-  
+  }
+
   /** If we can't find service info, add devices
   based only on their name */
   function isRecognisedBluetoothDevice(name) {
@@ -424,6 +424,29 @@
       if (name.substr(0, devs[i].length) == devs[i])
         return true;
     return false;
+  }
+
+
+  function getVersion(callback) {
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open('GET', 'manifest.json');
+    xmlhttp.onload = function (e) {
+        var manifest = JSON.parse(xmlhttp.responseText);
+        callback(manifest.version);
+    };
+    xmlhttp.send(null);
+  }
+
+  function getVersionInfo(callback) {
+    getVersion(function(version) {
+      var platform = "Web App";
+      if ((typeof require === "function") && (typeof require('nw.gui') !== "undefined"))
+        platform = "NW.js Native App";
+      if ((typeof chrome === "object") && chrome.app && chrome.app.window)
+        platform = "Chrome App";
+
+      callback(platform+", v"+version);
+    });
   }
 
   Espruino.Core.Utils = {
@@ -447,6 +470,8 @@
       needsHTTPS : needsHTTPS,
       fileOpenDialog : fileOpenDialog,
       recognisedBluetoothDevices : recognisedBluetoothDevices,
-      isRecognisedBluetoothDevice : isRecognisedBluetoothDevice
+      isRecognisedBluetoothDevice : isRecognisedBluetoothDevice,
+      getVersion : getVersion,
+      getVersionInfo : getVersionInfo
   };
 }());
