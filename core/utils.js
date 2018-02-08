@@ -28,6 +28,22 @@
     return parseInt(window.navigator.appVersion.match(/Chrome\/(.*?) /)[1].split(".")[0]);
   }
 
+  function isNWApp() {
+    return (typeof require === "function") && (typeof require('nw.gui') !== "undefined");
+  }
+
+  function isChromeWebApp() {
+    return ((typeof chrome === "object") && chrome.app && chrome.app.window);
+  }
+
+  function isProgressiveWebApp() {
+    return !isNWApp() && !isChromeWebApp() && window && window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  }
+
+  function hasNativeTitleBar() {
+    return !isNWApp() && !isChromeWebApp();
+  }
+
   function escapeHTML(text, escapeSpaces)
   {
     escapeSpaces = typeof escapeSpaces !== 'undefined' ? escapeSpaces : true;
@@ -440,9 +456,9 @@
   function getVersionInfo(callback) {
     getVersion(function(version) {
       var platform = "Web App";
-      if ((typeof require === "function") && (typeof require('nw.gui') !== "undefined"))
+      if (isNWApp())
         platform = "NW.js Native App";
-      if ((typeof chrome === "object") && chrome.app && chrome.app.window)
+      if (isChromeWebApp())
         platform = "Chrome App";
 
       callback(platform+", v"+version);
@@ -454,6 +470,10 @@
       isWindows : isWindows,
       isAppleDevice : isAppleDevice,
       getChromeVersion : getChromeVersion,
+      isNWApp : isNWApp,
+      isChromeWebApp : isChromeWebApp,
+      isProgressiveWebApp : isProgressiveWebApp,
+      hasNativeTitleBar : hasNativeTitleBar,
       escapeHTML : escapeHTML,
       fixBrokenCode : fixBrokenCode,
       getSubString : getSubString,
