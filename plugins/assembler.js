@@ -4,7 +4,7 @@
  This Source Code is subject to the terms of the Mozilla Public
  License, v2.0. If a copy of the MPL was not distributed with this
  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
+
  ------------------------------------------------------------------
   Automatically run an assembler on inline assembler statements
  ------------------------------------------------------------------
@@ -17,15 +17,15 @@
     base64_encode = function(s) { return new Buffer(s).toString('base64'); };
   else
     base64_encode = btoa;
-  
+
 /*  Thumb reference :
     http://ece.uwaterloo.ca/~ece222/ARM/ARM7-TDMI-manual-pt3.pdf
-    
+
     ARM reference
     https://web.eecs.umich.edu/~prabal/teaching/eecs373-f11/readings/ARMv7-M_ARM.pdf
-*/ 
+*/
 
-  // list of registers (for push/pop type commands) 
+  // list of registers (for push/pop type commands)
   function rlist_lr(value) {
    var regs = value.split(",");
    var vals = { r0:1,r1:2,r2:4,r3:8,r4:16,r5:32,r6:64,r7:128,lr:256 };
@@ -37,7 +37,7 @@
    }
    return bits;
   }
-   
+
   function reg(reg_offset) {
     return function(reg) {
       var vals = { r0:0,r1:1,r2:2,r3:3,r4:4,r5:5,r6:6,r7:7 };
@@ -55,7 +55,7 @@
     };
   }
 
-   
+
   function reg_or_immediate(reg_offset, immediate_bit) {
     return function(reg) {
       var regVal = parseInt(reg);
@@ -66,7 +66,7 @@
       return vals[reg]<<reg_offset;
     };
   }
-   
+
   function reg_base_offset(base_offset, offset_offset) {
    return function(value) {
      var parms = value.split(",");
@@ -75,21 +75,21 @@
   }
 
   function thumb2_immediate_t3(value) {
-    if (value[0]!="#") 
+    if (value[0]!="#")
       throw new "Expecting '#' before number";
     var v = parseInt(value.substr(1));
     if (v>=0 && v<65536) {
       // https://web.eecs.umich.edu/~prabal/teaching/eecs373-f11/readings/ARMv7-M_ARM.pdf page 347
       var imm4,i,imm3,imm8; // what the...?
       imm4 = (v>>12)&15;
-      i = (v>>11)&1;          
+      i = (v>>11)&1;
       imm3 = (v>>8)&7;
-      imm8 = v&255;    
+      imm8 = v&255;
       return (i<<26) | (imm4<<16) | (imm3<<12) | imm8;
     }
     throw "Invalid number '"+value+"' - must be between 0 and 65535";
   }
-  
+
   function _int(offset, bits, shift, signed) {
     return function(value, labels) {
       var maxValue = ((1<<bits)-1) << shift;
@@ -98,14 +98,14 @@
         minValue = -(1<<(bits-1));
         maxValue += minValue;
       }
-      
+
       var binValue = undefined;
-      if (value[0]=="#") {      
-        binValue = parseInt(value.substr(1));        
+      if (value[0]=="#") {
+        binValue = parseInt(value.substr(1));
       } else {
         var addValue = 0;
         var maths = value.indexOf("+");
-        if (maths >= 0) { 
+        if (maths >= 0) {
           addValue = parseInt(value.substr(maths));
           value = value.substr(0,maths);
         }
@@ -113,38 +113,38 @@
           binValue = labels[value] + addValue - labels["PC"];
         else
           throw "Unknown label '"+value+"'";
-      } 
-      
-      
+      }
+
+
       //console.log("VALUE----------- "+binValue+" PC "+labels["PC"]+" L "+labels[value]);
-      
+
       if (binValue>=minValue && binValue<=maxValue && (binValue&((1<<shift)-1))==0)
         return ((binValue >> shift) & ((1<<bits)-1)) << offset;
-      
+
       var msg = "Invalid number '"+value+"' ("+binValue+") - must be between 0 and "+maxValue;
       if (shift!=0) msg += " and a multiple of "+(1<<shift);
       throw msg;
     };
   }
-  
+
   function uint(offset, bits, shift) {
     return _int(offset, bits, shift, false);
   }
 
   function sint(offset, bits, shift) {
     return _int(offset, bits, shift, true);
-  }  
-  
+  }
+
   // special 23-bit address (bottom bit ignored) split into two halves
   function bl_addr() {
-    var normal = sint(0, 22, 1); // un-split address 
+    var normal = sint(0, 22, 1); // un-split address
     return function(value, labels) {
       var v = normal(value, labels);
       return ((v>>11)&0x7FF)<<16 | (v&0x7FF);
     };
-  }   
-  
-  var ops = { 
+  }
+
+  var ops = {
     // Format 1: move shifted register
     "lsl"  :[{ base:"00000-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
              { base:"0100000010___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d << s
@@ -175,9 +175,9 @@
     "bic"  :[{ base:"0100001110___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d & ~s
     "mvn"  :[{ base:"0100001111___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // ~s
     // 5.5 Format 5: Hi register operations/branch exchange
-    // 5.6 Format 6: PC-relative load             
+    // 5.6 Format 6: PC-relative load
     //  done (below)
-    // 5.7 Format 7: load/store with register offset 
+    // 5.7 Format 7: load/store with register offset
     //  done (below)
     // 5.8 Format 8: load/store sign-extended byte/halfword
     // 5.9 Format 9: load/store with immediate offset
@@ -206,22 +206,22 @@
     "ble" :[{ base:"11011101________", regex : /^(.*)$/, args:[sint(0,8,1)] }], // 5.16 Format 16: conditional branch
     // 5.17 Format 17: software interrupt
     // 5.18 Format 18: unconditional branch
-    "b"   :[{ base:"11100___________", regex : /^(.*)$/, args:[sint(0,11,1)] }], 
+    "b"   :[{ base:"11100___________", regex : /^(.*)$/, args:[sint(0,11,1)] }],
     // 5.19 Format 19: long branch with link
-    "bl"  :[{ base:"11110___________11111___________", regex : /^(.*)$/, args:[bl_addr()] }], 
-    "bx"   :[{ base:"010001110----000", regex : /(lr|r[0-9]+)$/, args:[reg4(3)] }], 
-    // .... 
+    "bl"  :[{ base:"11110___________11111___________", regex : /^(.*)$/, args:[bl_addr()] }],
+    "bx"   :[{ base:"010001110----000", regex : /(lr|r[0-9]+)$/, args:[reg4(3)] }],
+    // ....
 
-    
+
     "adr"  :[{ base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)$/,args:[reg(8),uint(0,8,2)] },  // ADR pseudo-instruction to save address (actually ADD PC)
-             { base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*\+[0-9]+)$/,args:[reg(8),uint(0,8,2)] }], 
+             { base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*\+[0-9]+)$/,args:[reg(8),uint(0,8,2)] }],
     "push" :[{ base:"1011010-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
     "pop"  :[{ base:"1011110-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
     "add"  :[{ base:"00110---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
              { base:"10100---________", regex : /^(r[0-7]),pc,(#[0-9]+)$/,args:[reg(8),uint(0,8,2)] },
              { base:"10101---________", regex : /^(r[0-7]),sp,(#[0-9]+)$/, args:[reg(8),uint(0,8,2)] },
              { base:"101100000_______", regex : /^sp,(#[0-9]+)$/, args:[uint(0,7,2)] },
-             { base:"00011-0___---___", regex : /^(r[0-7]),(r[0-7]),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ], // Format 2: add/subtract 
+             { base:"00011-0___---___", regex : /^(r[0-7]),(r[0-7]),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ], // Format 2: add/subtract
     "adds" :[{ base:"00011-0___---___", regex : /^(r[0-7]),(r[0-7]),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ], //?
     "adc.w":[{ base:"111010110100----________--------", regex : /^(r[0-7]),(r[0-7]),(r[0-7])$/,args:[reg(16),reg(8),reg(0)] }], // made this up. probably wrong
     "add.w":[{ base:"11110001--------________--------", regex : /^(r[0-7]),(r[0-7]),(#[0-9]+)$/,args:[reg(16),reg(8),uint(0,8,0)] }], // made this up. probably wrong
@@ -229,23 +229,29 @@
               /*{ base:"10100---________", regex : /^([^,]+),pc,(#[0-9]+)$/,args:[reg(8),uint(0,8,2)] },*/
              { base:"101100001_______", regex : /^sp,(#[0-9]+)$/, args:[uint(0,7,2)] },
              { base:"00011-1___---___", regex : /^([^,]+),([^,]+),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ],
-   
-    "str"  :[{ base:"0101000---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset 
-             { base:"10010---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative store             
+
+    "str"  :[{ base:"0101000---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"10010---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative store
              { base:"0110000000___---", regex : /(r[0-7]),\[(r[0-7])\]$/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
-             { base:"0110000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
+             { base:"0110000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
     "strb" :[{ base:"0101010---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
-             { base:"0111000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
-    "ldr"  :[{ base:"01001---________", regex : /(r[0-7]),\[pc,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load             
-             { base:"10011---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative load             
+             { base:"01110-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,0)] }], // 5.9 Format 9: load/store with immediate offset
+    "strh" :[{ base:"0101001---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"10000-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,1)] }], // 5.9 Format 9: load/store with immediate offset
+    "ldr"  :[{ base:"01001---________", regex : /(r[0-7]),\[pc,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load
+             { base:"10011---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative load
              { base:"01001---________", regex : /(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label)
              { base:"01001---________", regex : /(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*\+[0-9]+)$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label and maths - huge hack)
              { base:"0101100---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
              { base:"0110100000___---", regex : /(r[0-7]),\[(r[0-7])\]$/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
              { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
-    
-    "ldrb" :[{ base:"0101110---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset 
-             { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset 
+
+    "ldrb" :[{ base:"0101110---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"01111-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,0)] }], // 5.9 Format 9: load/store with immediate offset
+    "ldrsb":[{ base:"0101011---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }], // 5.7 Format 7: load/store with register offset
+    "ldrh" :[{ base:"0101101---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"10001-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,1)] }], // 5.9 Format 9: load/store with immediate offset
+    "ldrsh":[{ base:"0101111---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }], // 5.7 Format 7: load/store with register offset
     "mov"  :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
              { base:"0001110000---___", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }, // actually 'add Rd,Rs,#0'
              { base:"0100011010---101", regex : /sp,(r[0-7])$/, args:[reg(3)] }], // made up again
@@ -263,12 +269,12 @@
    // for this, uint needs to work without a hash
 //    "swi"    :[{ base:"11011111--------", regex : /([0-9]+)$/, args:[uint(0,8,0)] }], // Format 17: software interrupt
   };
-  
-   
+
+
   function getOpCode(binary) {
    var base = "";
-   for (var b in binary) 
-     if ("-_".indexOf(binary[b])>=0) 
+   for (var b in binary)
+     if ("-_".indexOf(binary[b])>=0)
        base += "0";
      else
        base += binary[b];
@@ -276,7 +282,7 @@
    if (opCode<0) opCode = opCode + 2147483648.0;
    return opCode;
   }
-   
+
   function assemble_internal(asmLines, wordCallback, labels) {
     var addr = 0;
     var newLabels = {};
@@ -295,7 +301,7 @@
         newLabels[labelName] = addr;
         return;
       }
-      
+
       // parse instruction
       var firstArgEnd = line.indexOf("\t");
       if (firstArgEnd<0) firstArgEnd = line.indexOf(" ");
@@ -312,7 +318,7 @@
           found = true;
           // work out the base opcode
           var opCode = getOpCode(op.base);
-          
+
           if (labels!==undefined) {
             /* If we're properly generating code, parse each argument.
              Otherwise we're just working out the size in bytes of each line
@@ -325,35 +331,46 @@
               opCode |= bits;
             }
           }
-          
+
           if (op.base.length > 16) {
-            wordCallback((opCode>>>16)); 
+            wordCallback((opCode>>>16));
             wordCallback(opCode&0xFFFF);
             addr += 4;
           } else {
             wordCallback(opCode);
-            addr += 2; 
+            addr += 2;
           }
           break;
         }
       }
       // now parse args
       if (!found)
-        throw "Unknown arg style '"+args+"' in '"+line+"'";      
+        throw "Unknown arg style '"+args+"' in '"+line+"'";
     });
     return newLabels;
   }
 
-  function assemble(asmLines, wordCallback) {    
+  function assemble(asmLines, wordCallback) {
+    // remove line comments
+    asmLines = asmLines.map(function(l) {
+      var i;
+      i = l.indexOf(";");
+      if (i>=0) l = l.substr(0,i);
+      i = l.indexOf("//");
+      if (i>=0) l = l.substr(0,i);
+      return l;
+    });
+    // process assembly to grab labels
     var labels = assemble_internal(asmLines, function() {}, undefined);
-    console.log(labels);
+    console.log("Assembler Labels:",labels);
+    // process again to actually get an output
     assemble_internal(asmLines, wordCallback, labels);
   }
-  
+
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-  
+
   function init() {
     // When code is sent to Espruino, search it for bits of assembler and then assemble them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
@@ -370,10 +387,10 @@
       Espruino.Core.Notifications.error("Assembler failed: "+err);
       return undefined;
     }
-          
+
     return machineCode;
   }
-  
+
   /* Finds instances of 'E.asm' and replaces them */
   function findASMBlocks(code, callback){
 
@@ -385,11 +402,11 @@
       if (type!==undefined && tok.type!=type) {
         Espruino.Core.Notifications.error("Expecting a "+type+" but got "+tok.type+". Should have E.asm('arg spec', 'asmline1', ..., 'asmline2'");
         return false;
-      }      
+      }
       tok = lex.next();
       return true;
     }
-    
+
     var foundAsm = true;
     var assembledCode = "";
     var asmBlockCount = 1;
@@ -407,19 +424,22 @@
           foundAsm = true;
           state=0;
           tok = lex.next(); // skip (
-          var argSpec = tok.value; 
+          var argSpec = tok.value;
           var asmLines = [];
           if (!match(undefined,"STRING")) return;
           if (!match(",",undefined)) return;
           while (tok && tok.str!=")") {
-            asmLines.push(tok.value);
+            var lines = tok.value.split("\n");
+            lines.forEach(function(l) {
+              asmLines.push(l);
+            });
             if (!match(undefined,"STRING")) return;
-            if (tok.str!=")") 
+            if (tok.str!=")")
               if (!match(",",undefined)) return;
           }
           if (!match(")",undefined)) return;
           var endIndex = tok.endIdx;
-          
+
           var machineCode = assembleBlock(asmLines);
           //console.log(machineCode);
           if (machineCode===undefined) return; // There was an error - just leave and don't try to flash
@@ -428,21 +448,21 @@
             var v = parseInt(short,16);
             raw += String.fromCharCode(v&255,v>>8);
           });
-          var base64 = base64_encode(raw);           
-          code = code.substr(0,startIndex) + 
+          var base64 = base64_encode(raw);
+          code = code.substr(0,startIndex) +
                  'E.nativeCall(1, '+JSON.stringify(argSpec)+', atob('+JSON.stringify(base64)+'))'+
                  code.substr(endIndex);
           asmBlockCount++;
-          
+
           // Break out
-          tok = undefined;        
+          tok = undefined;
         } else {
           state = 0;
           tok = lex.next();
         }
       }
     }
-    
+
     if (assembledCode!="") {
       code = "var ASM_BASE=process.memory().stackEndAddress;\n"+
              assembledCode+
@@ -450,10 +470,9 @@
     }
     callback(code);
   };
-  
-  
+
+
   Espruino.Plugins.Assembler = {
     init : init,
   };
 }());
-
