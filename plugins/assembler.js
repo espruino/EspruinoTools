@@ -376,6 +376,10 @@
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
       findASMBlocks(code, callback);
     });
+    // When a module is sent to Espruino...
+    Espruino.addProcessor("transformModuleForEspruino", function(code, callback) {
+      findASMBlocks(code, callback);
+    });
   }
 
   function assembleBlock(asmLines) {
