@@ -112,7 +112,11 @@
       var taskCount = 0;
       tasks.forEach(function (task) {
         taskCount++;
-        var compileData = {};
+        var compileData = {
+          board : board.BOARD,
+          version : board.VERSION,
+          git : board.GIT_COMMIT,
+        };
         if (task.type=="js") {
           compileData.js = task.source;
         } else if (task.type == "c") {
