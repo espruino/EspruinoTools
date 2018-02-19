@@ -45,6 +45,9 @@
           console.log("JSON parse failed - " + e + " in " + JSON.stringify(result));
         }
       }
+      if (Object.keys(json).length==0) {
+        Espruino.Core.Notifications.error("Unable to retrieve board information.\nConnection Error?");
+      }
       // now process the enviroment variables
       for (var k in json) {
         boardData[k] = json[k];

@@ -145,7 +145,7 @@
 
     } catch (err) {
       console.log(err);
-      Espruino.Core.Notifications.error("Acorn parse for plugins/compiler.js failed.<br/>Check the editor window for syntax errors");
+      Espruino.Core.Notifications.error("Error parsing JavaScript, but uploading anyway.<br/>"+err.toString());
     }
     if (tasks==0)
       callback(code);

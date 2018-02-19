@@ -77,6 +77,7 @@
            env.BOARD=="ESPRUINOWIFI" ||
            env.BOARD=="PUCKJS")) {
           console.log("New Firmware "+tAvailable+" available");
+          Espruino.Core.Notifications.info("New Firmware available ("+vCurrent+" installed, "+tAvailable+" available)");
 
           if (Espruino.Core.App) Espruino.Core.App.addAlertIcon({
             id:'update',
