@@ -273,15 +273,14 @@
       callback(data);
     });
     Espruino.addProcessor("disconnected", function(data, callback) {
-      // carriage return, clear to right - remove prompt
-      outputDataHandler(String.fromCharCode(13, 27, 91, 74));
+      // carriage return, clear to right - remove prompt, add newline
+-      outputDataHandler("\n");
       terminal.classList.remove("terminal--connected");      
       callback(data);
     });
     Espruino.addProcessor("notification", function(data, callback) {
       var elementClass = "terminal-status-"+data.type;
-      var line = getInputLine(0);
-      line = (line===undefined)?0:line.line;
+      var line = termCursorY;
       if (!termExtraText[line]) termExtraText[line]="";
       termExtraText[line] += '<div class="terminal-status-container"><div class="terminal-status '+elementClass+'">'+data.msg+'</div></div>';
       updateTerminal();
@@ -464,8 +463,9 @@
            case 66: termCursorY++; while (termCursorY >= termText.length) termText.push(""); break;  // down FIXME should add extra lines in...
            case 67: termCursorX++; break; // right
            case 68: if (termCursorX > 0) termCursorX--; break; // left
-           case 74: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX);
-                    termText = termText.slice(0,termCursorY+1);   break; // Delete to right + down
+           case 74: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); // Delete to right + down
+                    termText = termText.slice(0,termCursorY+1);  
+                    break; 
            case 75: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); break; // Delete to right
          }
        }
