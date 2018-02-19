@@ -201,6 +201,9 @@
           console.log("Got debug> - sending Ctrl-C to break out and we'll be good");
           Espruino.Core.Serial.write('\x03');
         } else {
+          if (receivedData == "\r\n=undefined\r\n>") 
+            receivedData=""; // this was just what we expected - so ignore it
+            
           console.log("Received a prompt after sending newline... good!");
           clearTimeout(timeout);
           nextStep();
@@ -276,7 +279,7 @@
       };
 
       // Don't Ctrl-C, as we've already got ourselves a prompt with Espruino.Core.Utils.getEspruinoPrompt
-      Espruino.Core.Serial.write('\x10console.log("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n');
+      Espruino.Core.Serial.write('\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n');
 
       var maxTimeout = 20; // 10 secs
       var timeoutCnt = 0;
@@ -299,7 +302,10 @@
       Espruino.Core.Utils.getEspruinoPrompt(function() {
         getProcessInfo(expressionToExecute, callback);
       });
-    } else console.error("executeExpression called when not connected!");
+    } else {
+      console.error("executeExpression called when not connected!");
+      callback(undefined);
+    }
   };
 
   function versionToFloat(version) {
