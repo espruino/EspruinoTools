@@ -269,15 +269,25 @@
 
     Espruino.addProcessor("connected", function(data, callback) {
       grabSerialPort();
-      outputDataHandler("\r\nConnected\r\n>");
       terminal.classList.add("terminal--connected");
       callback(data);
     });
     Espruino.addProcessor("disconnected", function(data, callback) {
-      outputDataHandler("\r\nDisconnected\r\n");
-      terminal.classList.remove("terminal--connected");
+      // carriage return, clear to right - remove prompt
+      outputDataHandler(String.fromCharCode(13, 27, 91, 74));
+      terminal.classList.remove("terminal--connected");      
       callback(data);
     });
+    Espruino.addProcessor("notification", function(data, callback) {
+      var elementClass = "terminal-status-"+data.type;
+      var line = getInputLine(0);
+      line = (line===undefined)?0:line.line;
+      if (!termExtraText[line]) termExtraText[line]="";
+      termExtraText[line] += '<div class="terminal-status-container"><div class="terminal-status '+elementClass+'">'+data.msg+'</div></div>';
+      updateTerminal();
+      callback(data);
+    });
+
   };
 
   /// send the given characters as if they were typed
@@ -587,15 +597,13 @@
     return termText[line];
   };
 
-  function addNotification(text) {
+  function addNotification(text, type) {
     var line = getInputLine(0);
     line = (line===undefined)?0:line.line;
     if (!termExtraText[line]) termExtraText[line]="";
     termExtraText[line] += '<div class="notification_text">'+text+'</div>';
     updateTerminal();
   }
-
-
 
   Espruino.Core.Terminal = {
       init : init,
