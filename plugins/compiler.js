@@ -31,8 +31,10 @@
       name : "JavaScript Compiler URL",
       description : "When JavaScript Compilation is enabled, this is the URL of the JavaScript compiler",
       type : "string",
-      defaultValue : "http://www.espruino.com:32766"
+      defaultValue : "https://www.espruino.com/service/compiler"
     });
+    if (Espruino.Config.COMPILATION_URL == "http://www.espruino.com:32766")
+      Espruino.Config.COMPILATION_URL = "https://www.espruino.com/service/compiler";
 
     // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
