@@ -190,16 +190,21 @@
       return callback();
     }
 
-    var  receivedData = "";
+    var receivedData = "";
     var prevReader = Espruino.Core.Serial.startListening(function (readData) {
       var bufView = new Uint8Array(readData);
       for(var i = 0; i < bufView.length; i++) {
         receivedData += String.fromCharCode(bufView[i]);
       }
       if (receivedData[receivedData.length-1] == ">") {
-        console.log("Received a prompt after sending newline... good!");
-        clearTimeout(timeout);
-        nextStep();
+        if (receivedData.substr(-6)=="debug>") {
+          console.log("Got debug> - sending Ctrl-C to break out and we'll be good");
+          Espruino.Core.Serial.write('\x03');
+        } else {
+          console.log("Received a prompt after sending newline... good!");
+          clearTimeout(timeout);
+          nextStep();
+        }
       }
     });
     // timeout in case something goes wrong...
@@ -210,7 +215,11 @@
       console.log("No Prompt found, got "+JSON.stringify(receivedData[receivedData.length-1])+" - issuing Ctrl-C to try and break out");
       Espruino.Core.Serial.write('\x03');
       hadToBreak = true;
-      nextStep();
+      timeout = setTimeout(function() {
+        console.log("Still no prompt - issuing another Ctrl-C");
+        Espruino.Core.Serial.write('\x03');
+        nextStep();
+      },500);
     },500);
     // when we're done...
     var nextStep = function() {
@@ -280,7 +289,7 @@
           // No data in 1 second
           // OR we keep getting data for > maxTimeout seconds
           clearInterval(timeout);
-          console.warn("No result found - just got "+JSON.stringify(receivedData));
+          console.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
           nextStep(undefined);
         }
       }, 500);
