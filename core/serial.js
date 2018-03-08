@@ -192,7 +192,7 @@
        * blocks of data at once. We still limit the size of
        * sent blocks to 512 because on Mac we seem to lose
        * data otherwise (not on any other platforms!) */
-      writeData[0].blockSize = slowWrite ? 15 : 512;
+      writeData[0].blockSize = slowWrite ? 19 : 512;
 
       writeData[0].showStatus &= writeData[0].data.length>writeData[0].blockSize;
       if (writeData[0].showStatus) {
@@ -201,9 +201,9 @@
       }
     }
 
-    // Initially, split based on block size
+    // Initial split use previous, or don't
     var d = undefined;
-    var split = { start:writeData[0].blockSize, end:writeData[0].blockSize, delay:0 };
+    var split = writeData[0].nextSplit || { start:0, end:writeData[0].data.length, delay:0 };
     // if we get something like Ctrl-C or `reset`, wait a bit for it to complete
     if (!sendingBinary) {
       function findSplitIdx(prev, substr, delay) {
@@ -224,16 +224,29 @@
       split = findSplitIdx(split, /reset\(\);\n/, 250); // Reset
       split = findSplitIdx(split, /load\(\);\n/, 250); // Load
       split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);\n/, 250); // Adding a module
-      if (split.match) console.log("Splitting at "+JSON.stringify(split.match)+", delay "+split.delay);
+      split = findSplitIdx(split, /\x10require\("Storage"\).write\([^\n]*\);\n/, 500); // Write chunk of data
     }
+    // Otherwise split based on block size
+    if (!split.match || split.end >= writeData[0].blockSize) {
+      if (split.match) writeData[0].nextSplit = split;
+      split = { start:0, end:writeData[0].blockSize, delay:0 };
+    }
+    if (split.match) console.log("Splitting at "+JSON.stringify(split.match)+", delay "+split.delay);
     // Only send some of the data
     if (writeData[0].data.length>split.end) {
       if (split.delay==0) split.delay=50;
       d = writeData[0].data.substr(0,split.end);
       writeData[0].data = writeData[0].data.substr(split.end);
+      if (writeData[0].nextSplit) {
+        writeData[0].nextSplit.start -= split.end;
+        writeData[0].nextSplit.end -= split.end;
+        if (writeData[0].nextSplit.end<=0)
+          writeData[0].nextSplit = undefined;
+      }
     } else {
       d = writeData[0].data;
       writeData[0].data = "";
+      writeData[0].nextSplit = undefined;
     }
     // update status
     if (writeData[0].showStatus)

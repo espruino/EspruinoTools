@@ -19,34 +19,50 @@
     Espruino.Core.Config.add("SAVE_ON_SEND", {
       section : "Communications",
       name : "Save on Send",
-      description : "Save the code after sending so that everything is executed again when the board restarts. Not as memory efficient, but more Arduino-like.",
+      descriptionHTML : 'How should code be uploaded? See <a href="http://www.espruino.com/Saving" target="_blank">espruino.com/Saving</a> for more information.',
       type : {
-        0: "No",
-        1: "Yes",
-        2: "Yes, execute even after 'reset()'"},
+        0: "To RAM (default) - execute code while uploading. Use 'save()' to save a RAM image to Flash",
+        1: "Direct to Flash (execute code at boot)",
+        2: "Direct to Flash (execute code at boot, even after a call to 'reset()')",
+      },
       defaultValue : 0
     });
-
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
       wrap(code, callback);
     });
   }
 
   function wrap(code, callback) {
-    if (!(0|Espruino.Config.SAVE_ON_SEND)) return callback(code);
+    var isFlashPersistent = Espruino.Config.SAVE_ON_SEND == 2;
+    var isFlashUpload = Espruino.Config.SAVE_ON_SEND == 1 || isFlashPersistent;
+    if (!isFlashUpload) return callback(code);
 
-    var newCode = [];
-    newCode.push("E.setBootCode(");
-    newCode.push(JSON.stringify(code));
-    if (Espruino.Config.SAVE_ON_SEND==2)
-      newCode.push(", true);");
-    else
-      newCode.push(");");
-    newCode.push("load();\n");
-    newCode = newCode.join('');
+    // Check environment vars
+    var hasStorage = false;
+    var ENV = Espruino.Core.Env.getData();
+    if (ENV && ENV.VERSION_MAJOR && ENV.VERSION_MINOR) {
+      if (ENV.VERSION_MAJOR>1 ||
+          ENV.VERSION_MINOR>=96) {
+        hasStorage = true;
+      }
+    }
 
-    console.log('Save on send transformed code to:', newCode);
-    callback(newCode);
+    //
+    console.log("Uploading "+code.length+" bytes to flash");
+    if (!hasStorage) { // old style
+      Espruino.Core.Notifications.error("You have pre-1v96 firmware. Upload size is limited by available RAM");
+      code = "E.setBootCode("+JSON.stringify(code)+(isFlashPersistent?",true":"")+");load()\n";
+    } else { // new style
+      var filename = isFlashPersistent ? ".bootrst" : ".bootcde";
+      var CHUNKSIZE = 1024;
+      var newCode = [];
+      var len = code.length;
+      newCode.push('require("Storage").write("'+filename+'",'+JSON.stringify(code.substr(0,CHUNKSIZE))+',0,'+len+');');
+      for (var i=CHUNKSIZE;i<len;i+=CHUNKSIZE)
+        newCode.push('require("Storage").write("'+filename+'",'+JSON.stringify(code.substr(i,CHUNKSIZE))+','+i+');');
+      code = newCode.join("\n")+"\nload()\n";
+    }
+    callback(code);
   }
 
   Espruino.Plugins.SaveOnSend = {
