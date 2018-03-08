@@ -206,7 +206,7 @@
     var split = writeData[0].nextSplit || { start:0, end:writeData[0].data.length, delay:0 };
     // if we get something like Ctrl-C or `reset`, wait a bit for it to complete
     if (!sendingBinary) {
-      function findSplitIdx(prev, substr, delay) {
+      function findSplitIdx(prev, substr, delay, reason) {
         var match = writeData[0].data.match(substr);
         // not found
         if (match===null) return prev;
@@ -218,20 +218,21 @@
         prev.end = end;
         prev.delay = delay;
         prev.match = match[0];
+        prev.reason = reason;
         return prev;
       }
-      split = findSplitIdx(split, /\x03/, 250); // Ctrl-C
-      split = findSplitIdx(split, /reset\(\);\n/, 250); // Reset
-      split = findSplitIdx(split, /load\(\);\n/, 250); // Load
-      split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);\n/, 250); // Adding a module
-      split = findSplitIdx(split, /\x10require\("Storage"\).write\([^\n]*\);\n/, 500); // Write chunk of data
+      split = findSplitIdx(split, /\x03/, 250, "Ctrl-C"); // Ctrl-C
+      split = findSplitIdx(split, /reset\(\);\n/, 250, "reset()"); // Reset
+      split = findSplitIdx(split, /load\(\);\n/, 250, "load()"); // Load
+      split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);\n/, 250, "Modules.addCached"); // Adding a module
+      split = findSplitIdx(split, /\x10require\("Storage"\).write\([^\n]*\);\n/, 500, "Storage.write"); // Write chunk of data
     }
     // Otherwise split based on block size
     if (!split.match || split.end >= writeData[0].blockSize) {
       if (split.match) writeData[0].nextSplit = split;
       split = { start:0, end:writeData[0].blockSize, delay:0 };
     }
-    if (split.match) console.log("Splitting at "+JSON.stringify(split.match)+", delay "+split.delay);
+    if (split.match) console.log("Splitting for "+split.reason+", delay "+split.delay);
     // Only send some of the data
     if (writeData[0].data.length>split.end) {
       if (split.delay==0) split.delay=50;
