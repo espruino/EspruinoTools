@@ -554,6 +554,11 @@ function startConnect() {
   if ((!args.file && !args.updateFirmware && !args.expr) || (args.file && args.watchFile)) {
     if (args.ports.length != 1)
       throw new Error("Can only have one port when using terminal mode");
+
+    if ( args.ports[0].name.substr(0, 6)==="tcp://" ) {
+      Espruino.Config.SERIAL_TCPIP=args.ports[0].name; // ensure node serial will return this uri
+    }  
+
     getPortPath(args.ports[0], function(path) {
       terminal(path, function() { process.exit(0); });
     });
