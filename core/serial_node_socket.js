@@ -38,7 +38,6 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
       var portList = [];
       ips.forEach(function (s) {
         s = s.trim();
-        console.log("ADDING", s);
         if (s.length) portList.push({ path: s, description: "Network connection", type: "socket" });
       })
       callback(portList);
