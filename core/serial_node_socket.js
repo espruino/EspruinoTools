@@ -32,7 +32,7 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
   var socket;
 
   var getPorts = function (callback) {
-    var uri = Espruino.Config.SERIAL_TCPIP;
+    var uri = Espruino.Config.SERIAL_TCPIP || "";
     if (uri.trim() != "") {
       var ips = uri.trim().split(";");
       var portList = [];
