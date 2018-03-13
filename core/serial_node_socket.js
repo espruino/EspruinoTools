@@ -32,15 +32,11 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
   var socket;
 
   var getPorts = function (callback) {
-    var uri = Espruino.Config.SERIAL_TCPIP || "";
-    if (uri.trim() != "") {
-      var ips = uri.trim().split(";");
-      var portList = [];
-      ips.forEach(function (s) {
-        s = s.trim();
-        if (s.length) portList.push({ path: s, description: "Network connection", type: "socket" });
-      })
-      callback(portList);
+    var config=Espruino.Config.SERIAL_TCPIP;
+    if ( config && config.length ) {
+      callback(config.map(function(p) {
+        return { path: p, description: "Network connection", type: "socket" };
+      }));
     } else
       callback();
   };
