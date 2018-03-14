@@ -186,6 +186,16 @@ function setupConfig(Espruino, callback) {
      Espruino.Config[key] = args.config[key];
    }
  }
+ if ( args.ports && args.ports.length ) {
+   Espruino.Config.SERIAL_TCPIP=args.ports
+    .filter(function(p) {
+      return p.name.substr(0,6) === "tcp://";
+    })
+    .map(function(p) {
+      return p.name.trim();
+    }
+   )
+ }
  if (args.showConfigs) {
    Espruino.Core.Config.getSections().forEach(function(section) {
      log(" "+section.name);
@@ -554,6 +564,7 @@ function startConnect() {
   if ((!args.file && !args.updateFirmware && !args.expr) || (args.file && args.watchFile)) {
     if (args.ports.length != 1)
       throw new Error("Can only have one port when using terminal mode");
+
     getPortPath(args.ports[0], function(path) {
       terminal(path, function() { process.exit(0); });
     });
