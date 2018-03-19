@@ -7,14 +7,14 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
 (function() {
 
   if (typeof window == "undefined" || typeof WebSocket == undefined) return;
-  
+
   if (/*window.location.origin=="https://www.espruino.com" || */
       window.location.origin=="https://espruino.github.io") {
     console.log("Running from github - WebSocket support disabled");
     return;
   }
   console.log("WebSockets support enabled - running in web browser");
-  
+
   var WS_ENABLED = true;
   var ws;
   var dataWrittenCallbacks = [];
@@ -110,7 +110,7 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
     "close": closeSerial,
   });
   if (window.location.host.substr(-16) == "www.espruino.com") {
-    Espruino.Core.SerialWebSocket = {
+    Espruino.Core.SerialWebSocketRelay = {
       "init": function() {
         Espruino.Core.Config.add("RELAY_KEY", {
           section : "Communications",
