@@ -13,7 +13,7 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
     console.log("Running from github - WebSocket support disabled");
     return;
   }
-  console.log("WebSockets support enabled - running in web browser");
+  console.log("WebSocket relay support enabled - running in web browser");
 
   var WS_ENABLED = true;
   var ws;
