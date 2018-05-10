@@ -14,6 +14,7 @@ Use embed.js on the client side to link this in.
   var callbacks = {
     connected : undefined,
     receive : undefined,
+    written : undefined,
     disconnected : undefined,
     ports : undefined
   };
@@ -58,6 +59,10 @@ Use embed.js on the client side to link this in.
       case "disconnected": if (callbacks.disconnected) {
         callbacks.disconnected();
         callbacks.disconnected = undefined;
+      } break;
+      case "written": if (callbacks.written) {
+        callbacks.written();
+        callbacks.written = undefined;
       } break;
       case "receive": if (callbacks.receive) {
         if (typeof event.data!="string")
@@ -105,8 +110,8 @@ Use embed.js on the client side to link this in.
       post({type:"connect"});
     },
     "write": function(d, callback) {
+      callbacks.written = callback;
       post({type:"write",data:d});
-      setTimeout(callback,1); // for now just always call the callback
     },
     "close": function() {
       post({type:"disconnect"});
