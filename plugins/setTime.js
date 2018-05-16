@@ -26,7 +26,7 @@
    Espruino.addProcessor("transformForEspruino", function(code, callback) {
      if (Espruino.Config.SET_TIME_ON_WRITE) {
        var time = new Date();
-       code = "setTime("+(time.getTime()/1000)+");E.setTimeZone("+(time.getTimezoneOffset()/60)+")\n"+code;
+       code = "setTime("+(time.getTime()/1000)+");E.setTimeZone("+(-time.getTimezoneOffset()/60)+")\n"+code;
      }
      callback(code);
    });
