@@ -259,7 +259,8 @@
           // strip out the text we found
           receivedData = receivedData.substr(0,startProcess) + receivedData.substr(endProcess+4);
           // Now stop time timeout
-          clearInterval(timeout);
+          if (timeout) clearInterval(timeout);
+          timeout = "cancelled";
           // Do the next stuff
           nextStep(result);
         } else if (startProcess >= 0) {
@@ -278,24 +279,28 @@
         callback(result);
       };
 
+      var timeout = undefined;
       // Don't Ctrl-C, as we've already got ourselves a prompt with Espruino.Core.Utils.getEspruinoPrompt
-      Espruino.Core.Serial.write('\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n');
-
-      var maxTimeout = 20; // 10 secs
-      var timeoutCnt = 0;
-      var timeout = setInterval(function onTimeout(){
-        timeoutCnt++;
-        // if we're still getting data, keep waiting for up to 10 secs
-        if (hadDataSinceTimeout && timeoutCnt<maxTimeout) {
-          hadDataSinceTimeout = false;
-        } else if (timeoutCnt>2) {
-          // No data in 1 second
-          // OR we keep getting data for > maxTimeout seconds
-          clearInterval(timeout);
-          console.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
-          nextStep(undefined);
-        }
-      }, 500);
+      Espruino.Core.Serial.write('\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n', 
+                                 undefined, function() {
+        // now it's sent, wait for data
+        var maxTimeout = 20; // 10 secs
+        var timeoutCnt = 0;
+        if (timeout != "cancelled")
+          timeout = setInterval(function onTimeout(){
+          timeoutCnt++;
+          // if we're still getting data, keep waiting for up to 10 secs
+          if (hadDataSinceTimeout && timeoutCnt<maxTimeout) {
+            hadDataSinceTimeout = false;
+          } else if (timeoutCnt>2) {
+            // No data in 1 second
+            // OR we keep getting data for > maxTimeout seconds
+            clearInterval(timeout);
+            console.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
+            nextStep(undefined);
+          }
+        }, 500);
+      });
     }
 
     if(Espruino.Core.Serial.isConnected()){
