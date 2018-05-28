@@ -53,7 +53,15 @@ messages it creates.
         var address = message.destinationName.substr(15);
         try {
           var j = JSON.parse(message.payloadString);
-          if (j.name && Espruino.Core.Utils.isRecognisedBluetoothDevice(j.name)) {
+          var isEspruino = false;
+          // is the name one we know?
+          if (j.name && Espruino.Core.Utils.isRecognisedBluetoothDevice(j.name))
+            isEspruino = true;
+          // is it advertising a UART service?
+          if (j.serviceUuids && j.serviceUuids.indexOf("6e400001b5a3f393e0a9e50e24dcca9e")>=0)
+            isEspruino = true;
+          // If we think it is an Espruino, add it to the drop-down
+          if (isEspruino) {
             var dev = foundDevices.find(dev => dev.path==address);
             if (!dev) {
               dev = {
