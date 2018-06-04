@@ -152,6 +152,7 @@
           }
         }
         terminalfocus.focus();
+        window.scrollTo(0,0); // as terminalfocus is offscreen, just in case force us back onscreen
         return;
       }
 
@@ -234,6 +235,23 @@
       if (e.keyCode == 13) ch = String.fromCharCode(13);
       if (e.ctrlKey) {
         if (e.keyCode == 'C'.charCodeAt(0)) ch = String.fromCharCode(3); // control C
+        if (e.keyCode == 'F'.charCodeAt(0)) {
+          // fullscreen
+          e.preventDefault();
+          var term = document.querySelector(".editor__canvas__terminal");
+          if (term.classList.contains("editor__canvas__fullscreen")) {
+            // was fullscreen - make windowed
+            term.classList.remove("editor__canvas__fullscreen");
+            document.querySelector(".editor--terminal").append(term)
+          } else {
+            term.classList.add("editor__canvas__fullscreen");
+            document.body.append(term);
+          }
+          // if we have a webcam it seems we need to start it playing again 
+          // after moving it 
+          var vid = document.querySelector("video");
+          if (vid) vid.play();
+        }
       }
       if (e.altKey) {
         if (e.keyCode == 13) ch = String.fromCharCode(27,10); // Alt enter
@@ -275,7 +293,7 @@
     Espruino.addProcessor("disconnected", function(data, callback) {
       // carriage return, clear to right - remove prompt, add newline
 -      outputDataHandler("\n");
-      terminal.classList.remove("terminal--connected");      
+      terminal.classList.remove("terminal--connected");
       callback(data);
     });
     Espruino.addProcessor("notification", function(data, callback) {
@@ -464,8 +482,8 @@
            case 67: termCursorX++; break; // right
            case 68: if (termCursorX > 0) termCursorX--; break; // left
            case 74: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); // Delete to right + down
-                    termText = termText.slice(0,termCursorY+1);  
-                    break; 
+                    termText = termText.slice(0,termCursorY+1);
+                    break;
            case 75: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); break; // Delete to right
          }
        }
