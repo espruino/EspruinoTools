@@ -9,7 +9,11 @@ Simple loopback test
   }
 
   var getPorts = function(callback) {
-    callback([{path:"TEST", description:"test", type:"test"}]);
+    callback([{path:"TEST",          // path passed to 'open' (and displayed to user)
+               description:"test",   // description displayed to user
+              type:"test",           // bluetooth|usb|socket - used to show icon in UI
+              // autoconnect : true  // automatically conect to this (without the connect menu)
+              }]);
   };
 
   var rcb, dcb;
@@ -22,16 +26,6 @@ Simple loopback test
     }, 500);
   };
 
-  var str2ab = function(str) {
-    var buf=new ArrayBuffer(str.length);
-    var bufView=new Uint8Array(buf);
-    for (var i=0; i<str.length; i++) {
-      bufView[i]=str.charCodeAt(i);
-    }
-    return buf;
-  };
-
-
   var closeSerial = function() {
     if (dcb) {
       dcb();
@@ -42,7 +36,7 @@ Simple loopback test
   var writeSerial = function(data, callback) {
     callback();
     setTimeout(function() {
-      rcb(str2ab(data));
+      rcb(Espruino.Core.Utils.stringToArrayBuffer(data));
     }, 10);
   };
   Espruino.Core.Serial.devices.push({

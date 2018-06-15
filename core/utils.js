@@ -201,9 +201,9 @@
           console.log("Got debug> - sending Ctrl-C to break out and we'll be good");
           Espruino.Core.Serial.write('\x03');
         } else {
-          if (receivedData == "\r\n=undefined\r\n>") 
+          if (receivedData == "\r\n=undefined\r\n>")
             receivedData=""; // this was just what we expected - so ignore it
-            
+
           console.log("Received a prompt after sending newline... good!");
           clearTimeout(timeout);
           nextStep();
@@ -281,7 +281,7 @@
 
       var timeout = undefined;
       // Don't Ctrl-C, as we've already got ourselves a prompt with Espruino.Core.Utils.getEspruinoPrompt
-      Espruino.Core.Serial.write('\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n', 
+      Espruino.Core.Serial.write('\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n',
                                  undefined, function() {
         // now it's sent, wait for data
         var maxTimeout = 20; // 10 secs
@@ -485,6 +485,43 @@
     });
   }
 
+  // Converts a string to an ArrayBuffer
+  function stringToArrayBuffer(str) {
+    var buf=new Uint8Array(str.length);
+    for (var i=0; i<str.length; i++) {
+      var ch = str.charCodeAt(i);
+      if (ch>=256) {
+        console.warn("stringToArrayBuffer got non-8 bit character - code "+ch);
+        ch = "?".charCodeAt(0);
+      }
+      buf[i] = ch;
+    }
+    return buf.buffer;
+  };
+
+  // Converts a string to a Buffer
+  function stringToBuffer(str) {
+    var buf = new Buffer(str.length);
+    for (var i = 0; i < buf.length; i++) {
+      buf.writeUInt8(str.charCodeAt(i), i);
+    }
+    return buf;
+  };
+
+  // Converts a DataView to an ArrayBuffer
+  function dataViewToArrayBuffer(str) {
+    var bufView = new Uint8Array(dv.byteLength);
+    for (var i = 0; i < bufView.length; i++) {
+      bufView[i] = dv.getUint8(i);
+    }
+    return bufView.buffer;
+  };
+
+  // Converts an ArrayBuffer to a string
+  function arrayBufferToString(str) {
+    return String.fromCharCode.apply(null, new Uint8Array(buf));
+  };
+
   Espruino.Core.Utils = {
       init : init,
       isWindows : isWindows,
@@ -512,6 +549,10 @@
       recognisedBluetoothDevices : recognisedBluetoothDevices,
       isRecognisedBluetoothDevice : isRecognisedBluetoothDevice,
       getVersion : getVersion,
-      getVersionInfo : getVersionInfo
+      getVersionInfo : getVersionInfo,
+      stringToArrayBuffer : stringToArrayBuffer,
+      stringToBuffer : stringToBuffer,
+      dataViewToArrayBuffer : dataViewToArrayBuffer,
+      arrayBufferToString : arrayBufferToString,
   };
 }());

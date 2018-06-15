@@ -19,20 +19,6 @@ Use embed.js on the client side to link this in.
     ports : undefined
   };
 
-  var str2ab=function(str) {
-    var buf=new ArrayBuffer(str.length);
-    var bufView=new Uint8Array(buf);
-    for (var i=0; i<str.length; i++) {
-      var ch = str.charCodeAt(i);
-      if (ch>=256) {
-        console.warn("Attempted to send non-8 bit character - code "+ch);
-        ch = "?".charCodeAt(0);
-      }
-      bufView[i] = ch;
-    }
-    return buf;
-  };
-
   window.addEventListener('message', function(e) {
     var event = e.data;
     //console.log("IDE MESSAGE ---------------------------------------");
@@ -67,7 +53,11 @@ Use embed.js on the client side to link this in.
       case "receive": if (callbacks.receive) {
         if (typeof event.data!="string")
           console.error("serial_frame: receive event expecting data string");
-        callbacks.receive(str2ab(event.data));
+        callbacks.receive(Espruino.Core.Utils.stringToArrayBuffer(event.data));
+      } break;
+      case "setMaxWriteLength": {
+        // Set the maximum amount of data we're allowed to write in one go
+        device.maxWriteLength = parseInt(event.data);
       } break;
       default:
         console.error("Unknown event type ",event.type);
@@ -80,7 +70,7 @@ Use embed.js on the client side to link this in.
     window.parent.postMessage(msg,"*");
   }
 
-  Espruino.Core.Serial.devices.push({
+  var device = {
     "name" : "window.postMessage",
     "init" : function() {
       post({type:"init"});
@@ -116,5 +106,6 @@ Use embed.js on the client side to link this in.
     "close": function() {
       post({type:"disconnect"});
     },
-  });
+  };
+  Espruino.Core.Serial.devices.push(device);
 })();

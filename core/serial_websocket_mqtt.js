@@ -10,7 +10,7 @@ messages it creates.
 (function() {
   if (typeof window == "undefined" || typeof WebSocket == undefined) return;
   console.log("WebSocket MQTT support enabled - running in web browser");
-  
+
   function init() {
     // Try and connect right away - it makes the connection window snappier
     websocketConnect();
@@ -26,12 +26,12 @@ messages it creates.
       }
     }, 2000);
   }
-  
+
   function websocketConnect() {
     // for now, always connect to where we were served from
     var serverName = location.hostname;
-    var serverPort = parseInt(location.port);    
-    
+    var serverPort = parseInt(location.port);
+
     console.log("Websockets> Connecting to "+serverName+":"+serverPort);
     websocket = new Paho.MQTT.Client(serverName, serverPort, "espruino");
     websocket.onConnectionLost = function (responseObject) {
@@ -43,7 +43,7 @@ messages it creates.
     websocket.onMessageArrived = function(message) {
       if (deviceAddress && message.destinationName == "/ble/data/"+deviceAddress+"/nus/nus_rx") {
         // Receive data from device
-        if (rcb) rcb(str2ab(message.payloadString));
+        if (rcb) rcb(Espruino.Core.Utils.stringToArrayBuffer(message.payloadString));
       } else if (deviceAddress && message.destinationName == "/ble/pong/"+deviceAddress) {
         // When we get a 'pong' back, call this - so we know we're connected
         if (onPong) onPong();
@@ -97,20 +97,11 @@ messages it creates.
   var onPong;
   // callbacks
   var rcb, dcb;
-  
+
   var getPorts = function(callback) {
     if (websocket==undefined)
       websocketConnect();
     callback(foundDevices);
-  };
-  
-  var str2ab = function(str) {
-    var buf=new ArrayBuffer(str.length);
-    var bufView=new Uint8Array(buf);
-    for (var i=0; i<str.length; i++) {
-      bufView[i]=str.charCodeAt(i);
-    }
-    return buf;
   };
 
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
@@ -121,7 +112,7 @@ messages it creates.
     deviceAddress = serialPort;
     rcb = receiveCallback;
     dcb = disconnectCallback;
-    
+
     // When we get a pong, say that we're connected
     onPong = function() {
       if (connectionTimeout) {
@@ -137,7 +128,7 @@ messages it creates.
       console.log("Websockets> Connection timeout");
       closeSerial();
     }, 10000);
-    // Subscribe to data 
+    // Subscribe to data
     websocket.subscribe("/ble/data/"+deviceAddress+"/nus/nus_rx");
     websocket.subscribe("/ble/pong/"+deviceAddress);
     // request notifications of serial RX
@@ -149,7 +140,7 @@ messages it creates.
       sendMessage("/ble/ping/"+deviceAddress+"", "");
     }, 3000);
   };
-  
+
   function sendMessage(topic, msg) {
     if (!websocket) {
       console.log("sendMessage when not connected");
@@ -159,7 +150,7 @@ messages it creates.
     message.destinationName = topic;
     websocket.send(message);
   }
-  
+
   var closeSerial = function() {
     if (pingInterval) {
       clearInterval(pingInterval);
@@ -170,16 +161,16 @@ messages it creates.
       websocket.unsubscribe("/ble/pong/"+deviceAddress);
     }
     deviceAddress = undefined;
-    if (dcb) dcb();      
+    if (dcb) dcb();
     dcb = rcb = undefined;
   };
-  
+
   var writeSerial = function(data, callback) {
     if (!deviceAddress) return;
     sendMessage("/ble/write/"+deviceAddress+"/nus/nus_tx", data);
     setTimeout(callback, 100); // force a delay when sending data
   };
-  
+
   Espruino.Core.Serial.devices.push({
     "name" : "MQTT over Websockets",
     "init" : init,

@@ -72,21 +72,6 @@ Author: Gordon Williams (gw@pur3.co.uk)
     });
   };
 
-  var str2ab=function(str) {
-    var buf=new ArrayBuffer(str.length);
-    var bufView=new Uint8Array(buf);
-    for (var i=0; i<str.length; i++) {
-      var ch = str.charCodeAt(i);
-      if (ch>=256) {
-        console.warn("Attempted to send non-8 bit character - code "+ch);
-        ch = "?".charCodeAt(0);
-      }
-      bufView[i] = ch;
-    }
-    return buf;
-  };
-
-
   var closeSerial=function() {
     if (connectionInfo)
       chrome.serial.disconnect(connectionInfo.connectionId, connectionDisconnectCallback);
@@ -96,7 +81,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
   };
 
   var writeSerial = function(data, callback) {
-    chrome.serial.send(connectionInfo.connectionId, str2ab(data), callback);
+    chrome.serial.send(connectionInfo.connectionId, Espruino.Core.Utils.stringToArrayBuffer(data), callback);
   };
 
   // ----------------------------------------------------------

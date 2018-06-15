@@ -17,21 +17,6 @@ Gordon Williams (gw@pur3.co.uk)
   var disconnectCallback;
   var receiveCallback;
 
-
-  var str2ab=function(str) {
-    var buf=new ArrayBuffer(str.length);
-    var bufView=new Uint8Array(buf);
-    for (var i=0; i<str.length; i++) {
-      var ch = str.charCodeAt(i);
-      if (ch>=256) {
-        console.warn("Attempted to send non-8 bit character - code "+ch);
-        ch = "?".charCodeAt(0);
-      }
-      bufView[i] = ch;
-    }
-    return buf;
-  };
-
   function ensureConnection(callback) {
     if (wsConnecting) {
       console.log("Waiting for Websocket connection - queueing");
@@ -92,7 +77,7 @@ Gordon Williams (gw@pur3.co.uk)
         }
       } else if (j.type=="read") {
         if (receiveCallback) {
-          receiveCallback(str2ab(j.data));
+          receiveCallback(Espruino.Core.Utils.stringToArrayBuffer(j.data));
         }
       } else if (j.type=="write") {
         dataWrittenCallbacks.forEach(function(cb) {

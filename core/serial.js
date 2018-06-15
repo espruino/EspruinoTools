@@ -1,7 +1,33 @@
+/*
+Gordon Williams (gw@pur3.co.uk)
+
+Common entrypoint for all communications from the IDE. This handles
+all serial_*.js connection types and passes calls to the correct one.
+
+To add a new serial device, you must add an object to
+  Espruino.Core.Serial.devices:
+
+  Espruino.Core.Serial.devices.push({
+    "name" : "Test",               // Name, when initialising
+    "init" : function()            // Gets called at startup
+    "getPorts": function(callback) // calls 'callback' with an array of ports:
+        callback([{path:"TEST",          // path passed to 'open' (and displayed to user)
+                   description:"test",   // description displayed to user
+                   type:"test",           // bluetooth|usb|socket - used to show icon in UI
+                   // autoconnect : true  // automatically conect to this (without the connect menu)
+                  }]);
+    "open": function(path, openCallback, receiveCallback, disconnectCallback),
+    "write": function(dataAsString, callbackWhenWritten)
+    "close": function(),
+    "maxWriteLength": 20, // optional - the maximum amount of characters that should be given to 'write' at a time
+  });
+
+*/
 (function() {
 
   // List of ports and the devices they map to
   var portToDevice = undefined;
+  // The current connected device (from Espruino.Core.Serial.devices)
   var currentDevice = undefined;
 
   // called when data received
@@ -188,11 +214,15 @@
     }
 
     if (isStarting) {
+      var blockSize = 512;
+      if (currentDevice.maxWriteLength)
+        blockSize = currentDevice.maxWriteLength;
       /* if we're throttling our writes we want to send small
        * blocks of data at once. We still limit the size of
        * sent blocks to 512 because on Mac we seem to lose
        * data otherwise (not on any other platforms!) */
-      writeData[0].blockSize = slowWrite ? 19 : 512;
+      if (slowWrite) blockSize=19;
+      writeData[0].blockSize = blockSize;
 
       writeData[0].showStatus &= writeData[0].data.length>writeData[0].blockSize;
       if (writeData[0].showStatus) {
@@ -266,12 +296,18 @@
   var writeSerial = function(data, showStatus, callback) {
     if (showStatus===undefined) showStatus=true;
 
-    // Queue our data to write
-    writeData.push({data:data,callback:callback,showStatus:showStatus});
-    // if we have more data we're already running. so break out
-    if (writeData.length>1) return;
-
-    writeSerialWorker(true); // start sending instantly
+    /* Queue our data to write. If there was previous data and no callback to
+    invoke on this data or the previous then just append data. This would happen
+    if typing in the terminal for example. */
+    if (!callback && writeData.length && !writeData[writeData.length-1].callback) {
+      writeData[writeData.length-1].data += data;
+    } else {
+      writeData.push({data:data,callback:callback,showStatus:showStatus});
+      /* if this is our first data, start sending now. Otherwise we're already
+      busy sending and will pull data off writeData when ready */
+      if (writeData.length==1)
+        writeSerialWorker(true);
+    }
   };
 
 
