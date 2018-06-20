@@ -394,6 +394,27 @@
     });
   }
 
+  /// Gets a URL as a Binary file, returning callback(err, ArrayBuffer)
+  var getBinaryURL = function(url, callback) {
+    console.log("Downloading "+url);
+    Espruino.Core.Status.setStatus("Downloading binary...");
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = "arraybuffer";
+    xhr.addEventListener("load", function () {
+      if (xhr.status === 200) {
+        Espruino.Core.Status.setStatus("Done.");
+        var data = xhr.response;
+        callback(undefined,data);
+      } else
+        callback("Error downloading file - HTTP "+xhr.status);
+    });
+    xhr.addEventListener("error", function () {
+      callback("Error downloading file");
+    });
+    xhr.open("GET", url, true);
+    xhr.send(null);
+  };
+
   /// Gets a URL as JSON, and returns callback(data) or callback(undefined) on error
   function getJSONURL(url, callback) {
     getURL(url, function(d) {
@@ -544,6 +565,7 @@
       htmlTable : htmlTable,
       markdownToHTML : markdownToHTML,
       getURL : getURL,
+      getBinaryURL : getBinaryURL,
       getJSONURL : getJSONURL,
       isURL : isURL,
       needsHTTPS : needsHTTPS,

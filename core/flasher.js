@@ -19,34 +19,13 @@
   var NACK = 0x1F;
   var DEFAULT_FLASH_OFFSET = 1024*10; /* Skip size of F1 bootloader by default */
 
+  var setStatus = function() {};
 
   function init() {
   }
 
-  var getBinary = function(url, callback) {
-    console.log("Downloading "+url);
-    Espruino.Core.Status.setStatus("Downloading binary...");
-    var xhr = new XMLHttpRequest();
-    xhr.responseType = "arraybuffer";
-    xhr.addEventListener("load", function () {
-      if (xhr.status === 200) {
-        Espruino.Core.Status.setStatus("Done.");
-        var data = xhr.response;
-        callback(undefined,data);
-      } else
-        callback("Error downloading file - HTTP "+xhr.status);
-    });
-    xhr.addEventListener("error", function () {
-      callback("Error downloading file");
-    });
-    xhr.open("GET", url, true);
-    xhr.send(null);
-  };
-
   var initialiseChip = function(callback, timeout) {
-    if (!Espruino.Core.Status.hasProgress())
-      Espruino.Core.Status.setStatus("Initialising...");
-    console.log("Initialising...");
+    setStatus("Initialising...");
     var iTimeout = setTimeout(function() {
       dataReceived = undefined;
       clearInterval(iPoll);
@@ -62,9 +41,7 @@
       if (c==ACK || c==NACK) {
         clearTimeout(iTimeout);
         clearInterval(iPoll);
-        if (!Espruino.Core.Status.hasProgress())
-          Espruino.Core.Status.setStatus("Initialised.");
-        console.log("Initialised. Just waiting for a bit...");
+        setStatus("Initialised.");
         // wait for random extra data...
         dataReceived = function(c){
           console.log("Already ACKed but got "+c);
@@ -294,7 +271,12 @@
     reader(flashOffset);
   };
 
-  function flashBinaryToDevice(binary, flashOffset, callback) {
+  function flashBinaryToDevice(binary, flashOffset, callback, statusCallback) {
+    setStatus = function(x) {
+      if (!Espruino.Core.Status.hasProgress())
+        Espruino.Core.Status.setStatus(x);
+      if (statusCallback) statusCallback(x);
+    }
     if (typeof flashOffset === 'function') {
       // backward compatibility if flashOffset is missed
       callback = flashOffset;
@@ -345,13 +327,15 @@
     // initialise
     initialiseChip(function (err) {
       if (err) { finish(err); return; }
+      setStatus("Erasing...");
       eraseChip(function (err) {
         if (err) { finish(err); return; }
+        setStatus("Writing Firmware...");
         writeAllData(binary, flashOffset, function (err) {
           if (err) { finish(err); return; }
           finish();
         });
-      });
+      },);
       /*readAllData(binary.byteLength, function(err,chipData) {
         if (err) {
           finish(err);
@@ -372,11 +356,11 @@
     });
   }
 
-  function flashDevice(url, flashOffset, callback) {
-    getBinary(url, function (err, binary) {
+  function flashDevice(url, flashOffset, callback, statusCallback) {
+    Espruino.Core.Utils.getBinaryURL(url, function (err, binary) {
       if (err) { callback(err); return; }
       console.log("Downloaded "+binary.byteLength+" bytes");
-      flashBinaryToDevice(binary, flashOffset, callback);
+      flashBinaryToDevice(binary, flashOffset, callback, statusCallback);
     });
   };
 
