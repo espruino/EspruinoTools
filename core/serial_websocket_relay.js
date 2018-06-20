@@ -52,9 +52,7 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
       if (Espruino.Config.RELAY_KEY) {
         ws.send("\x10"+Espruino.Config.RELAY_KEY);
       }
-      Espruino.callProcessor("connected", {port:serialPort}, function() {
-        openCallback("Hello");
-      });
+      openCallback("Hello");
       ws.onerror = undefined;
       ws.onmessage = function (event) {
         //console.log("MSG:"+event.data);
