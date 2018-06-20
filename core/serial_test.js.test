@@ -13,7 +13,7 @@ Simple loopback test
                description:"test",   // description displayed to user
               type:"test",           // bluetooth|usb|socket - used to show icon in UI
               // autoconnect : true  // automatically conect to this (without the connect menu)
-              }]);
+              }], true/*instantPorts*/);
   };
 
   var rcb, dcb;

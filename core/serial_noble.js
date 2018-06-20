@@ -78,7 +78,14 @@
         });
       }
     }
-    if (state=="poweredOff") initialised = false;
+    if (state=="poweredOff") {
+      initialised = false;
+      if (scanWhenInitialised) {
+        var scb = scanWhenInitialised;
+        scanWhenInitialised = undefined;
+        scb(undefined, true/*instantPorts*/);
+      }
+    }
   });
   // if we didn't initialise for whatever reason, keep going anyway
   setTimeout(function() {
@@ -109,9 +116,9 @@
   var getPorts = function (callback) {
     if (errored || !Espruino.Config.BLUETOOTH_LOW_ENERGY) {
       console.log("Noble: getPorts - disabled");
-      callback([]);
+      callback([], true/*instantPorts*/);
     } else if (!initialised) {
-      console.log("Noble: getPorts - not initialises");
+      console.log("Noble: getPorts - not initialised");
       // if not initialised yet, wait until we are
       if (scanWhenInitialised) scanWhenInitialised([]);
       scanWhenInitialised = callback;
@@ -147,7 +154,7 @@
       lastDevices = newDevices;
       newDevices = [];
       //console.log("Noble: reportedDevices",reportedDevices);
-      callback(reportedDevices);
+      callback(reportedDevices, false/*instantPorts*/);
     }
   };
 

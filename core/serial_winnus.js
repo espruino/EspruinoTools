@@ -32,7 +32,7 @@
     } catch (e) {
       console.log(e);
     }
-    callback(devices);
+    callback(devices, false/*instantPorts*/);
   };
 
   var openSerial = function (serialPort, openCallback, receiveCallback, disconnectCallback) {
@@ -119,6 +119,6 @@
     "getPorts": getPorts,
     "open": openSerial,
     "write": writeSerial,
-    "close": closeSerial
+    "close": closeSerial,
   });
 })();

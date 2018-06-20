@@ -15,7 +15,7 @@ To add a new serial device, you must add an object to
                    description:"test",   // description displayed to user
                    type:"test",           // bluetooth|usb|socket - used to show icon in UI
                    // autoconnect : true  // automatically conect to this (without the connect menu)
-                  }]);
+                 }], true); // instantPorts - will getPorts return all the ports on the first call, or does it need multiple calls (eg. Bluetooth)
     "open": function(path, openCallback, receiveCallback, disconnectCallback),
     "write": function(dataAsString, callbackWhenWritten)
     "close": function(),
@@ -64,6 +64,9 @@ To add a new serial device, you must add an object to
     return oldListener;
   };
 
+  /* Calls 'callback(port_list, shouldCallAgain)'
+   'shouldCallAgain==true' means that more devices
+   may appear later on (eg Bluetooth LE).*/
   var getPorts=function(callback) {
     var ports = [];
     var newPortToDevice = [];
@@ -72,10 +75,14 @@ To add a new serial device, you must add an object to
     var devices = Espruino.Core.Serial.devices;
     if (!devices || devices.length==0) {
          portToDevice = newPortToDevice;
-      return callback(ports);
+      return callback(ports, false);
     }
+    var shouldCallAgain = false;
     devices.forEach(function (device) {
-      device.getPorts(function(devicePorts) {
+      //console.log("getPorts -->",device.name);
+      device.getPorts(function(devicePorts, instantPorts) {
+        //console.log("getPorts <--",device.name);
+        if (instantPorts===false) shouldCallAgain = true;
         if (devicePorts) {
           devicePorts.forEach(function(port) {
             if (port.usb && port.usb[0]==0x0483 && port.usb[1]==0x5740)
@@ -92,7 +99,7 @@ To add a new serial device, you must add an object to
             if (b.unimportant && !a.unimportant) return -1;
             return 0;
           });
-          callback(ports);
+          callback(ports, shouldCallAgain);
         }
       });
     });

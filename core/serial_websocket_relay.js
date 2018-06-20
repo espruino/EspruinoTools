@@ -21,9 +21,9 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
 
   var getPorts=function(callback) {
     if (Espruino.Config.RELAY_KEY) {
-      callback([{path:'Web IDE Relay', description:'BLE connection via a phone', type : "bluetooth"}]);
+      callback([{path:'Web IDE Relay', description:'BLE connection via a phone', type : "bluetooth"}], true/*instantPorts*/);
     } else {
-      if (!WS_ENABLED) return callback([]);
+      if (!WS_ENABLED) return callback([], true/*instantPorts*/);
       Espruino.Core.Utils.getJSONURL("/serial/ports", function(ports) {
         if (ports===undefined) {
           console.log("/serial/ports doesn't exist - disabling WebSocket support");
@@ -31,8 +31,8 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
           callback([]);
           return;
         }
-        if (!Array.isArray(ports)) callback([]);
-        else callback(ports);
+        if (!Array.isArray(ports)) callback([], true/*instantPorts*/);
+        else callback(ports, true/*instantPorts*/);
       });
     }
   };

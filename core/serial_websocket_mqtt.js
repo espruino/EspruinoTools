@@ -101,7 +101,7 @@ messages it creates.
   var getPorts = function(callback) {
     if (websocket==undefined)
       websocketConnect();
-    callback(foundDevices);
+    callback(foundDevices, false/*instantPorts*/);
   };
 
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {

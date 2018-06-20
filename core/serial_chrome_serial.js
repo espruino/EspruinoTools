@@ -51,7 +51,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
                 path : prefix+device.path,
                 description : device.displayName,
                 usb : [device.vendorId, device.productId]};
-      }));
+      }), true/*instantPorts*/);
     });
   };
 

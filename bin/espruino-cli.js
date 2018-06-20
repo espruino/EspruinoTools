@@ -545,14 +545,14 @@ function getPortPath(port, callback) {
     log("Searching for device named "+JSON.stringify(port.name));
     var searchString = port.name.toLowerCase();
     var timeout = 2;
-    Espruino.Core.Serial.getPorts(function cb(ports) {
+    Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
       //log(JSON.stringify(ports,null,2));
       var found = ports.find(function(p) { return p.description.toLowerCase().indexOf(searchString)>=0; });
       if (found) {
         log("Found "+JSON.stringify(found.description)+" ("+JSON.stringify(found.path)+")");
         callback(found.path);
       } else {
-        if (timeout-- > 0) // try again - sometimes BLE devices take a while
+        if (timeout-- > 0 && shouldCallAgain) // try again - sometimes BLE devices take a while
           Espruino.Core.Serial.getPorts(cb);
         else {
          log("Port named "+JSON.stringify(port.name)+" not found");
@@ -601,18 +601,20 @@ function main() {
       });
     } else if (args.ports.length == 0 || args.showDevices) {
       console.log("Searching for serial ports...");
-      Espruino.Core.Serial.getPorts(function(ports) {
+      Espruino.Core.Serial.getPorts(function(ports, shouldCallAgain) {
+        function gotPorts(ports) {
+          log("PORTS:\n  "+ports.map(function(p) {
+            if (p.description) return p.path + " ("+p.description+")";
+            return p.path;
+          }).join("\n  "));
+          process.exit(0);
+        }
         // If we've been asked to list all devices, do it and exit
         if (args.showDevices) {
           /* Note - we want to search again because some things
           like `noble` won't catch everything on the first try */
-          Espruino.Core.Serial.getPorts(function(ports) {
-            log("PORTS:\n  "+ports.map(function(p) {
-              if (p.description) return p.path + " ("+p.description+")";
-              return p.path;
-            }).join("\n  "));
-            process.exit(0);
-          });
+          if (shouldCallAgain) Espruino.Core.Serial.getPorts(gotPorts);
+          else gotPorts(ports);
           return;
         }
         console.log("PORTS:\n  "+ports.map(function(p) {

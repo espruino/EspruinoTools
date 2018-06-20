@@ -45,9 +45,9 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
         s = s.trim();
         if (s.length) portList.push({path:'TCP/IP: '+s, description:"Network connection", type:"socket"});
       })
-      callback(portList);
+      callback(portList, true/*instantPorts*/);
     } else
-      callback();
+      callback(undefined, true/*instantPorts*/);
   };
 
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {

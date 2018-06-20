@@ -20,7 +20,7 @@ Gordon Williams (gw@pur3.co.uk)
 
   var getPorts=function(callback) {
     serialport.list(function(err, ports) {
-      if (ports===undefined) return callback([]);
+      if (ports===undefined) return callback([], true/*instantPorts*/);
       // On Linux we get spammed with ttySx ports - remove these
       if (process.platform == 'linux')
         ports = ports.filter(function(port) { return !port.comName.match(/^\/dev\/ttyS[0-9]*$/); });
@@ -44,7 +44,7 @@ Gordon Williams (gw@pur3.co.uk)
          */
 //          .filter(function(e) {
 //            return (e.vendorId === '0x0483' && e.productId === '0x5740');
-//          })        
+//          })
       callback(ports.map(function(port) {
             // port.pnpId could be handy
             var vid = parseInt(port.vendorId);
@@ -54,7 +54,7 @@ Gordon Williams (gw@pur3.co.uk)
             if (port.manufacturer) d.description = port.manufacturer;
             if (!port.vendorId || !port.productId) d.unimportant = true;
             return d;
-          })
+          }), true/*instantPorts*/
       );
     });
   };

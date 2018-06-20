@@ -62,7 +62,7 @@ Gordon Williams (gw@pur3.co.uk)
           });
         });
         listCallbacks.forEach(function(cb) {
-          cb(portList);
+          cb(portList, false/*instantPorts*/);
         });
         listCallbacks = [];
       } else if (j.type=="connect") {
@@ -104,7 +104,7 @@ Gordon Williams (gw@pur3.co.uk)
       if (err) {
         WS_ENABLED = false;
         console.log("Couldn't connect to "+Espruino.Config.WEBSOCKET_URL+" - disabling websockets for this session");
-        return callback([]);
+        return callback([], false/*instantPorts*/);
       } else {
         listCallbacks.push(callback);
         ws.send(JSON.stringify({"type":"list"}));

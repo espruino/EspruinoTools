@@ -5,12 +5,12 @@
     console.log("Not running in a browser - Web Bluetooth not enabled");
     return;
   }
+  if (!navigator.bluetooth) {
+    console.log("No navigator.bluetooth - Web Bluetooth not enabled");
+    return;
+  }
 
   function checkCompatibility() {
-    if (!navigator.bluetooth) {
-      console.log("No navigator.bluetooth - Web Bluetooth not enabled");
-      return false;
-    }
     if (navigator.bluetooth.requestDevice.toString().indexOf('callExtension') >= 0) {
       console.log("Using Urish's Windows 10 Web Bluetooth Polyfill");
     } else if (navigator.platform.indexOf("Win")>=0 &&
@@ -69,9 +69,9 @@
         WEB_BLUETOOTH_OK = false;
     }
     if (Espruino.Config.WEB_BLUETOOTH && WEB_BLUETOOTH_OK)
-      callback([{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth"}]);
+      callback([{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth"}], true/*instantPorts*/);
     else
-      callback();
+      callback(undefined, true/*instantPorts*/);
   }
 
   function openSerial(serialPort, openCallback, receiveCallback, disconnectCallback) {

@@ -80,7 +80,7 @@ Use embed.js on the client side to link this in.
       var timeout = setTimeout(function() {
         timeout = undefined;
         callbacks.ports = undefined;
-        callback([]);
+        callback([], false/*instantPorts*/);
         console.error("serial_frame: getPorts timeout");
       },100);
       callbacks.ports = function(d) {
@@ -90,7 +90,7 @@ Use embed.js on the client side to link this in.
         }
         clearTimeout(timeout);
         timeout = undefined;
-        callback(d);
+        callback(d, false/*instantPorts*/);
       };
     },
     "open": function(path, openCallback, receiveCallback, disconnectCallback) {

@@ -36,9 +36,9 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
     if ( config && config.length ) {
       callback(config.map(function(p) {
         return { path: p, description: "Network connection", type: "socket" };
-      }));
+      }), true/*instantPorts*/);
     } else
-      callback();
+      callback(undefined, true/*instantPorts*/);
   };
 
   var openSerial = function (serialPort, openCallback, receiveCallback, disconnectCallback) {
