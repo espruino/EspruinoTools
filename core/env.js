@@ -32,7 +32,8 @@
   }
 
   function queryBoardProcess(data, callback) {
-    if (!Espruino.Config.ENV_ON_CONNECT) {
+    if ((!Espruino.Config.ENV_ON_CONNECT) ||
+        (Espruino.Core.MenuFlasher && Espruino.Core.MenuFlasher.isFlashing())) {
       return callback(data);
     }
 
