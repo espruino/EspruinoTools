@@ -47,6 +47,16 @@
       }
       if (Object.keys(json).length==0) {
         Espruino.Core.Notifications.error("Unable to retrieve board information.\nConnection Error?");
+        // make sure we don't remember a previous board's info
+        json = {
+          VERSION : undefined,
+          BOARD : undefined,
+          MODULES : undefined,
+          EXPTR : undefined
+        };
+      } else {
+        if (json.BOARD && json.VERSION)
+          Espruino.Core.Notifications.info("Found " +json.BOARD+", "+json.VERSION);
       }
       // now process the enviroment variables
       for (var k in json) {
