@@ -307,6 +307,7 @@ function toIntelHex(code) {
     for (var j=0;j<16;j++) bytes.push(buffer[idx+j]);
     ihex += ihexline(bytes);
   }
+  // END OF FILE marker (so don't copy this if you're trying to manually merge files!)
   ihex += ":00000001FF\r\n";
   return ihex;
 }
