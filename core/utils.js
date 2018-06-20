@@ -284,22 +284,24 @@
       Espruino.Core.Serial.write('\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n',
                                  undefined, function() {
         // now it's sent, wait for data
-        var maxTimeout = 20; // 10 secs
-        var timeoutCnt = 0;
+        var maxTimeout = 10; // seconds - how long we wait if we're getting data
+        var minTimeout = 2; // seconds - how long we wait if we're not getting data
+        var pollInterval = 500; // milliseconds
+        var timeoutSeconds = 0;
         if (timeout != "cancelled")
           timeout = setInterval(function onTimeout(){
-          timeoutCnt++;
+          timeoutSeconds += pollInterval/1000;
           // if we're still getting data, keep waiting for up to 10 secs
-          if (hadDataSinceTimeout && timeoutCnt<maxTimeout) {
+          if (hadDataSinceTimeout && timeoutSeconds<maxTimeout) {
             hadDataSinceTimeout = false;
-          } else if (timeoutCnt>2) {
-            // No data in 1 second
+          } else if (timeoutSeconds > minTimeout) {
+            // No data yet...
             // OR we keep getting data for > maxTimeout seconds
             clearInterval(timeout);
             console.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
             nextStep(undefined);
           }
-        }, 500);
+        }, pollInterval);
       });
     }
 
