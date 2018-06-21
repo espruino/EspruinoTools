@@ -387,12 +387,13 @@
         line = Espruino.Core.Utils.escapeHTML(line);
         // handle URLs
         line = line.replace(/(https?:\/\/[-a-zA-Z0-9@:%._\+~#=\/\?]+)/g, '<a href="$1" target="_blank">$1</a>');
-        // detect inline images and link them in
-        var m = line.match(/data:image\/\w+;base64,[\w\+\/=]+/);
-        if (m) {
-          line = line.substr(0,m.index)+'<img class="terminal-inline-image" src="'+m[0]+'"/>'+line.substr(m.index+m[0].length);
-        }
       }
+      // detect inline images and link them in
+      var m = line.match(/data:image\/\w+;base64,[\w\+\/=]+/);
+      if (m) {
+        line = line.substr(0,m.index)+'<img class="terminal-inline-image" src="'+m[0]+'"/>'+line.substr(m.index+m[0].length);
+      }
+      
       // extra text is for stuff like tutorials
       if (termExtraText[y])
         line = termExtraText[y] + line;
