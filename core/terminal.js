@@ -376,7 +376,7 @@
     // now write this to the screen
     var t = [];
     for (var y in termText) {
-      var line = termText[y];
+      var line = termText[y];      
       if (y == termCursorY) {
         var ch = Espruino.Core.Utils.getSubString(line,termCursorX,1);
         line = Espruino.Core.Utils.escapeHTML(
@@ -387,6 +387,11 @@
         line = Espruino.Core.Utils.escapeHTML(line);
         // handle URLs
         line = line.replace(/(https?:\/\/[-a-zA-Z0-9@:%._\+~#=\/\?]+)/g, '<a href="$1" target="_blank">$1</a>');
+        // detect inline images and link them in
+        var m = line.match(/data:image\/\w+;base64,[\w\+\/=]+/);
+        if (m) {
+          line = line.substr(0,m.index)+'<img class="terminal-inline-image" src="'+m[0]+'"/>'+line.substr(m.index+m[0].length);
+        }
       }
       // extra text is for stuff like tutorials
       if (termExtraText[y])
