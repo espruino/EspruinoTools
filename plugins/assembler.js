@@ -374,21 +374,24 @@
   function init() {
     // When code is sent to Espruino, search it for bits of assembler and then assemble them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
-      findASMBlocks(code, callback);
+      findASMBlocks(code, "", callback);
     });
     // When a module is sent to Espruino...
-    Espruino.addProcessor("transformModuleForEspruino", function(code, callback) {
-      findASMBlocks(code, callback);
+    Espruino.addProcessor("transformModuleForEspruino", function(module, callback) {
+      findASMBlocks(module.code, " in "+module.name, function(code) {
+        module.code = code;
+        callback(module);
+      });
     });
   }
 
-  function assembleBlock(asmLines) {
+  function assembleBlock(asmLines, description) {
     var machineCode = [];
     try {
       assemble(asmLines, function(word) { machineCode.push("0x"+word.toString(16)); });
     } catch (err) {
-      console.log("Assembler failed: "+err);
-      Espruino.Core.Notifications.error("Assembler failed: "+err);
+      console.log("Assembler failed: "+err+description);
+      Espruino.Core.Notifications.error("Assembler failed: "+err+description);
       return undefined;
     }
 
@@ -396,15 +399,15 @@
   }
 
   /* Finds instances of 'E.asm' and replaces them */
-  function findASMBlocks(code, callback){
+  function findASMBlocks(code, description, callback){
 
     function match(str, type) {
       if (str!==undefined && tok.str!=str) {
-        Espruino.Core.Notifications.error("Expecting '"+str+"' but got '"+tok.str+"'. Should have E.asm('arg spec', 'asmline1', ..., 'asmline2'");
+        Espruino.Core.Notifications.error("Expecting '"+str+"' but got '"+tok.str+description+"'. Should have E.asm('arg spec', 'asmline1', ..., 'asmline2'");
         return false;
       }
       if (type!==undefined && tok.type!=type) {
-        Espruino.Core.Notifications.error("Expecting a "+type+" but got "+tok.type+". Should have E.asm('arg spec', 'asmline1', ..., 'asmline2'");
+        Espruino.Core.Notifications.error("Expecting a "+type+" but got "+tok.type+description+". Should have E.asm('arg spec', 'asmline1', ..., 'asmline2'");
         return false;
       }
       tok = lex.next();
@@ -444,7 +447,7 @@
           if (!match(")",undefined)) return;
           var endIndex = tok.endIdx;
 
-          var machineCode = assembleBlock(asmLines);
+          var machineCode = assembleBlock(asmLines, description);
           //console.log(machineCode);
           if (machineCode===undefined) return; // There was an error - just leave and don't try to flash
           var raw = "";

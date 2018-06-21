@@ -4,24 +4,24 @@
  This Source Code is subject to the terms of the Mozilla Public
  License, v2.0. If a copy of the MPL was not distributed with this
  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
+
  ------------------------------------------------------------------
   Automatically minify code before it is sent to Espruino
  ------------------------------------------------------------------
 **/
 "use strict";
 (function(){
-  
+
   var minifyUrl = "https://closure-compiler.appspot.com/compile";
   var minifyCache = [];
-  
+
   function init() {
     Espruino.Core.Config.addSection("Minification", {
       sortOrder:600,
       description: "Minification takes your JavaScript code and makes it smaller by removing comments and whitespace. "+
                    "It can make your code execute faster and will save memory, but it will also make it harder to debug.\n"+
                    "Esprima is a minifier built in to the Web IDE, so it can be used without an internet connection. "+
-                   "The Closure Compiler is an online service offered by Google. It produces more efficient code, but you need an internet connection to use it." 
+                   "The Closure Compiler is an online service offered by Google. It produces more efficient code, but you need an internet connection to use it."
     });
 
     Espruino.Core.Config.add("MINIFICATION_LEVEL", {
@@ -47,7 +47,7 @@
       defaultValue : "ESPRIMA"
     });
 
-    
+
     Espruino.Core.Config.add("MINIFICATION_Mangle",{
       section : "Minification",
       name : "Esprima: Mangle",
@@ -60,43 +60,46 @@
       name : "Esprima: Unreachable branches",
       description : "Remove unreachable branches",
       type : "boolean",
-      defaultValue : true  
+      defaultValue : true
     });
     Espruino.Core.Config.add("MINIFICATION_Unused",{
       section : "Minification",
       name : "Esprima: Unused variables",
       description : "Remove unused variables",
       type : "boolean",
-      defaultValue : true  
+      defaultValue : true
     });
     Espruino.Core.Config.add("MINIFICATION_Literal",{
       section : "Minification",
       name : "Esprima: Fold constants",
       description : "Fold (literal) constants",
       type : "boolean",
-      defaultValue : true  
+      defaultValue : true
     });
     Espruino.Core.Config.add("MINIFICATION_DeadCode",{
       section : "Minification",
       name : "Esprima: Dead Code",
       description : "Eliminate dead code",
       type : "boolean",
-      defaultValue : true  
+      defaultValue : true
     });
 
-    // When code is sent to Espruino, search it for modules and add extra code required to load them 
+    // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
-      minify(code, callback, Espruino.Config.MINIFICATION_LEVEL, false);
+      minify(code, callback, Espruino.Config.MINIFICATION_LEVEL, false, "");
     });
-   // When code is sent to Espruino, search it for modules and add extra code required to load them 
-    Espruino.addProcessor("transformModuleForEspruino", function(code, callback) {
-      minify(code, callback, Espruino.Config.MODULE_MINIFICATION_LEVEL, true);
+   // When code is sent to Espruino, search it for modules and add extra code required to load them
+    Espruino.addProcessor("transformModuleForEspruino", function(module, callback) {
+      minify(module.code, function(code) {
+        module.code = code;
+        callback(module);
+      }, Espruino.Config.MODULE_MINIFICATION_LEVEL, true, " in "+module.name);
     });
   }
 
 
   // Use the 'offline' Esprima compile
-  function minifyCodeEsprima(code,callback) {
+  function minifyCodeEsprima(code,callback,description) {
     if ((typeof esprima == "undefined") ||
         (typeof esmangle == "undefined") ||
         (typeof escodegen == "undefined")) {
@@ -120,13 +123,13 @@
         code = escodegen.generate(syntax, option);
         after = code.length;
         if (before > after) {
-          Espruino.Core.Notifications.info('No error. Minified ' + before + ' bytes to ' + after + ' bytes.');
+          Espruino.Core.Notifications.info('No errors'+description+'. Minified ' + before + ' bytes to ' + after + ' bytes.');
         } else {
-          Espruino.Core.Notifications.info('Can not minify further, code is already optimized.');
+          Espruino.Core.Notifications.info('Can not minify further'+description+', code is already optimized.');
         }
         callback(code);
     } catch (e) {
-      Espruino.Core.Notifications.error(e.toString());
+      Espruino.Core.Notifications.error(e.toString()+description);
       console.error(e.stack);
       callback(code);
     } finally { }
@@ -187,11 +190,11 @@
   }
 
   // Use the 'online' Closure compiler
-  function minifyCodeGoogle(code, callback, minificationLevel){
+  function minifyCodeGoogle(code, callback, minificationLevel, description){
     for (var i in minifyCache) {
       var item = minifyCache[i];
       if (item.code==code && item.level==minificationLevel) {
-        console.log("Found code in minification cache - using that");
+        console.log("Found code in minification cache - using that"+description);
         // move to front of cache
         minifyCache.splice(i,1); // remove old
         minifyCache.push(item); // add at front
@@ -202,19 +205,19 @@
     }
     closureCompilerGoogle(code,  minificationLevel, 'compiled_code', function(minified) {
       if (minified.trim()!="") {
-        Espruino.Core.Notifications.info('No error. Minifying ' + code.length + ' bytes to ' + minified.length + ' bytes.');
+        Espruino.Core.Notifications.info('No errors'+description+'. Minifying ' + code.length + ' bytes to ' + minified.length + ' bytes');
         if (minifyCache.length>100)
           minifyCache = minifyCache.slice(-100);
         minifyCache.push({ level : minificationLevel, code : code, minified : minified });
         callback(minified);
       } else {
-        Espruino.Core.Notifications.warning("Errors while minifying - sending unminified code.");
+        Espruino.Core.Notifications.warning("Errors while minifying"+description+" - sending unminified code.");
         callback(code);
         // get errors...
         closureCompilerGoogle(code,  minificationLevel, 'errors',function(errors) {
           errors.split("\n").forEach(function (err) {
             if (err.trim()!="")
-              Espruino.Core.Notifications.error(err.trim());
+              Espruino.Core.Notifications.error(err.trim()+description);
           });
         });
       }
@@ -229,12 +232,12 @@
         js_code: code,
         language : "ECMASCRIPT6", // so no need to mess with binary numbers now. \o/
         language_out : "ECMASCRIPT5" // ES6 output uses some now features now that Espruino doesn't like
-      });      
-      $.post(minifyUrl, minifyObj, function(minifiedCode) {      
-        code = minifiedCode;          
+      });
+      $.post(minifyUrl, minifyObj, function(minifiedCode) {
+        code = minifiedCode;
       },"text")
-      .error(function() { 
-        Espruino.Core.Notifications.error("HTTP error while minifying.");
+      .error(function() {
+        Espruino.Core.Notifications.error("HTTP error while minifying");
       })
       .complete(function() {
         // ensure we call the callback even if minification failes
@@ -243,7 +246,7 @@
     }
   }
 
-  function minify(code, callback, level, isModule) {
+  function minify(code, callback, level, isModule, description) {
     var minifyCode = code;
     var minifyCallback = callback;
     if (isModule) {
@@ -260,8 +263,8 @@
     switch(level){
       case "WHITESPACE_ONLY":
       case "SIMPLE_OPTIMIZATIONS":
-      case "ADVANCED_OPTIMIZATIONS": minifyCodeGoogle(code, callback, level); break;
-      case "ESPRIMA": minifyCodeEsprima(code, callback); break;
+      case "ADVANCED_OPTIMIZATIONS": minifyCodeGoogle(code, callback, level, description); break;
+      case "ESPRIMA": minifyCodeEsprima(code, callback, description); break;
       default: callback(code); break;
     }
   }

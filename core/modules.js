@@ -123,19 +123,19 @@
       }
     }
 
-    var loadProcessedModule = function (moduleCode) {
+    var loadProcessedModule = function (module) {
       // add the module to the beginning of our array
       if (Espruino.Config.MODULE_AS_FUNCTION)
-        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + ",function(){" + moduleCode + "});");
+        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(module.name) + ",function(){" + module.code + "});");
       else
-        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(moduleCode) + ");");
+        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(module.name) + "," + JSON.stringify(module.code) + ");");
       // if we needed to load something, wait until we have all promises complete before resolving our promise!
       Promise.all(newPromises).then(function(){ resolve(); });
     }
     if (alreadyMinified)
-      loadProcessedModule(data);
+      loadProcessedModule({code:data,name:modName});
     else
-      Espruino.callProcessor("transformModuleForEspruino", data, loadProcessedModule);
+      Espruino.callProcessor("transformModuleForEspruino", {code:data,name:modName}, loadProcessedModule);
   }
 
   /** Given a module name (which could be a URL), try and find it. Return

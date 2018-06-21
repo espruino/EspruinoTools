@@ -36,22 +36,24 @@
     if (Espruino.Config.COMPILATION_URL == "http://www.espruino.com:32766")
       Espruino.Config.COMPILATION_URL = "https://www.espruino.com/service/compiler";
 
-    // When code is sent to Espruino, search it for modules and add extra code required to load them
+    // When code is sent to Espruino, search it for compiled js/inline c
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
-      compileCode(code, callback);
+      compileCode(code, "", callback);
+    });
+    // When a module is sent to Espruino...
+    Espruino.addProcessor("transformModuleForEspruino", function(module, callback) {
+      compileCode(module.code, " in "+module.name, function(code) {
+        module.code = code;
+        callback(module);
+      });
     });
   }
 
-  function compileCode(code, callback) {
+  function compileCode(code, description, callback) {
     if (!Espruino.Config.COMPILATION)
       return callback(code);
 
     var board = Espruino.Core.Env.getBoardData();
-    if (board == undefined) {
-      Espruino.Core.Notifications.error("Current board not known - please connect to the Espruino board first");
-      return callback(code);
-    }
-
     var tasks = 0;
     try {
       var ast = acorn.parse(code, { ecmaVersion : 6 });
@@ -92,7 +94,8 @@
         }
       });
       if (tasks.length) {
-        if (typeof board.EXPORTS != "object" &&
+        if (!board ||
+            typeof board.EXPORTS != "object" &&
             typeof board.EXPTR != "number"  ) {
           Espruino.Core.Notifications.error("Compiler not active as no process.env.EXPORTS/EXPTR available.<br/>Is your board supported and firmware up to date?");
           return callback(code);
@@ -137,7 +140,7 @@
           if (taskCount==0)
             callback(code);
         }).fail(function() {
-          Espruino.Core.Notifications.error( "Error contacting server. Unable to compile code right now." );
+          Espruino.Core.Notifications.error("Error contacting server. Unable to compile code"+description+" right now.");
           taskCount--;
           if (taskCount==0) callback(code);
         });
@@ -145,7 +148,7 @@
 
     } catch (err) {
       console.log(err);
-      Espruino.Core.Notifications.error("Error parsing JavaScript, but uploading anyway.<br/>"+err.toString());
+      Espruino.Core.Notifications.error("Error parsing JavaScript"+description+", but uploading anyway.<br/>"+err.toString());
     }
     if (tasks==0)
       callback(code);
