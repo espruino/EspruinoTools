@@ -22,7 +22,8 @@ var Espruino;
    *
    *   sending              - sending code to Espruino (no data)
    *   transformForEspruino - transform code ready to be sent to Espruino
-   *   transformModuleForEspruino - transform module code before it's sent to Espruino with Modules.addCached (we only do this if we don't think it's been minified before)
+   *   transformModuleForEspruino({code,name})
+   *           - transform module code before it's sent to Espruino with Modules.addCached (we only do this if we don't think it's been minified before)
    *   connected            - connected to Espruino (no data)
    *   disconnected         - disconnected from Espruino (no data)
    *   environmentVar       - Board's process.env loaded (object to be saved into Espruino.Env.environmentData)
