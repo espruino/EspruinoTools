@@ -97,7 +97,7 @@ Use embed.js on the client side to link this in.
       callbacks.connected = openCallback;
       callbacks.receive = receiveCallback;
       callbacks.disconnected = disconnectCallback;
-      post({type:"connect"});
+      post({type:"connect",data:path});
     },
     "write": function(d, callback) {
       callbacks.written = callback;
