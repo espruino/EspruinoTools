@@ -11,7 +11,8 @@
   }
 
   function checkCompatibility() {
-    if (navigator.bluetooth.requestDevice.toString().indexOf('callExtension') >= 0) {
+    if (navigator.bluetooth.requestDevice &&
+        navigator.bluetooth.requestDevice.toString().indexOf('callExtension') >= 0) {
       console.log("Using Urish's Windows 10 Web Bluetooth Polyfill");
     } else if (navigator.platform.indexOf("Win")>=0 &&
         (navigator.userAgent.indexOf("Chrome/")>=0)) {
