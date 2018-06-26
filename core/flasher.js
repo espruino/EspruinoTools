@@ -335,7 +335,7 @@
           if (err) { finish(err); return; }
           finish();
         });
-      },);
+      });
       /*readAllData(binary.byteLength, function(err,chipData) {
         if (err) {
           finish(err);
