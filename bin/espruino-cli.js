@@ -548,7 +548,7 @@ function getPortPath(port, callback) {
     var timeout = 2;
     Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
       //log(JSON.stringify(ports,null,2));
-      var found = ports.find(function(p) { return p.description.toLowerCase().indexOf(searchString)>=0; });
+      var found = ports.find(function(p) { return p.description && p.description.toLowerCase().indexOf(searchString)>=0; });
       if (found) {
         log("Found "+JSON.stringify(found.description)+" ("+JSON.stringify(found.path)+")");
         callback(found.path);
