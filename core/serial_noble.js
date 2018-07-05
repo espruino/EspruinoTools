@@ -71,11 +71,7 @@
       if (scanWhenInitialised) {
         var scb = scanWhenInitialised;
         scanWhenInitialised = undefined;
-        getPorts(function() {
-          setTimeout(function() {
-            getPorts(scb);
-          }, 1500);
-        });
+        getPorts(scb);
       }
     }
     if (state=="poweredOff") {
@@ -137,24 +133,25 @@
         scanStopTimeout = undefined;
         console.log("Noble: Stopping scan");
         noble.stopScanning();
-      }, 3000);
-      // report back device list from both the last scan and this one...
-      var reportedDevices = [];
-      newDevices.forEach(function (d) {
-        reportedDevices.push(d);
-      });
-      lastDevices.forEach(function (d) {
-        var found = false;
-        reportedDevices.forEach(function (dv) {
-          if (dv.path == d.path) found = true;
+
+        // report back device list from both the last scan and this one...
+        var reportedDevices = [];
+        newDevices.forEach(function (d) {
+          reportedDevices.push(d);
         });
-        if (!found) reportedDevices.push(d);
-      });
-      reportedDevices.sort(function (a, b) { return a.path.localeCompare(b.path); });
-      lastDevices = newDevices;
-      newDevices = [];
-      //console.log("Noble: reportedDevices",reportedDevices);
-      callback(reportedDevices, false/*instantPorts*/);
+        lastDevices.forEach(function (d) {
+          var found = false;
+          reportedDevices.forEach(function (dv) {
+            if (dv.path == d.path) found = true;
+          });
+          if (!found) reportedDevices.push(d);
+        });
+        reportedDevices.sort(function (a, b) { return a.path.localeCompare(b.path); });
+        lastDevices = newDevices;
+        newDevices = [];
+        //console.log("Noble: reportedDevices",reportedDevices);
+        callback(reportedDevices, false/*instantPorts*/);
+      }, 3000);
     }
   };
 
@@ -233,7 +230,7 @@
       return callback();
     }
 
-    console.error("BT> send "+JSON.stringify(data));
+    console.log("BT> send "+JSON.stringify(data));
     txInProgress = true;
     try {
       txCharacteristic.write(Espruino.Core.Utils.stringToBuffer(data), false, function() {
