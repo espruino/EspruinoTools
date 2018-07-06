@@ -233,7 +233,7 @@
       return callback();
     }
 
-    console.error("BT> send "+JSON.stringify(data));
+    console.log("BT> send "+JSON.stringify(data));
     txInProgress = true;
     try {
       txCharacteristic.write(Espruino.Core.Utils.stringToBuffer(data), false, function() {
