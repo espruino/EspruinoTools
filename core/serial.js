@@ -272,7 +272,7 @@ To add a new serial device, you must add an object to
     if (split.match) console.log("Splitting for "+split.reason+", delay "+split.delay);
     // Only send some of the data
     if (writeData[0].data.length>split.end) {
-      if (split.delay==0) split.delay=50;
+      if (slowWrite && split.delay==0) split.delay=50;
       d = writeData[0].data.substr(0,split.end);
       writeData[0].data = writeData[0].data.substr(split.end);
       if (writeData[0].nextSplit) {
