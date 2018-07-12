@@ -9,7 +9,8 @@ Use embed.js on the client side to link this in.
 
 (function() {
   if (typeof window == "undefined" || typeof window.parent == undefined) return;
-  console.log("Running in a frame - enabling frame messaging support");
+  console.log("serial_frame: Running in a frame - enabling frame messaging");
+  var ENABLED = true;
 
   var callbacks = {
     connected : undefined,
@@ -26,6 +27,9 @@ Use embed.js on the client side to link this in.
     //console.log("-----------------------------------------------");
     if (typeof event!="object" || event.for!="ide") return;
     switch (event.type) {
+      case "initialised": {
+        // response to init. Could disable if we don't get this?
+      } break;
       case "ports": if (callbacks.ports) {
         callbacks.ports(event.data);
         callbacks.ports = undefined;
@@ -76,12 +80,17 @@ Use embed.js on the client side to link this in.
       post({type:"init"});
     },
     "getPorts": function(callback) {
+      if (!ENABLED) {
+        callback([], true/*instantPorts*/);
+        return;
+      }
       post({type:"getPorts"});
       var timeout = setTimeout(function() {
         timeout = undefined;
         callbacks.ports = undefined;
         callback([], false/*instantPorts*/);
-        console.error("serial_frame: getPorts timeout");
+        console.error("serial_frame: getPorts timeout, disabling");
+        ENABLED = false;
       },100);
       callbacks.ports = function(d) {
         if (!timeout) {
