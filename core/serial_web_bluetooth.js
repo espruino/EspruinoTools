@@ -5,12 +5,12 @@
     console.log("Not running in a browser - Web Bluetooth not enabled");
     return;
   }
-  if (!navigator.bluetooth) {
-    console.log("No navigator.bluetooth - Web Bluetooth not enabled");
-    return;
-  }
 
   function checkCompatibility() {
+    if (!navigator.bluetooth) {
+      console.log("No navigator.bluetooth - Web Bluetooth not enabled");
+      return false;
+    }
     if (navigator.bluetooth.requestDevice &&
         navigator.bluetooth.requestDevice.toString().indexOf('callExtension') >= 0) {
       console.log("Using Urish's Windows 10 Web Bluetooth Polyfill");
