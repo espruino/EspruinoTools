@@ -69,7 +69,7 @@
     var d = Espruino.Core.Env.getData();
     // If we got data from the device itself, use that as the
     // definitive answer
-    if ("MODULES" in d)
+    if ("string" == typeof d.MODULES)
       return d.MODULES.split(",").indexOf(module)>=0;
     // Otherwise try and figure it out from JSON
     if ("info" in d &&
