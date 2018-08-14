@@ -129,6 +129,7 @@
      */
     var lex = Espruino.Core.Utils.getLexer(code);
     var brackets = 0;
+    var curlyBrackets = 0;
     var statementBeforeBrackets = false;
     var statement = false;
     var varDeclaration = false;
@@ -159,7 +160,9 @@
 
       var previousBrackets = brackets;
       if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;
+      if (tok.str=="{") curlyBrackets++;
       if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;
+      if (tok.str=="}") curlyBrackets--;
 
       if (brackets==0) {
         if (tok.str=="for" || tok.str=="if" || tok.str=="while" || tok.str=="function" || tok.str=="throw") {
@@ -193,7 +196,7 @@
         previousString = "\n\x10";
 
 
-      if (brackets==0) {
+      if (curlyBrackets==0) {
         /* For functions defined at the global scope, we want to shove
          * an escape code before them that tells Espruino what their
          * line number is */
