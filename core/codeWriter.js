@@ -192,20 +192,16 @@
       prematurely */
       if (previousBrackets==0 &&
           previousString.indexOf("\n")>=0 &&
-          previousString.indexOf("\x1B\x0A")<0)
+          previousString.indexOf("\x1B\x0A")<0) {
         previousString = "\n\x10";
-
-
-      if (curlyBrackets==0) {
-        /* For functions defined at the global scope, we want to shove
-         * an escape code before them that tells Espruino what their
-         * line number is */
-        if (APPLY_LINE_NUMBERS && tok.str=="function" && tok.lineNumber) {
+        // Apply line numbers to each new line sent, to aid debugger
+        if (APPLY_LINE_NUMBERS && tok.lineNumber) {
           // Esc [ 1234 d
           // This is the 'set line number' command that we're abusing :)
           previousString += "\x1B\x5B"+(tok.lineNumber+lineNumberOffset)+"d";
         }
       }
+
       // add our stuff back together
       resultCode += previousString+tokenString;
       // next
