@@ -210,6 +210,17 @@ To add a new serial device, you must add an object to
   var writeSerialWorker = function(isStarting) {
     writeTimeout = undefined; // we've been called
 
+    // if we disconnected while sending, empty queue
+    if (currentDevice === undefined) {
+      if (writeData[0].callback)
+        writeData[0].callback();
+      writeData.shift();
+      if (writeData.length) setTimeout(function() {
+        writeSerialWorker(false);
+      }, 1);
+      return;
+    }
+
     if (writeData[0].data === "") {
       if (writeData[0].showStatus)
         Espruino.Core.Status.setStatus("Sent");
