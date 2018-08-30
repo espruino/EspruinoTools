@@ -409,8 +409,9 @@
         elements[y].html(line);
     }
     // now show the line where the cursor is
-    if (elements[termCursorY]!==undefined)
-      elements[termCursorY][0].scrollIntoView();
+    if (elements[termCursorY]!==undefined) {
+      terminal[0].scrollTop = elements[termCursorY][0].offsetTop;
+    }
     /* Move input box to the same place as the cursor, so Android devices
     keep that part of the screen in view */
     var cursor = document.getElementsByClassName("terminal__cursor");
