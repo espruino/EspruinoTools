@@ -453,6 +453,7 @@
         case 0xC2 : break; // UTF8 for <255 - ignore this
         default : {
           // Else actually add character
+          if (termText[termCursorY]===undefined) termText[termCursorY]="";
           termText[termCursorY] = trimRight(
               Espruino.Core.Utils.getSubString(termText[termCursorY],0,termCursorX) +
               String.fromCharCode(ch) +
