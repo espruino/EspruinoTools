@@ -195,7 +195,7 @@
           previousString.indexOf("\x1B\x0A")<0) {
         previousString = "\n\x10";
         // Apply line numbers to each new line sent, to aid debugger
-        if (APPLY_LINE_NUMBERS && tok.lineNumber) {
+        if (APPLY_LINE_NUMBERS && tok.lineNumber && (tok.lineNumber+lineNumberOffset)>0) {
           // Esc [ 1234 d
           // This is the 'set line number' command that we're abusing :)
           previousString += "\x1B\x5B"+(tok.lineNumber+lineNumberOffset)+"d";
