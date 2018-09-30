@@ -21,7 +21,7 @@
 /*  Thumb reference :
     http://ece.uwaterloo.ca/~ece222/ARM/ARM7-TDMI-manual-pt3.pdf
 
-    ARM reference
+    ARM reference (including UAL definition)
     https://web.eecs.umich.edu/~prabal/teaching/eecs373-f11/readings/ARMv7-M_ARM.pdf
 */
 
@@ -145,51 +145,16 @@
   }
 
   var ops = {
-    // Format 1: move shifted register
-    "lsl"  :[{ base:"00000-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
-             { base:"0100000010___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d << s
-    "lsr"  :[{ base:"00001-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
-             { base:"0100000011___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d >> s
-    "asr"  :[{ base:"00010-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
-             { base:"0100000100___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d >>> s
-    // 5.2 Format 2: add/subtract
-    // 00011
-    // 5.3 Format 3: move/compare/add/subtract immediate
-    "cmp"  :[{ base:"00101---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
-             { base:"0100001010___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 test d-s
-    // 5.4 Format 4: ALU operations
-    "and"  :[{ base:"0100000000___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }],
-    "eor"  :[{ base:"0100000001___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }],
-    // lsl is above
-    // lsr is above
-    // asr is above
-    "adc"  :[{ base:"0100000101___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d + s + carry
-    "sbc"  :[{ base:"0100000110___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d - s - !carry
-    "ror"  :[{ base:"0100000111___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // rotate right
-    "tst"  :[{ base:"0100001000___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // test
-    "neg"  :[{ base:"0100001001___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // - s
-    // cmp is above
-    "cmn"  :[{ base:"0100001011___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // test d+s
-    "orr"  :[{ base:"0100001100___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // |
-    "mul"  :[{ base:"0100001101___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // s*d
-    "bic"  :[{ base:"0100001110___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d & ~s
-    "mvn"  :[{ base:"0100001111___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // ~s
-    // 5.5 Format 5: Hi register operations/branch exchange
-    // 5.6 Format 6: PC-relative load
-    //  done (below)
-    // 5.7 Format 7: load/store with register offset
-    //  done (below)
-    // 5.8 Format 8: load/store sign-extended byte/halfword
-    // 5.9 Format 9: load/store with immediate offset
-    //  done (below)
-    // 5.10 Format 10: load/store halfword
-    // 5.11 Format 11: SP-relative load/store
-    // 5.12 Format 12: load address
-    // done (below)
-    // 5.13 Format 13: add offset to Stack Pointer
-    // 5.14 Format 14: push/pop registers
-    //  done (below)
-    // 5.16 Format 16: conditional branch
+    // A4.3 Branch instructions
+    "b"   :[{ base:"11100___________", regex : /^(.*)$/, args:[sint(0,11,1)] }],
+    // "cbnz": missing
+    // "cbz": missing
+    "bl"  :[{ base:"11110___________11111___________", regex : /^(.*)$/, args:[bl_addr()] }],
+    // "blx": missing
+    "bx"   :[{ base:"010001110----000", regex : /(lr|r[0-9]+)$/, args:[reg4(3)] }],
+    // "tbb": missing
+    // "tbh": missing
+
     "beq" :[{ base:"11010000________", regex : /^(.*)$/, args:[sint(0,8,1)] }], // 5.16 Format 16: conditional branch
     "bne" :[{ base:"11010001________", regex : /^(.*)$/, args:[sint(0,8,1)] }], // 5.16 Format 16: conditional branch
     "bcs" :[{ base:"11010010________", regex : /^(.*)$/, args:[sint(0,8,1)] }], // 5.16 Format 16: conditional branch
@@ -204,40 +169,164 @@
     "blt" :[{ base:"11011011________", regex : /^(.*)$/, args:[sint(0,8,1)] }], // 5.16 Format 16: conditional branch
     "bgt" :[{ base:"11011100________", regex : /^(.*)$/, args:[sint(0,8,1)] }], // 5.16 Format 16: conditional branch
     "ble" :[{ base:"11011101________", regex : /^(.*)$/, args:[sint(0,8,1)] }], // 5.16 Format 16: conditional branch
-    // 5.17 Format 17: software interrupt
-    // 5.18 Format 18: unconditional branch
-    "b"   :[{ base:"11100___________", regex : /^(.*)$/, args:[sint(0,11,1)] }],
-    // 5.19 Format 19: long branch with link
-    "bl"  :[{ base:"11110___________11111___________", regex : /^(.*)$/, args:[bl_addr()] }],
-    "bx"   :[{ base:"010001110----000", regex : /(lr|r[0-9]+)$/, args:[reg4(3)] }],
-    // ....
 
 
-    "adr"  :[{ base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)$/,args:[reg(8),uint(0,8,2)] },  // ADR pseudo-instruction to save address (actually ADD PC)
-             { base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*\+[0-9]+)$/,args:[reg(8),uint(0,8,2)] }],
-    "push" :[{ base:"1011010-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
-    "pop"  :[{ base:"1011110-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
-    "add"  :[{ base:"00110---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
-             { base:"10100---________", regex : /^(r[0-7]),pc,(#[0-9]+)$/,args:[reg(8),uint(0,8,2)] },
-             { base:"10101---________", regex : /^(r[0-7]),sp,(#[0-9]+)$/, args:[reg(8),uint(0,8,2)] },
-             { base:"101100000_______", regex : /^sp,(#[0-9]+)$/, args:[uint(0,7,2)] },
-             { base:"00011-0___---___", regex : /^(r[0-7]),(r[0-7]),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ], // Format 2: add/subtract
-    "adds" :[{ base:"00011-0___---___", regex : /^(r[0-7]),(r[0-7]),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ], //?
-    "adc.w":[{ base:"111010110100----________--------", regex : /^(r[0-7]),(r[0-7]),(r[0-7])$/,args:[reg(16),reg(8),reg(0)] }], // made this up. probably wrong
-    "add.w":[{ base:"11110001--------________--------", regex : /^(r[0-7]),(r[0-7]),(#[0-9]+)$/,args:[reg(16),reg(8),uint(0,8,0)] }], // made this up. probably wrong
-    "sub"  :[{ base:"00111---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
-              /*{ base:"10100---________", regex : /^([^,]+),pc,(#[0-9]+)$/,args:[reg(8),uint(0,8,2)] },*/
-             { base:"101100001_______", regex : /^sp,(#[0-9]+)$/, args:[uint(0,7,2)] },
-             { base:"00011-1___---___", regex : /^([^,]+),([^,]+),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ],
+    // A4.4 Data-processing
+    // A4.4.1 Standard data-processing instructions
+    "adc"     :[{ base:"0100000101___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d + s + carry
+    "adcs"    :[{ base:"0100000101___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d + s + carry
+    "adc.w"   :[{ base:"111010110100----0_______--------", regex : /^(r[0-7]),(r[0-7]),(r[0-7])$/,args:[reg(16),reg(8),reg(0)] }], // made this up. probably wrong
+    "adcs.w"  :[{ base:"111010110101----0_______--------", regex : /^(r[0-7]),(r[0-7]),(r[0-7])$/,args:[reg(16),reg(8),reg(0)] }], // made this up. probably wrong
+    "add"     :[{ base:"00110---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
+                { base:"10100---________", regex : /^(r[0-7]),pc,(#[0-9]+)$/,args:[reg(8),uint(0,8,2)] },
+                { base:"10101---________", regex : /^(r[0-7]),sp,(#[0-9]+)$/, args:[reg(8),uint(0,8,2)] },
+                { base:"101100000_______", regex : /^sp,(#[0-9]+)$/, args:[uint(0,7,2)] },
+                { base:"00011-0___---___", regex : /^(r[0-7]),(r[0-7]),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ], // Format 2: add/subtract
+    "adds"    :[{ base:"00011-0___---___", regex : /^(r[0-7]),(r[0-7]),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ], //?
+    "add.w"   :[{ base:"11110001--------________--------", regex : /^(r[0-7]),(r[0-7]),(#[0-9]+)$/,args:[reg(16),reg(8),uint(0,8,0)] }], // made this up. probably wrong
+    "adds.w"  :[{ base:"11110001--------________--------", regex : /^(r[0-7]),(r[0-7]),(#[0-9]+)$/,args:[reg(16),reg(8),uint(0,8,0)] }], // made this up. probably wrong
+    "adr"     :[{ base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)$/,args:[reg(8),uint(0,8,2)] },  // ADR pseudo-instruction to save address (actually ADD PC)
+                { base:"10100---________", regex : /^(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*\+[0-9]+)$/,args:[reg(8),uint(0,8,2)] }],
+    "and"     :[{ base:"0100000000___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }],
+    "bic"     :[{ base:"0100001110___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d & ~s
+    "cmn"     :[{ base:"0100001011___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // test d+s
+    "cmp"     :[{ base:"00101---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
+                { base:"0100001010___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 test d-s
+    "eor"     :[{ base:"0100000001___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }],
+    "mov"     :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
+                { base:"0001110000---___", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }, // actually 'add Rd,Rs,#0'
+                { base:"0100011010---101", regex : /sp,(r[0-7])$/, args:[reg(3)] }], // made up again
+    "movs"    :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }], // is this even in thumb?
+    "movw"    :[{ base:"11110-100100----0___----________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg4(8),thumb2_immediate_t3] }],
+    "mvn"     :[{ base:"0100001111___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // ~s
+    // "orn"   : missing
+    "orr"     :[{ base:"0100001100___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // |
+    // "rsb"   : missing
+    "sbc"     :[{ base:"0100000110___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // d - s - !carry
+    "sub"     :[{ base:"00111---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
+                 /*{ base:"10100---________", regex : /^([^,]+),pc,(#[0-9]+)$/,args:[reg(8),uint(0,8,2)] },*/
+                { base:"101100001_______", regex : /^sp,(#[0-9]+)$/, args:[uint(0,7,2)] },
+                { base:"00011-1___---___", regex : /^([^,]+),([^,]+),([^,]+)$/, args:[reg(0),reg(3),reg_or_immediate(6,10)] } ],
+//    "teq"  : missing
+    "tst"     :[{ base:"0100001000___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // test
+             
+    // legacy instruction mnemonics
+    "neg"  :[{ base:"0100001001___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // - s
 
-    "str"  :[{ base:"0101000---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
-             { base:"10010---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative store
-             { base:"0110000000___---", regex : /(r[0-7]),\[(r[0-7])\]$/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
-             { base:"0110000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
-    "strb" :[{ base:"0101010---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
-             { base:"01110-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,0)] }], // 5.9 Format 9: load/store with immediate offset
-    "strh" :[{ base:"0101001---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
-             { base:"10000-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,1)] }], // 5.9 Format 9: load/store with immediate offset
+
+
+
+    // A4.4.2 Shift instructions
+    "asr"  :[{ base:"00010-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
+             { base:"0100000100___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d >>> s
+    "lsl"  :[{ base:"00000-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
+             { base:"0100000010___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d << s
+    "lsr"  :[{ base:"00001-----___---", regex : /(r[0-7]),(r[0-7]),(#[0-9]+)$/, args:[reg(0),reg(3),uint(6,5,0)] },
+             { base:"0100000011___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // 5.4 d = d >> s
+    "ror"  :[{ base:"0100000111___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // rotate right
+    // "rrx": missing
+
+    // A4.4.3 Multiply instructions
+    // "mla": missing
+    // "mls": missing
+    "mul"  :[{ base:"0100001101___---", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }], // s*d
+    // "smlal": missing
+    // "smull": missing
+    // "smlabb": missing
+    // "smlabt": missing
+    // "smlatb": missing
+    // "smlatt": missing
+    // "smlad": missing
+    // "smladx": missing
+    // "smlalbb": missing
+    // "smlalbt": missing
+    // "smlaltb": missing
+    // "smlaltt": missing
+    // "smlald": missing
+    // "smlaldx": missing
+    // "smlalw": missing
+    // "smlalwx": missing
+    // "smlsd": missing
+    // "smlsdx": missing
+    // "smlsld": missing
+    // "smlsldx": missing
+    // "smmls": missing
+    // "smmlsr": missing
+    // "smmul": missing
+    // "smmulr": missing
+    // "smuad": missing
+    // "smuadx": missing
+    // "smulbb": missing
+    // "smulbt": missing
+    // "smultb": missing
+    // "smultt": missing
+    // "smulwb": missing
+    // "smulwt": missing
+    // "smusd": missing
+    // "smusdx": missing
+    // "umlal": missing
+    // "umull": missing
+    // "umaal": missing
+
+    // A4.4.4 Saturating instructions
+    // "ssat": missing
+    // "usat": missing
+    // "ssat16": missing (not supported)
+    // "usat16": missing (not supported)
+
+    // "qadd": missing (not supported)
+    // "qsub": missing (not supported)
+    // "qdadd": missing (not supported)
+    // "qdsub": missing (not supported)
+
+    // A4.4.5 Packing and unpacking instructions
+    // "sxtb": missing 
+    // "sxth": missing 
+    // "uxtb": missing 
+    // "uxth": missing 
+
+    // "pkhbt": missing 
+    // "pkhbb": missing 
+    // "sxtab": missing 
+    // "sxtab16": missing 
+    // "sxtah": missing 
+    // "sxtb16": missing 
+    // "uxtab": missing 
+    // "uxtab16": missing 
+    // "uxtah": missing 
+    // "uxtb16": missing 
+    
+    // A4.4.6 Divide instructions
+    // "sdiv": missing 
+    // "udiv": missing 
+    
+    // A4.4.7 Parallel addition and subtraction instructions, DSP extension
+    // (not supported)
+    
+    // A4.4.8 Miscellaneous data-processing instructions
+    // "bfc": missing 
+    // "bfi": missing 
+    // "clz": missing 
+    // "movt": missing 
+    // "rbit": missing 
+    // "rev": missing 
+    // "rev16": missing 
+    // "revsh": missing 
+    // "sbfx": missing 
+    // "ubfx": missing 
+
+    // "sel": missing (not supported) 
+    // "usad8": missing (not supported) 
+    // "usada8": missing (not supported) 
+
+
+    // A4.5 Status register access instructions
+    "cpsie"  :[{ base:"1011011001100010", regex : /i/, args:[] }], // made up again
+    "cpsid"  :[{ base:"1011011001110010", regex : /i/, args:[] }], // made up again
+    // "mrs": missing
+    // "msr": missing
+
+    // A4.6 Load and store instructions
     "ldr"  :[{ base:"01001---________", regex : /(r[0-7]),\[pc,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load
              { base:"10011---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative load
              { base:"01001---________", regex : /(r[0-7]),([a-zA-Z_][0-9a-zA-Z_]*)$/, args:[reg(8),uint(0,8,2)] }, // 5.6 Format 6: PC-relative load (using label)
@@ -245,26 +334,72 @@
              { base:"0101100---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
              { base:"0110100000___---", regex : /(r[0-7]),\[(r[0-7])\]$/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
              { base:"0110100---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
-
-    "ldrb" :[{ base:"0101110---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
-             { base:"01111-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,0)] }], // 5.9 Format 9: load/store with immediate offset
-    "ldrsb":[{ base:"0101011---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }], // 5.7 Format 7: load/store with register offset
     "ldrh" :[{ base:"0101101---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
              { base:"10001-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,1)] }], // 5.9 Format 9: load/store with immediate offset
     "ldrsh":[{ base:"0101111---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }], // 5.7 Format 7: load/store with register offset
-    "mov"  :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }, // move/compare/subtract immediate
-             { base:"0001110000---___", regex : /(r[0-7]),(r[0-7])$/, args:[reg(0),reg(3)] }, // actually 'add Rd,Rs,#0'
-             { base:"0100011010---101", regex : /sp,(r[0-7])$/, args:[reg(3)] }], // made up again
-    "movs" :[{ base:"00100---________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg(8),uint(0,8,0)] }], // is this even in thumb?
-    "movw" :[{ base:"11110-100100----0___----________", regex : /(r[0-7]),(#[0-9]+)$/, args:[reg4(8),thumb2_immediate_t3] }],
+    "ldrb" :[{ base:"0101110---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"01111-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,0)] }], // 5.9 Format 9: load/store with immediate offset
+    "ldrsb":[{ base:"0101011---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }], // 5.7 Format 7: load/store with register offset
+    //"ldrb" : missing
+    //"ldrt" : missing
+    //"ldrht" : missing
+    //"ldrsht" : missing
+    //"ldrbt" : missing
+    //"ldrsbt" : missing
+    //"ldrex" : missing
+    //"ldrexh" : missing
+    //"ldrexb" : missing
+
+    "str"  :[{ base:"0101000---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"10010---________", regex : /(r[0-7]),\[sp,(#[0-9]+)\]$/, args:[reg(8),uint(0,8,2)] }, // 5.11 SP-relative store
+             { base:"0110000000___---", regex : /(r[0-7]),\[(r[0-7])\]$/, args:[reg(0),reg(3)] }, // 5.9 Format 9: load/store with no offset
+             { base:"0110000---___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,2)] }], // 5.9 Format 9: load/store with immediate offset
+    "strh" :[{ base:"0101001---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"10000-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,1)] }], // 5.9 Format 9: load/store with immediate offset
+    "strb" :[{ base:"0101010---___---", regex : /(r[0-7]),\[(r[0-7]),(r[0-7])\]$/, args:[reg(0),reg(3),reg(6)] }, // 5.7 Format 7: load/store with register offset
+             { base:"01110-----___---", regex : /(r[0-7]),\[(r[0-7]),(#[0-9]+)\]$/, args:[reg(0),reg(3), uint(6,5,0)] }], // 5.9 Format 9: load/store with immediate offset
+    //"strd" : missing
+
+    //"strt" : missing
+    //"strht" : missing
+    //"strbt" : missing
+    //"strex" : missing
+    //"strexh" : missing
+    //"strexb" : missing
+  
+    // A4.7 Load Multiple and Store Multiple instructions
+    //"ldm" : missing
+    //"ldmia" : missing
+    //"ldmfd" : missing
+    //"ldmdb" : missing
+    //"ldmea" : missing
+    "push" :[{ base:"1011010-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
+    "pop"  :[{ base:"1011110-________", regex : /^{(.*)}$/, args:[rlist_lr] }], // 5.14 Format 14: push/pop registers
+    //"stm" : missing
+    //"stmia" : missing
+    //"stmea" : missing
+    //"stmdb" : missing
+    //"stmfd" : missing
+
+    // A4.8 Miscellaneous instructions
+    // "clrex"  : missing
+    // "dbg"  : missing
+    // "dmb"  : missing
+    // "dsb"  : missing
+    // "isb"  : missing
+    // "it"  : missing
+    "nop"  :[{ base:"0100011011000000", regex : "", args:[] }], // MOV R8,R8 (Format 5)
+    // "pld" : missing
+    // "pli" : missing
+    // "sev" : missing
+    // "svc" : missing
+    "wfe"    :[{ base:"1011111100100000", regex : /i/, args:[] }],
+    "wfi"    :[{ base:"1011111100110000", regex : /i/, args:[] }],
+    // "yield" : missing
+
 
     ".word":[{ base:"--------------------------------", regex : /0x([0-9A-Fa-f]+)$/, args:[function(v){v=parseInt(v,16);return (v>>16)|(v<<16);}] },
              { base:"--------------------------------", regex : /([0-9]+)$/, args:[function(v){v=parseInt(v);return (v>>16)|(v<<16);}] }],
-    "nop"  :[{ base:"0100011011000000", regex : "", args:[] }], // MOV R8,R8 (Format 5)
-    "cpsie"  :[{ base:"1011011001100010", regex : /i/, args:[] }], // made up again
-    "cpsid"  :[{ base:"1011011001110010", regex : /i/, args:[] }], // made up again
-    "wfe"    :[{ base:"1011111100100000", regex : /i/, args:[] }],
-    "wfi"    :[{ base:"1011111100110000", regex : /i/, args:[] }],
 
    // for this, uint needs to work without a hash
 //    "swi"    :[{ base:"11011111--------", regex : /([0-9]+)$/, args:[uint(0,8,0)] }], // Format 17: software interrupt
