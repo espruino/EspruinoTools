@@ -61,6 +61,9 @@
 
     // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
+      if (Espruino.Config.ROLLUP) {
+        return loadModulesRollup(code, callback);
+      }
       loadModules(code, callback);
     });
   }
@@ -211,8 +214,24 @@
         callback(loadedModuleData.join("\n") + "\n" + code);
       });
     }
-  };
+  }
 
+  function loadModulesRollup(code, callback) {
+    rollupTools.loadModulesRollup(code)
+      .then(generated => {
+        const minified = generated.code;
+        console.log('rollup: '+minified.length+' bytes');
+
+        // FIXME: needs warnings?
+        Espruino.Core.Notifications.info('Rollup no errors. Bundling ' + code.length + ' bytes to ' + minified.length + ' bytes');
+        callback(minified);
+      })
+      .catch(err => {
+        console.log('rollup:error', err);
+        Espruino.Core.Notifications.error("Rollup errors - Bundling failed: " + String(err).trim());
+        callback(code);
+      });
+  }
 
   Espruino.Core.Modules = {
     init : init

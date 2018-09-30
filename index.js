@@ -94,6 +94,13 @@ function init(callback) {
   // Various plugins
   loadDir(__dirname+"/plugins");
 
+  try {
+    global.espruinoRollup = require("./libs/rollup/espruino-rollup.js");
+    global.rollupTools = require("./libs/rollup/index.js");
+  } catch(e) {
+    console.log("espruinoRollup library not found - you'll need it to minify code");
+  }
+
   // Bodge up notifications  
   Espruino.Core.Notifications = {
     success : function(e) { console.log(e); },

@@ -7,7 +7,7 @@
     "espruino": "./bin/espruino-cli.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "cd libs/rollup && npm install && npm run build"
   },
   "repository": {
     "type": "git",
@@ -19,6 +19,8 @@
     "escodegen": "",
     "esmangle": "",
     "esprima": "",
+    "rollup": "^0.66.2",
+    "rollup-plugin-espruino-modules": "opichals/rollup-plugin-espruino-modules",
     "request": "^2.74.0",
     "tar.gz": "^1.0.7",
     "utf8": "^2.1.2"

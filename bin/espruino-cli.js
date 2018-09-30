@@ -254,6 +254,10 @@ function setupConfig(Espruino, callback) {
    process.exit(1);
    //Espruino.Core.Config.getSection(sectionName);
  }
+ if (args.file) {
+   var env = Espruino.Core.Env.getData();
+   env.FILE = args.file;
+ }
  if (args.board) {
    log("Explicit board JSON supplied: "+JSON.stringify(args.board));
    Espruino.Config.ENV_ON_CONNECT = false;
