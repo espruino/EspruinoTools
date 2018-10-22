@@ -40,7 +40,9 @@
     // Check environment vars
     var hasStorage = false;
     var ENV = Espruino.Core.Env.getData();
-    if (ENV && ENV.VERSION_MAJOR && ENV.VERSION_MINOR) {
+    if (ENV && 
+        ENV.VERSION_MAJOR && 
+        ENV.VERSION_MINOR!==undefined) {
       if (ENV.VERSION_MAJOR>1 ||
           ENV.VERSION_MINOR>=96) {
         hasStorage = true;
