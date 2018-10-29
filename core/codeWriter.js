@@ -82,7 +82,8 @@
            APPLY_LINE_NUMBERS = true;
        }
      }
-
+    // Turn cr/lf into just lf (eg. windows -> unix)
+    code = code.replace(/\r\n/g,"\n");
     // First off, try and fix funky characters
     for (var i=0;i<code.length;i++) {
       var ch = code.charCodeAt(i);
@@ -151,6 +152,7 @@
           tok.str=="." || // dot on newline - there was probably something before
           tok.str=="=" || // equals on newline - there was probably something before
           tok.str=="else" || // else on newline
+          lastTok.str=="else" || // else befgore newline
           tok.str=="catch" || // catch on newline - part of try..catch
           lastTok.str=="catch"
         ) {
