@@ -26,7 +26,9 @@ function getHelp() {
    "  --config key=value       : Set internal Espruino config option",
    "  -t,--time                : Set Espruino's time when uploading code",
    "  -o out.js                : Write the actual JS code sent to Espruino to a file",
-   "  -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode",
+   "  --ohex out.hex           : Write the JS code to a hex file as if sent by E.setBootCode",
+   "  --storage fn:data.bin    : Write a file named 'fn' to Storage, must be used with --ohex",
+   "  --storage .boot0:-       : Store program code in the given Storage file (not .bootcde)",
    "  -n                       : Do not connect to Espruino to upload code",
    "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",
    "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
@@ -52,8 +54,9 @@ console.log = function() {
 }
 //Parse Arguments
 var args = {
- ports: [],
- config: {}
+ ports: [], // ports to try and connect to
+ config: {}, // Config defines to set when running Espruino tools
+ storageContents : {} // Storage files to save when using ohex
 };
 
 var isNextValidPort = function(next) {
@@ -123,9 +126,13 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="-o") {
      i++; args.outputJS = next;
      if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o");
-   } else if (arg=="-ohex") {
+   } else if (arg=="--ohex" || arg=="-ohex"/* backwards compat.*/) {
      i++; args.outputHEX = next;
-     if (!isNextValidHEX(next)) throw new Error("Expecting a .hex file argument to -ohex");
+     if (!isNextValidHEX(next)) throw new Error("Expecting a .hex file argument to --ohex");
+   } else if (arg=="--storage") {
+     i++; var d = next.split(":");
+     if (!next || next.indexOf(":")<0) throw new Error("Expecting a fn:file.bin argument to --storage");
+     args.storageContents[d[0]] = d[1];
    } else if (arg=="-f") {
      i++; var arg = next;
      if (!isNextValid(next)) throw new Error("Expecting a filename argument to -f");
@@ -177,8 +184,20 @@ function setupConfig(Espruino, callback) {
    for (var key in args.espruino) Espruino.Config[key] = args.espruino[key];
  }
  if (args.outputHEX) {
-   log("-ohex used - enabling MODULE_AS_FUNCTION");
+   log("--ohex used - enabling MODULE_AS_FUNCTION");
    Espruino.Config.MODULE_AS_FUNCTION = true;
+ }
+ if (Object.keys(args.storageContents).length) {
+   if (!args.outputHEX)
+     throw new Error("-storage used without --ohex");
+  for (var storageName in args.storageContents) {
+    if (storageName=="-")
+      args.storageContents[storageName] = { code : true };
+    else {
+      var fileName = args.storageContents[storageName];
+      args.storageContents[storageName] = { file: fs.readFileSync(fileName, {encoding:"utf8"}).toString() };
+    }
+  }
  }
  if (args.config) {
    for (var key in args.config) {
@@ -249,7 +268,7 @@ function setupConfig(Espruino, callback) {
 /* Write a file into a Uint8Array in the form that Espruino expects. Return the
 address of the next file.
 NOTE: On platforms with only a 64 bit write (STM32L4) this won't work */
-function setBufferFile(buffer, addr, filename, data) {
+function setStorageBufferFile(buffer, addr, filename, data) {
   if (!typeof data=="string") throw "Expecting string";
   if (addr&3) throw "Unaligned";
   var fileSize = data.length;
@@ -262,18 +281,20 @@ function setBufferFile(buffer, addr, filename, data) {
   // 'replacement' - none, since this is the only file
   buffer.set([0xFF,0xFF,0xFF,0xFF], addr+4);
   // 'filename', 8 bytes
+  if (filename.length>8) throw "Filename "+JSON.stringify(filename)+" too big";
   buffer.set([0,0,0,0,0,0,0,0], addr+8);
   for (var i=0;i<filename.length;i++)
     buffer[addr+8+i] = filename.charCodeAt(i);
   // Write the data in
   for (var i=0;i<fileSize;i++)
-    buffer[16+i] = data.charCodeAt(i);
+    buffer[addr+16+i] = data.charCodeAt(i);
   // return next addr
   return nextAddr;
 }
 
-// convert the given code to intel hex at the given location
-function toIntelHex(code) {
+/* Convert the given files to the format used by the Storage module,
+and return the Intel Hex file for it all. */
+function toIntelHex(files) {
   var saveAddress, saveSize;
   try {
     saveAddress = Espruino.Core.Env.getData().chip.saved_code.address;
@@ -284,7 +305,13 @@ function toIntelHex(code) {
   }
   var buffer = new Uint8Array(saveSize);
   buffer.fill(0xFF); // fill with 255 for emptiness
-  setBufferFile(buffer, 0, ".bootcde", code);
+  var offset = 0;
+  for (var filename in files) {
+    console.log(`Storage: set ${JSON.stringify(filename)} at ${offset} (${files[filename].length} bytes)`);
+    offset = setStorageBufferFile(buffer, offset, filename, files[filename]);
+  }
+  if (offset>saveSize)
+    throw new Error(`Too much code to save (${offset} vs ${saveSize} bytes)`);
   // Now work out intel hex
   function h(d) { var n = "0123456789ABCDEF"; return n[(d>>4)&15]+n[d&15]; }
   function ihexline(bytes) {
@@ -382,7 +409,20 @@ function sendCode(callback) {
       }
       if (args.outputHEX) {
         log("Writing hex output to "+args.outputHEX);
-        require("fs").writeFileSync(args.outputHEX, toIntelHex(code));
+        var storage = {}
+        var hadCode = false;
+        for (var storageName in args.storageContents) {
+          var storageContent = args.storageContents[storageName];
+          if (storageContent.code) {
+            storage[storageName] = code;
+            hadCode = true;
+          } else {
+            storage[storageName] = storageContent.file;
+          }
+        }
+        // add code in default place
+        if (!hadCode) storage[".bootcde"]=code;
+        require("fs").writeFileSync(args.outputHEX, toIntelHex(storage));
       }
       if (!args.nosend)
         Espruino.Core.CodeWriter.writeToEspruino(code, callback);

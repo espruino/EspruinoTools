@@ -12,7 +12,7 @@ Command-line
 When installed as a Node module with `npm install -g espruino` you get a command-line tool called `espruino`:
 
 ```
-Espruino Command-line Tool 0.1.3
+Espruino Command-line Tool 0.1.18
 -----------------------------------
 
 USAGE: espruino ...options... [file_to_upload.js]
@@ -37,7 +37,9 @@ USAGE: espruino ...options... [file_to_upload.js]
   --config key=value       : Set internal Espruino config option
   -t,--time                : Set Espruino's time when uploading code
   -o out.js                : Write the actual JS code sent to Espruino to a file
-  -ohex out.hex            : Write the JS code to a hex file as if sent by E.setBootCode
+  --ohex out.hex           : Write the JS code to a hex file as if sent by E.setBootCode
+  --storage fn:data.bin    : Write a file named 'fn' to Storage, must be used with --ohex
+  --storage .boot0:-       : Store program code in the given Storage file (not .bootcde)
   -n                       : Do not connect to Espruino to upload code
   --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file
   -f firmware.bin[:N]      : Update Espruino's firmware to the given file
@@ -50,7 +52,6 @@ USAGE: espruino ...options... [file_to_upload.js]
 If no file, command, or firmware update is specified, this will act
 as a terminal for communicating directly with Espruino. Press Ctrl-C
 twice to exit.
-
 ```
 
 For instance:
@@ -124,7 +125,10 @@ from Flash, without taking up any RAM.
 
 ```
 # Get a hex file that can be flashed directly to the board
-espruino --board PUCKJS mycode.js -ohex output.hex
+espruino --board PUCKJS mycode.js --ohex output.hex
+
+# Get a hex file, include 'myModule.js' as a file inside Storage
+espruino --board PUCKJS mycode.js --storage myModule:myModule.js --ohex output.hex
 ```
 
 Configuration
