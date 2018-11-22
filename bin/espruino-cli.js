@@ -13,8 +13,16 @@ function getHelp() {
    "  -v,--verbose             : Verbose",
    "  -q,--quiet               : Quiet - apart from Espruino output",
    "  -m,--minify              : Minify the code before sending it",
+   "  -t,--time                : Set Espruino's time when uploading code",
    "  -w,--watch               : If uploading a JS file, continue to watch it for",
    "                               changes and upload again if it does.",
+   "  -e command               : Evaluate the given expression on Espruino",
+   "                               If no file to upload is specified but you use -e,",
+   "                               Espruino will not be reset",
+   "  -n                       : Do not connect to Espruino to upload code",
+   "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",
+   "  --ide [8080]             : Serve up the Espruino Web IDE on the given port. If not specified, 8080 is the default.",
+   "",
    "  -p,--port /dev/ttyX",
    "  -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to",
    "  -d deviceName            : Connect to the first device with a name containing deviceName",
@@ -22,21 +30,18 @@ function getHelp() {
    "                               No effect when using USB, default: 9600",
    "  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)",
    "  --list                   : List all available devices and exit",
+   "",
    "  --listconfigs            : Show all available config options and exit",
    "  --config key=value       : Set internal Espruino config option",
-   "  -t,--time                : Set Espruino's time when uploading code",
+   "",
    "  -o out.js                : Write the actual JS code sent to Espruino to a file",
    "  --ohex out.hex           : Write the JS code to a hex file as if sent by E.setBootCode",
    "  --storage fn:data.bin    : Write a file named 'fn' to Storage, must be used with --ohex",
    "  --storage .boot0:-       : Store program code in the given Storage file (not .bootcde)",
-   "  -n                       : Do not connect to Espruino to upload code",
-   "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",
+   "",
    "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
    "                               Espruino must be in bootloader mode.",
    "                               Optionally skip N first bytes of the bin file.",
-   "  -e command               : Evaluate the given expression on Espruino",
-   "                               If no file to upload is specified but you use -e,",
-   "                               Espruino will not be reset",
    "",
    "If no file, command, or firmware update is specified, this will act",
    "as a terminal for communicating directly with Espruino. Press Ctrl-C",
@@ -143,6 +148,12 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="--board") {
      i++; args.board = next;
      if (!isNextValid(next)) throw new Error("Expecting an argument to --board");
+   } else if (arg=="--ide") {
+     args.ideServer = 8080;
+     if (isFinite(parseInt(next))) {
+       args.ideServer = parseInt(next);
+       i++;
+     }
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -436,6 +447,7 @@ function sendCode(callback) {
 
 /* Connect and send file/expression/etc */
 function connect(devicePath, exitCallback) {
+  if (args.ideServer) log("WARNING: --ide specified, but no terminal. Don't specify a file/expression to upload.");
   if (!args.quiet) if (! args.nosend) log("Connecting to '"+devicePath+"'");
   var currentLine = "";
   var exitTimeout;
@@ -510,15 +522,73 @@ function sendOnFileChanged() {
   });
 }
 
+/* Start a webserver for the Web IDE */
+function startWebIDEServer(writeCallback) {
+  var httpPort = args.ideServer;
+  var server = require("http").createServer(function(req, res) {
+    res.end(`<html>
+<body style="margin:0px">
+<iframe id="ideframe" src="https://www.espruino.com/ide/" style="width:100%;height:100%;border:0px;"></iframe>
+<script src="https://www.espruino.com/ide/embed.js"></script>
+<script>
+  var ws = new WebSocket("ws://" + location.host + "/ws", "serial");
+  var Espruino = EspruinoIDE(document.getElementById('ideframe'));
+  Espruino.onports = function() {
+    return [{path:'local', description:'Connected Device', type : "net"}];
+  };
+  Espruino.onready = function(data) { Espruino.connect("local");};
+  Espruino.onwrite = function(data) { ws.send(data); }
+  ws.onmessage = function (event) { Espruino.received(event.data); };
+  ws.onclose = function (event) { Espruino.disconnect(); };
+</script>
+</body>
+</html>
+`);
+  });
+  server.listen(httpPort);
+  log("Web IDE is now available on http://localhost:"+httpPort);
+  /* Start the WebSocket relay - allows standard Websocket MQTT communications */
+  var WebSocketServer = require('websocket').server;
+  var wsServer = new WebSocketServer({
+    httpServer: server,
+    autoAcceptConnections: false
+  });
+  var ideConnections = [];
+  wsServer.on('request', function(request) {
+    // request.reject() based on request.origin?
+    var connection = request.accept('serial', request.origin);
+    ideConnections.push(connection);
+    log('Web IDE Connection accepted.');
+    connection.on('message', function(message) {
+      if (message.type === 'utf8') writeCallback(message.utf8Data);
+    });
+    connection.on('close', function(reasonCode, description) {
+      log('Web IDE Connection closed.');
+      var conIdx = ideConnections.indexOf(connection);
+      if (conIdx>=0) ideConnections.splice(conIdx,1);
+    });
+  });
+
+  return {
+    write : function(data) {
+      ideConnections.forEach(function(connection) { connection.sendUTF(data) });
+    }
+  };
+}
+
 /* Connect and enter terminal mode */
 function terminal(devicePath, exitCallback) {
   if (!args.quiet) log("Connecting to '"+devicePath+"'");
   var hadCtrlC = false;
   var hadCR = false;
+  var ideServer = undefined;
   process.stdin.setRawMode(true);
   Espruino.Core.Serial.startListening(function(data) {
     data = new Uint8Array(data);
-    process.stdout.write(String.fromCharCode.apply(null, data));
+    var dataStr = String.fromCharCode.apply(null, data);
+    if (ideServer) ideServer.write(dataStr);
+
+    process.stdout.write(dataStr);
     /* If Espruino responds after a Ctrl-C with anything other
      than a blank prompt, make sure the next Ctrl-C will exit */
     for (var i=0;i<data.length;i++) {
@@ -566,6 +636,11 @@ function terminal(devicePath, exitCallback) {
       console.log("STDIN ended. exiting...");
       exitCallback();
     });
+
+    if (args.ideServer)
+      ideServer = startWebIDEServer(function(data) {
+        Espruino.Core.Serial.write(data);
+      });
 
     // figure out what code we need to send (if any)
     sendCode(function() {
