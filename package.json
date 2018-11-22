@@ -21,7 +21,7 @@
     "esprima": "",
     "request": "^2.74.0",
     "tar.gz": "^1.0.5",
-    "utf8": "^2.1.2",
+    "utf8": "^2.1.2"
   },
   "optionalDependencies": {
     "noble": "^1.7.0",
