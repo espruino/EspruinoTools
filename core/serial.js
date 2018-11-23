@@ -49,6 +49,13 @@ To add a new serial device, you must add an object to
       type : {9600:9600,14400:14400,19200:19200,28800:28800,38400:38400,57600:57600,115200:115200},
       defaultValue : 9600,
     });
+    Espruino.Core.Config.add("SERIAL_IGNORE", {
+     section : "Communications",
+     name : "Ignore Serial Ports",
+     description : "A '|' separated list of serial port paths to ignore, eg `/dev/ttyS*|/dev/*.SOC`",
+     type : "string",
+     defaultValue : "/dev/ttyS*|/dev/*.SOC|/dev/*.MALS"
+   });
 
     var devices = Espruino.Core.Serial.devices;
     for (var i=0;i<devices.length;i++) {
@@ -85,10 +92,20 @@ To add a new serial device, you must add an object to
         if (instantPorts===false) shouldCallAgain = true;
         if (devicePorts) {
           devicePorts.forEach(function(port) {
-            if (port.usb && port.usb[0]==0x0483 && port.usb[1]==0x5740)
-              port.description = "Espruino board";
-            ports.push(port);
-            newPortToDevice[port.path] = device;
+            var ignored = false;
+            if (Espruino.Config.SERIAL_IGNORE)
+              Espruino.Config.SERIAL_IGNORE.split("|").forEach(function(wildcard) {
+                var regexp = "^"+wildcard.replace(/\./g,"\\.").replace(/\*/g,".*")+"$";
+                if (port.path.match(new RegExp(regexp)))
+                  ignored = true;
+              });
+
+            if (!ignored) {
+              if (port.usb && port.usb[0]==0x0483 && port.usb[1]==0x5740)
+                port.description = "Espruino board";
+              ports.push(port);
+              newPortToDevice[port.path] = device;
+            }
           });
         }
         responses++;
