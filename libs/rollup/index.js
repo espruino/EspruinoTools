@@ -36,7 +36,7 @@ function loadModulesRollup(code, callback) {
         espruino: {
             job: Espruino.Config,
 
-            board: board.BOARD,
+            board: board.BOARD ? board : env,
             mergeModules: Espruino.Config.MODULE_MERGE,
             minify: !!Espruino.Config.MINIFICATION_LEVEL,
             minifyModules: !!Espruino.Config.MODULE_MINIFICATION_LEVEL
