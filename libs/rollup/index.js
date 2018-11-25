@@ -12,7 +12,7 @@
 
 // =========================================================
 
-function loadModulesRollup(code, callback) {
+function loadModulesRollup(code) {
     var board = Espruino.Core.Env.getBoardData();
     var env = Espruino.Core.Env.getData();
     var modules = [];
@@ -27,6 +27,10 @@ function loadModulesRollup(code, callback) {
         modules.push([entryFilename, code]);
     }
 
+    var job = Espruino.Config;
+    var minify = job.MINIFICATION_LEVEL === 'TERSER';
+    var minifyModules = job.MODULE_MINIFICATION_LEVEL === 'TERSER';
+
     return espruinoRollup.bundle({
         modules,
         input: entryFilename,
@@ -34,22 +38,45 @@ function loadModulesRollup(code, callback) {
             format: 'cjs'
         },
         espruino: {
-            job: Espruino.Config,
+            job,
 
             board: board.BOARD ? board : env,
-            mergeModules: Espruino.Config.MODULE_MERGE,
-            minify: !!Espruino.Config.MINIFICATION_LEVEL,
-            minifyModules: !!Espruino.Config.MODULE_MINIFICATION_LEVEL
-
-            // TODO: handle opts MINIFICATION_Xyz
+            mergeModules: job.MODULE_MERGE,
+            minify: minify ? buildEspruinoMinifyOptions() : false,
+            minifyModules
         }
     })
 }
 
-function minifyCodeTerser(code, callback) {
-    return espruinoRollup.minify(code, {
-        // TODO: handle opts MINIFICATION_Xyz
-    })
+function buildEspruinoMinifyOptions() {
+    var job = Espruino.Config;
+
+    var options = {};
+    if (job.MINIFICATION_Mangle === false) {
+        options.mangle = false;
+    }
+    if (job.MINIFICATION_Unused === false) {
+        options.compress = options.compress || {};
+        options.compress.unused = false;
+    }
+    if (job.MINIFICATION_DeadCode === false) {
+        options.compress = options.compress || {};
+        options.compress.dead_code = false;
+    }
+    if (job.MINIFICATION_Unreachable === false) {
+        options.compress = options.compress || {};
+        options.compress.dead_code = false; // in Terser dead_code ~ unreachable
+    }
+    if (job.MINIFICATION_Literal === false) {
+        options.compress = options.compress || {};
+        options.compress.reduce_vars = false;
+    }
+
+    return options;
+}
+
+function minifyCodeTerser(code) {
+    return espruinoRollup.minify(code, buildEspruinoMinifyOptions());
 }
 
 exports.loadModulesRollup = loadModulesRollup
