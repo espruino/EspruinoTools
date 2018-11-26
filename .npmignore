@@ -1,0 +1,7 @@
+.git
+CONTRIBUTING.md
+index.html
+libs/esprima
+libs/targz.js
+libs/utf8.js
+plugins/_examplePlugin.js
