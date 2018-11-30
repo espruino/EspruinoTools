@@ -40,12 +40,25 @@ function loadModulesRollup(code) {
         espruino: {
             job,
 
+            externals: {
+                // for proxy and offline support
+                getURL: url => new Promise((resolve, reject) => {
+                    Espruino.Core.Utils.getURL(url, data => data!==undefined ? resolve(data) : reject(null));
+                }),
+                // for project sandbox chrome app
+                getModule: moduleName => new Promise((resolve, reject) => {
+                    Espruino.callProcessor("getModule",
+                        { moduleName, moduleCode:undefined, isMinified:false },
+                        data => data.moduleCode!==undefined ? resolve(data.moduleCode) : reject(null));
+                })
+            },
+
             board: board.BOARD ? board : env,
             mergeModules: job.MODULE_MERGE,
             minify: minify ? buildEspruinoMinifyOptions() : false,
             minifyModules
         }
-    })
+    });
 }
 
 function buildEspruinoMinifyOptions() {
