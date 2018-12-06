@@ -742,11 +742,13 @@ function main() {
           args.ports = [{type:"path",name:ports[0].path}];
           startConnect();
         } else
-          throw new Error("No Ports Found");
+          console.error("Error: No Ports Found");
+          process.exit(1);
       });
     } else startConnect();
   });
 }
+
 
 // Start up
 require('../index.js').init(main);
