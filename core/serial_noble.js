@@ -8,14 +8,6 @@
 
   if (typeof require === 'undefined') return;
   var noble = undefined;
-  try {
-    noble = require('noble');
-  } catch (e) {
-    console.log("Noble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
-    // super nasty workaround for https://github.com/sandeepmistry/noble/issues/502
-    process.removeAllListeners('exit');
-    return;
-  }
 
   var NORDIC_SERVICE = "6e400001b5a3f393e0a9e50e24dcca9e";
   var NORDIC_TX = "6e400002b5a3f393e0a9e50e24dcca9e";
@@ -54,70 +46,82 @@
     });
   }
 
+  function startNoble() {
+    try {
+      noble = require('noble');
+    } catch (e) {
+      console.log("Noble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
+      // super nasty workaround for https://github.com/sandeepmistry/noble/issues/502
+      process.removeAllListeners('exit');
+      errored = true;
+      return;
+    }
 
-  noble.on('stateChange', function(state) {
-    console.log("Noble: stateChange -> "+state);
-    if (state=="poweredOn") {
-      if (Espruino.Config.WEB_BLUETOOTH) {
-        // Everything has already initialised, so we must disable
-        // web bluetooth this way instead
-        console.log("Noble: Disable Web Bluetooth as we have Noble instead");
-        Espruino.Config.WEB_BLUETOOTH = false;
+    noble.on('stateChange', function(state) {
+      console.log("Noble: stateChange -> "+state);
+      if (state=="poweredOn") {
+        if (Espruino.Config.WEB_BLUETOOTH) {
+          // Everything has already initialised, so we must disable
+          // web bluetooth this way instead
+          console.log("Noble: Disable Web Bluetooth as we have Noble instead");
+          Espruino.Config.WEB_BLUETOOTH = false;
+        }
+        initialised = true;
+        /* if getPorts was called before initialisation, be sure
+        to wait for stuff to arrive before just calling back
+        with nothing - we're in the CLI */
+        if (scanWhenInitialised) {
+          var scb = scanWhenInitialised;
+          scanWhenInitialised = undefined;
+          getPorts(function() {
+            setTimeout(function() {
+              getPorts(scb);
+            }, 1500);
+          });
+        }
       }
-      initialised = true;
-      /* if getPorts was called before initialisation, be sure
-      to wait for stuff to arrive before just calling back
-      with nothing - we're in the CLI */
+      if (state=="poweredOff") {
+        initialised = false;
+        if (scanWhenInitialised) {
+          var scb = scanWhenInitialised;
+          scanWhenInitialised = undefined;
+          scb(undefined, true/*instantPorts*/);
+        }
+      }
+    });
+
+    noble.on('discover', function(dev) {
+      if (!dev.advertisement) return;
+      for (var i in newDevices)
+        if (newDevices[i].path == dev.address) return; // already seen it
+      var name = dev.advertisement.localName;
+      var hasUartService = dev.advertisement.serviceUuids.indexOf(NORDIC_SERVICE)>=0;
+      if (hasUartService ||
+          Espruino.Core.Utils.isRecognisedBluetoothDevice(name)) {
+        console.log("Noble: Found UART device:", name, dev.address);
+        newDevices.push({ path: dev.address, description: name, type : "bluetooth" });
+        btDevices[dev.address] = dev;
+      } else console.log("Noble: Found device:", name, dev.address);
+    });
+
+    // if we didn't initialise for whatever reason, keep going anyway
+    setTimeout(function() {
+      if (initialised) return;
+      console.log("Noble: Didn't initialise in 10 seconds, disabling.");
+      errored = true;
       if (scanWhenInitialised) {
-        var scb = scanWhenInitialised;
+        scanWhenInitialised([]);
         scanWhenInitialised = undefined;
-        getPorts(function() {
-          setTimeout(function() {
-            getPorts(scb);
-          }, 1500);
-        });
       }
-    }
-    if (state=="poweredOff") {
-      initialised = false;
-      if (scanWhenInitialised) {
-        var scb = scanWhenInitialised;
-        scanWhenInitialised = undefined;
-        scb(undefined, true/*instantPorts*/);
-      }
-    }
-  });
-  // if we didn't initialise for whatever reason, keep going anyway
-  setTimeout(function() {
-    if (initialised) return;
-    console.log("Noble: Didn't initialise in 10 seconds, disabling.");
-    errored = true;
-    if (scanWhenInitialised) {
-      scanWhenInitialised([]);
-      scanWhenInitialised = undefined;
-    }
-  }, 10000);
-
-  noble.on('discover', function(dev) {
-    if (!dev.advertisement) return;
-    for (var i in newDevices)
-      if (newDevices[i].path == dev.address) return; // already seen it
-    var name = dev.advertisement.localName;
-    var hasUartService = dev.advertisement.serviceUuids.indexOf(NORDIC_SERVICE)>=0;
-    if (hasUartService ||
-        Espruino.Core.Utils.isRecognisedBluetoothDevice(name)) {
-      console.log("Noble: Found UART device:", name, dev.address);
-      newDevices.push({ path: dev.address, description: name, type : "bluetooth" });
-      btDevices[dev.address] = dev;
-    } else console.log("Noble: Found device:", name, dev.address);
-  });
-
+    }, 10000);
+  }
 
   var getPorts = function (callback) {
     if (errored || !Espruino.Config.BLUETOOTH_LOW_ENERGY) {
       console.log("Noble: getPorts - disabled");
       callback([], true/*instantPorts*/);
     } else if (!initialised) {
+      if (!noble) startNoble();
       console.log("Noble: getPorts - not initialised");
       // if not initialised yet, wait until we are
       if (scanWhenInitialised) scanWhenInitialised([]);
