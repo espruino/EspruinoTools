@@ -61,8 +61,24 @@
 
     // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
+      if (Espruino.Config.ROLLUP) {
+        return loadModulesRollup(code, callback);
+      }
       loadModules(code, callback);
     });
+
+    // Append the 'getModule' processor as the last (plugins get initialized after Espruino.Core modules)
+    Espruino.Plugins.CoreModules = {
+      init: function() {
+        Espruino.addProcessor("getModule", function(data, callback) {
+          if (data.moduleCode!==undefined) { // already provided be previous getModule processor
+            return callback(data);
+          }
+
+          fetchGetModule(data, callback);
+        });
+      }
+    };
   }
 
   function isBuiltIn(module) {
@@ -105,6 +121,50 @@
     return modules;
   };
 
+  /** Download modules from MODULE_URL/.. */
+  function fetchGetModule(data, callback) {
+    var fullModuleName = data.moduleName;
+
+    // try and load the module the old way...
+    console.log("loadModule("+fullModuleName+")");
+
+    var urls = []; // Array of where to look for this module
+    var modName; // Simple name of the module
+    if(Espruino.Core.Utils.isURL(fullModuleName)) {
+      modName = fullModuleName.substr(fullModuleName.lastIndexOf("/") + 1).split(".")[0];
+      urls = [ fullModuleName ];
+    } else {
+      modName = fullModuleName;
+      Espruino.Config.MODULE_URL.split("|").forEach(function (url) {
+        url = url.trim();
+        if (url.length!=0)
+        Espruino.Config.MODULE_EXTENSIONS.split("|").forEach(function (extension) {
+          urls.push(url + "/" + fullModuleName + extension);
+        })
+      });
+    };
+
+    // Recursively go through all the urls
+    (function download(urls) {
+      if (urls.length==0) {
+        return callback(data);
+      }
+      var dlUrl = urls[0];
+      Espruino.Core.Utils.getURL(dlUrl, function (code) {
+        if (code!==undefined) {
+          // we got it!
+          data.moduleCode = code;
+          data.isMinified = dlUrl.substr(-7)==".min.js";
+          return callback(data);
+        } else {
+          // else try next
+          download(urls.slice(1));
+        }
+      });
+    })(urls);
+  }
+
+
   /** Called from loadModule when a module is loaded. Parse it for other modules it might use
    *  and resolve dfd after all submodules have been loaded */
   function moduleLoaded(resolve, requires, modName, data, loadedModuleData, alreadyMinified){
@@ -144,51 +204,16 @@
     return new Promise(function(resolve, reject) {
       // First off, try and find this module using callProcessor
       Espruino.callProcessor("getModule",
-        { moduleName:fullModuleName, moduleCode:undefined },
+        { moduleName:fullModuleName, moduleCode:undefined, isMinified:false },
         function(data) {
-          if (data.moduleCode!==undefined) {
-            // great! it found something. Use it.
-            moduleLoaded(resolve, requires, fullModuleName, data.moduleCode, loadedModuleData, false);
-          } else {
-            // otherwise try and load the module the old way...
-            console.log("loadModule("+fullModuleName+")");
-
-            var urls = []; // Array of where to look for this module
-            var modName; // Simple name of the module
-            if(Espruino.Core.Utils.isURL(fullModuleName)) {
-              modName = fullModuleName.substr(fullModuleName.lastIndexOf("/") + 1).split(".")[0];
-              urls = [ fullModuleName ];
-            } else {
-              modName = fullModuleName;
-              Espruino.Config.MODULE_URL.split("|").forEach(function (url) {
-                url = url.trim();
-                if (url.length!=0)
-                  Espruino.Config.MODULE_EXTENSIONS.split("|").forEach(function (extension) {
-                    urls.push(url + "/" + fullModuleName + extension);
-                  })
-              });
-            };
-
-            // Recursively go through all the urls
-            (function download(urls) {
-              if (urls.length==0) {
-                Espruino.Core.Notifications.warning("Module "+fullModuleName+" not found");
-                return resolve();
-              }
-              var dlUrl = urls[0];
-              Espruino.Core.Utils.getURL(dlUrl, function (data) {
-                if (data!==undefined) {
-                  // we got it!
-                  moduleLoaded(resolve, requires, fullModuleName, data, loadedModuleData, dlUrl.substr(-7)==".min.js");
-                } else {
-                  // else try next
-                  download(urls.slice(1));
-                }
-              });
-            })(urls);
+          if (data.moduleCode===undefined) {
+            Espruino.Core.Notifications.warning("Module "+fullModuleName+" not found");
+            return resolve();
           }
-        });
 
+          // great! it found something. Use it.
+          moduleLoaded(resolve, requires, fullModuleName, data.moduleCode, loadedModuleData, data.isMinified);
+        });
     });
   }
 
@@ -211,8 +236,24 @@
         callback(loadedModuleData.join("\n") + "\n" + code);
       });
     }
-  };
+  }
 
+  function loadModulesRollup(code, callback) {
+    rollupTools.loadModulesRollup(code)
+      .then(generated => {
+        const minified = generated.code;
+        console.log('rollup: '+minified.length+' bytes');
+
+        // FIXME: needs warnings?
+        Espruino.Core.Notifications.info('Rollup no errors. Bundling ' + code.length + ' bytes to ' + minified.length + ' bytes');
+        callback(minified);
+      })
+      .catch(err => {
+        console.log('rollup:error', err);
+        Espruino.Core.Notifications.error("Rollup errors - Bundling failed: " + String(err).trim());
+        callback(code);
+      });
+  }
 
   Espruino.Core.Modules = {
     init : init

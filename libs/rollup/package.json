@@ -1,0 +1,26 @@
+{
+  "name": "espruino-rollup",
+  "version": "0.1.0",
+  "description": "Espruino rollup bundling pipeline",
+  "main": "espruino-rollup.js",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "keywords": [],
+  "author": "Standa Opichal",
+  "license": "MIT",
+  "dependencies": {
+    "memfs": "=2.12.1",
+    "rollup": "^0.67.4",
+    "rollup-plugin-espruino-modules": "opichals/rollup-plugin-espruino-modules"
+  },
+  "devDependencies": {
+    "rollup-plugin-alias": "^1.4.0",
+    "rollup-plugin-commonjs": "^9.1.8",
+    "rollup-plugin-json": "^3.1.0",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-node-globals": "^1.4.0",
+    "rollup-plugin-node-resolve": "^3.4.0",
+    "rollup-plugin-terser": "^3.0.0"
+  }
+}
