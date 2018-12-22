@@ -21,7 +21,6 @@
     "esprima": "",
     "rollup": "^0.66.2",
     "rollup-plugin-espruino-modules": "opichals/rollup-plugin-espruino-modules",
-    "tar.gz": "^1.0.7",
     "utf8": "^2.1.2"
   },
   "optionalDependencies": {
