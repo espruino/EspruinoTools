@@ -19,6 +19,7 @@ function getHelp() {
    "  -e command               : Evaluate the given expression on Espruino",
    "                               If no file to upload is specified but you use -e,",
    "                               Espruino will not be reset",
+   "  --sleep 10               : Sleep for the given number of seconds after uploading code", 
    "  -n                       : Do not connect to Espruino to upload code",
    "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",
    "  --ide [8080]             : Serve up the Espruino Web IDE on the given port. If not specified, 8080 is the default.",
@@ -64,6 +65,9 @@ var args = {
  storageContents : {} // Storage files to save when using ohex
 };
 
+var isNextValidNumber = function(next) {
+ return next && isFinite(parseFloat(next));
+}
 var isNextValidPort = function(next) {
  return next && next[0]!=='-' && next.indexOf(".js") == -1;
 }
@@ -154,6 +158,9 @@ for (var i=2;i<process.argv.length;i++) {
        args.ideServer = parseInt(next);
        i++;
      }
+   } else if (arg=="--sleep") {
+     i++; args.sleepAfterUpload = parseFloat(next);
+     if (!isNextValidNumber(next)) throw new Error("Expecting a number argument to --sleep");
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -440,7 +447,15 @@ function sendCode(callback) {
         require("fs").writeFileSync(args.outputHEX, toIntelHex(storage));
       }
       if (!args.nosend)
-        Espruino.Core.CodeWriter.writeToEspruino(code, callback);
+        Espruino.Core.CodeWriter.writeToEspruino(code, function() {
+          if (args.sleepAfterUpload) {
+            log("Upload Complete. Sleeping for "+args.sleepAfterUpload+"s");
+            setTimeout(callback, args.sleepAfterUpload*1000);
+          } else {
+            log("Upload Complete");
+            callback();
+          }
+        });
       else
         callback();
     });
@@ -455,10 +470,9 @@ function connect(devicePath, exitCallback) {
   if (!args.quiet) if (! args.nosend) log("Connecting to '"+devicePath+"'");
   var currentLine = "";
   var exitTimeout;
+  // Handle received data
   Espruino.Core.Serial.startListening(function(data) {
-   // convert ArrayBuffer to string
    data = String.fromCharCode.apply(null, new Uint8Array(data));
-   // Now handle...
    currentLine += data;
    while (currentLine.indexOf("\n")>=0) {
      var i = currentLine.indexOf("\n");
@@ -684,13 +698,18 @@ function getPortPath(port, callback) {
   } else throw new Error("Unknown port type! "+JSON.stringify(port));
 }
 
+function tasksComplete() {
+  console.log("Done");
+  process.exit(0);
+} 
+
 function startConnect() {
   if ((!args.file && !args.updateFirmware && !args.expr) || (args.file && args.watchFile)) {
     if (args.ports.length != 1)
       throw new Error("Can only have one port when using terminal mode");
 
-    getPortPath(args.ports[0], function(path) {
-      terminal(path, function() { process.exit(0); });
+    getPortPath(args.ports[0], function(path) {    
+      terminal(path, tasksComplete);
     });
   } else {
     //closure for stepping through each port
@@ -700,7 +719,7 @@ function startConnect() {
       this.idx = 0;
       this.connect = connect;
       this.iterate = function() {
-        if (idx>=ports.length) process.exit(0);
+        if (idx>=ports.length) tasksComplete();
         else getPortPath(ports[idx++], function(path) {
           connect(path,iterate);
         });
@@ -716,10 +735,7 @@ function main() {
     if (args.ports.length == 0 && (args.outputJS || args.outputHEX)) {
       console.log("No port supplied, but output file listed - not connecting");
       args.nosend = true;
-      sendCode(function() {
-        log("File written. Exiting.");
-        process.exit(1);
-      });
+      sendCode(tasksComplete);
     } else if (args.ports.length == 0 || args.showDevices) {
       console.log("Searching for serial ports...");
       Espruino.Core.Serial.getPorts(function(ports, shouldCallAgain) {

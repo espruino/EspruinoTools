@@ -30,6 +30,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   -e command               : Evaluate the given expression on Espruino
                                If no file to upload is specified but you use -e,
                                Espruino will not be reset
+  --sleep 10               : Sleep for the given number of seconds after uploading code
   -n                       : Do not connect to Espruino to upload code
   --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file
   --ide [8080]             : Serve up the Espruino Web IDE on the given port. If not specified, 8080 is the default.
