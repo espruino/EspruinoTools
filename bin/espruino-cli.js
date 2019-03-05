@@ -497,6 +497,7 @@ function connect(devicePath, exitCallback) {
       // ----------------------
      }, function() {
        log("Disconnected.");
+       exitCallback();
      });
   } else {
     sendCode(function() {
