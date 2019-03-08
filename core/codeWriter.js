@@ -179,7 +179,7 @@
         } else if (tok.str==")" && statementBeforeBrackets) {
           statementBeforeBrackets = false;
           statement = true;
-        } else if (tok.str=="=" || tok.str=="do") {
+        } else if (["=","^","&&","||","+","+=","-","-=","*","*=","/","/=","%","%=","&","&=","|","|="].indexOf(tok.str)>=0) {
           statement = true;
         } else {
           if (tok.str==";") varDeclaration = false;
