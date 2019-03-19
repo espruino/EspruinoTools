@@ -284,6 +284,14 @@
         // already minified by the ROLLUP pipeline
         return callback(code);
     }
+    (function() {
+      Espruino.Core.Status.setStatus("Minifying"+(isModule?description.substr(2):""));
+      var _callback = callback;
+      callback = function(code) {
+        Espruino.Core.Status.setStatus("Minification complete");
+        _callback(code);
+      };
+    })();
 
     var minifyCode = code;
     var minifyCallback = callback;

@@ -227,6 +227,7 @@
       // no modules needed - just return
       callback(code);
     } else {
+      Espruino.Core.Status.setStatus("Loading modules");
       // Kick off the module loading (each returns a promise)
       var promises = requires.map(function (moduleName) {
         return loadModule(requires, moduleName, loadedModuleData);
