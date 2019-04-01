@@ -35,8 +35,9 @@ USAGE: espruino ...options... [file_to_upload.js]
   --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file
   --ide [8080]             : Serve up the Espruino Web IDE on the given port. If not specified, 8080 is the default.
 
-  -p,--port /dev/ttyX
-  -p,--port aa:bb:cc:dd:ee : Specify port(s) or device addresses to connect to
+  -p,--port /dev/ttyX      : Connect to a serial port
+  -p,--port aa:bb:cc:dd:ee : Connect to a Bluetooth device by addresses
+  -p,--port tcp://192.168.1.50 : Connect to a network device (port 23 default)
   -d deviceName            : Connect to the first device with a name containing deviceName
   -b baudRate              : Set the baud rate of the serial connection
                                No effect when using USB, default: 9600
