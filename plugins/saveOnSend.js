@@ -19,11 +19,12 @@
     Espruino.Core.Config.add("SAVE_ON_SEND", {
       section : "Communications",
       name : "Save on Send",
-      descriptionHTML : 'How should code be uploaded? See <a href="http://www.espruino.com/Saving" target="_blank">espruino.com/Saving</a> for more information.',
+      descriptionHTML : 'How should code be uploaded? See <a href="http://www.espruino.com/Saving" target="_blank">espruino.com/Saving</a> for more information.<br>'+
+                        "<b>NOTE:</b> Avoid 'Direct to flash, even after <code>reset()</code>' for normal development - it can make it hard to recover if your code crashes the device.",
       type : {
         0: "To RAM (default) - execute code while uploading. Use 'save()' to save a RAM image to Flash",
         1: "Direct to Flash (execute code at boot)",
-        2: "Direct to Flash (execute code at boot, even after a call to 'reset()')",
+        2: "Direct to Flash (execute code at boot, even after 'reset()') - USE WITH CARE",
       },
       defaultValue : 0
     });
