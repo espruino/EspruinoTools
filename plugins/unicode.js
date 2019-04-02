@@ -14,9 +14,18 @@
 (function(){
 
   // Node.js doesn't have utf8 installed
-  if ("undefined"==typeof utf8) {
-    if ("undefined"!=typeof require) var utf8 = require('utf8');
-    else var utf8 = { encode : function(c){return c} };
+  var utf8lib;
+  if ("undefined"==typeof utf8) {    
+    if ("undefined"!=typeof require) {
+      console.log("Loading UTF8 with require");
+      utf8lib = require('utf8');
+    } else {
+      console.log("WARNING: Loading placeholder UTF8");
+      utf8lib = { encode : function(c){return c} };
+    }
+  } else {
+    console.log("UTF8 Library loaded successfully");
+    utf8lib = utf8;
   }
 
   function init() {
@@ -57,13 +66,10 @@
   function escapeChar(c) {
     // encode char into UTF-8 sequence in form of \xHH codes
     var result = '';
-    utf8.encode(c).split('').forEach(function(c) {
-      var code = c.charCodeAt(0);
+    utf8lib.encode(c).split('').forEach(function(c) {
+      var code = c.charCodeAt(0) & 0xFF;
       result += "\\x";
-      if (code < 0x10) {
-        result += '0';
-      }
-
+      if (code < 0x10) result += '0';
       result += code.toString(16).toUpperCase();
     });
 
