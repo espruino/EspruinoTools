@@ -19,7 +19,7 @@ function getHelp() {
    "  -e command               : Evaluate the given expression on Espruino",
    "                               If no file to upload is specified but you use -e,",
    "                               Espruino will not be reset",
-   "  --sleep 10               : Sleep for the given number of seconds after uploading code", 
+   "  --sleep 10               : Sleep for the given number of seconds after uploading code",
    "  -n                       : Do not connect to Espruino to upload code",
    "  --board BRDNAME/BRD.json : Rather than checking on connect, use the given board name or file",
    "  --ide [8080]             : Serve up the Espruino Web IDE on the given port. If not specified, 8080 is the default.",
@@ -535,9 +535,9 @@ function sendOnFileChanged() {
       sendCode(function() {
         console.log("File sent!");
         busy = false;
+        // start watching again
+        sendOnFileChanged();
       });
-      // start watching again
-      sendOnFileChanged();
     }, 500);
   });
 }
@@ -702,14 +702,14 @@ function getPortPath(port, callback) {
 function tasksComplete() {
   console.log("Done");
   process.exit(0);
-} 
+}
 
 function startConnect() {
   if ((!args.file && !args.updateFirmware && !args.expr) || (args.file && args.watchFile)) {
     if (args.ports.length != 1)
       throw new Error("Can only have one port when using terminal mode");
 
-    getPortPath(args.ports[0], function(path) {    
+    getPortPath(args.ports[0], function(path) {
       terminal(path, tasksComplete);
     });
   } else {
