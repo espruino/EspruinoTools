@@ -54,7 +54,7 @@
       // super nasty workaround for https://github.com/sandeepmistry/noble/issues/502
       process.removeAllListeners('exit');
       errored = true;
-      return;
+      return false;
     }
 
     noble.on('stateChange', function(state) {
@@ -114,6 +114,7 @@
         scanWhenInitialised = undefined;
       }
     }, 10000);
+    return true;
   }
 
   var getPorts = function (callback) {
@@ -121,7 +122,9 @@
       console.log("Noble: getPorts - disabled");
       callback([], true/*instantPorts*/);
     } else if (!initialised) {
-      if (!noble) startNoble();
+      if (!noble)
+        if (!startNoble()) 
+          return callback([]);
       console.log("Noble: getPorts - not initialised");
       // if not initialised yet, wait until we are
       if (scanWhenInitialised) scanWhenInitialised([]);
