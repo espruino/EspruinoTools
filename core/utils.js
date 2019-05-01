@@ -449,6 +449,9 @@
       fileLoader.setAttribute("id", loaderId);
       fileLoader.setAttribute("type", "file");
       fileLoader.setAttribute("style", "z-index:-2000;position:absolute;top:0px;left:0px;");
+      fileLoader.addEventListener('click', function(e) {
+        e.target.value = ''; // handle repeated upload of the same file
+      });
       fileLoader.addEventListener('change', function(e) {
         if (!fileLoader.callback) return;
         var files = e.target.files;
