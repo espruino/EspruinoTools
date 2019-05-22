@@ -24,7 +24,7 @@
     "utf8": "^2.1.2"
   },
   "optionalDependencies": {
-    "noble": "^1.9.1",
+    "@abandonware/noble": "^1.9.2-2",
     "serialport": "^7.1.4",
     "winnus": "",
     "websocket": "^1.0.28"
