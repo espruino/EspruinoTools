@@ -14,7 +14,7 @@
 
   var base64_encode;
   if (typeof btoa == "undefined")
-    base64_encode = function(s) { return new Buffer(s).toString('base64'); };
+    base64_encode = function(s) { return Buffer.from(s).toString('base64'); };
   else
     base64_encode = btoa;
 
