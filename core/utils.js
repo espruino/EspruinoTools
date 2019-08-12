@@ -527,7 +527,7 @@
 
   // Converts a string to a Buffer
   function stringToBuffer(str) {
-    var buf = new Buffer(str.length);
+    var buf = Buffer.alloc(str.length);
     for (var i = 0; i < buf.length; i++) {
       buf.writeUInt8(str.charCodeAt(i), i);
     }
