@@ -629,8 +629,7 @@ function terminal(devicePath, exitCallback) {
       return exitCallback();
     }
     if (!args.quiet) log("Connected");
-    process.stdin.on('readable', function() {
-      var chunk = process.stdin.read();
+    process.stdin.on('data', function(chunk) {      
       if (chunk !== null) {
         chunk = chunk.toString();
         Espruino.Core.Serial.write(chunk);
