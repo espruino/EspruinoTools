@@ -89,7 +89,7 @@ Gordon Williams (gw@pur3.co.uk)
     // convert to an array - if we put a string into
     // a Buffer (expected by nodeserial) then I think
     // it gets interpreted as UTF8
-    var a = new Buffer(data.length);
+    var a = Buffer.alloc(data.length);
     for (var i=0;i<data.length;i++)
       a[i] = data.charCodeAt(i);
     connection.write(a, callback);
