@@ -1,6 +1,6 @@
 {
   "name": "espruino",
-  "version": "0.1.28",
+  "version": "0.1.29",
   "description": "Command Line Interface and library for Communications with Espruino JavaScript Microcontrollers",
   "main": "index.js",
   "files": [ "espruino.js","index.js","bin","libs","plugins","core" ],

@@ -48,7 +48,11 @@
 
   function startNoble() {
     try {
-      noble = require('noble');
+      try {
+        noble = require('noble');
+      } catch (e) {
+        noble = require('@abandonware/noble');
+      }
     } catch (e) {
       console.log("Noble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
       // super nasty workaround for https://github.com/sandeepmistry/noble/issues/502
