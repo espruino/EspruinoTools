@@ -52,7 +52,7 @@
     navigator.serial.requestPort({}).then(function(port) {
       Espruino.Core.Status.setStatus("Connecting to serial port");
       serialPort = port;
-      return port.open({ baudrate: 115200 });
+      return port.open({ baudrate: parseInt(Espruino.Config.BAUD_RATE) });
     }).then(function () {
       function readLoop() {
         var reader = serialPort.readable.getReader();
