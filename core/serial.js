@@ -39,6 +39,8 @@ To add a new serial device, you must add an object to
   var slowWrite = true;
   var writeData = [];
   var writeTimeout = undefined;
+  /// flow control XOFF received - we shouldn't send anything
+  var flowControlXOFF = false;
 
 
   function init() {
@@ -55,6 +57,13 @@ To add a new serial device, you must add an object to
      description : "A '|' separated list of serial port paths to ignore, eg `/dev/ttyS*|/dev/*.SOC`",
      type : "string",
      defaultValue : "/dev/ttyS*|/dev/*.SOC|/dev/*.MALS"
+   });
+    Espruino.Core.Config.add("SERIAL_FLOW_CONTROL", {
+     section : "Communications",
+     name : "Software Flow Control",
+     description : "Respond to XON/XOFF flow control characters to throttle data uploads. By default Espruino sends XON/XOFF for USB and Bluetooth (on 2v05+).",
+     type : "bool",
+     defaultValue : true
    });
 
     var devices = Espruino.Core.Serial.devices;
@@ -154,9 +163,9 @@ To add a new serial device, you must add an object to
     }
 
     connectionInfo = undefined;
+    flowControlXOFF = false;   
     currentDevice = portToDevice[serialPort];
-    currentDevice.open(serialPort, function(cInfo) {
-      // CONNECT
+    currentDevice.open(serialPort, function(cInfo) {  // CONNECT
       if (!cInfo) {
 //        Espruino.Core.Notifications.error("Unable to connect");
         console.error("Unable to open device (connectionInfo="+cInfo+")");
@@ -172,25 +181,37 @@ To add a new serial device, you must add an object to
           connectCallback(cInfo);
         });
       }
-    }, function(data) {
-      // RECEIEVE DATA
+    }, function(data) { // RECEIEVE DATA
       if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers");
+      if (Espruino.Config.SERIAL_FLOW_CONTROL) {
+        var u = new Uint8Array(data);
+        for (var i=0;i<u.length;i++) {
+          if (u[i]==17) { // XON
+            console.log("XON received => resume upload");
+            flowControlXOFF = false;
+          }
+          if (u[i]==19) { // XOFF
+            console.log("XOFF received => pause upload");
+            flowControlXOFF = true;
+          }
+        }
+      }
       if (readListener) readListener(data);
-    }, function() {
+    }, function() { // DISCONNECT
       currentDevice = undefined;
       if (!connectionInfo) {
         // we got a disconnect when we hadn't connected...
         // Just call connectCallback(undefined), don't bother sending disconnect
         connectCallback(undefined);
         return;
-      }
-      // DISCONNECT
+      }      
       connectionInfo = undefined;
       if (writeTimeout!==undefined)
         clearTimeout(writeTimeout);
       writeTimeout = undefined;
       writeData = [];
       sendingBinary = false;
+      flowControlXOFF = false;
 
       Espruino.callProcessor("disconnected", undefined, function() {
         disconnectCallback();
@@ -226,6 +247,15 @@ To add a new serial device, you must add an object to
 
   var writeSerialWorker = function(isStarting) {
     writeTimeout = undefined; // we've been called
+    // check flow control
+    if (flowControlXOFF) {
+      /* flow control was enabled - bit hacky (we could use a callback)
+      but safe - just check again in a bit to see if we should send */
+      writeTimeout = setTimeout(function() {
+        writeSerialWorker();
+      }, 50);
+      return;
+    }
 
     // if we disconnected while sending, empty queue
     if (currentDevice === undefined) {
