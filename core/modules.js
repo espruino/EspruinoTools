@@ -183,14 +183,17 @@
       }
     }
 
-    var loadProcessedModule = function (module) {
-      // add the module to the beginning of our array
-      if (Espruino.Config.MODULE_AS_FUNCTION)
-        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(module.name) + ",function(){" + module.code + "});");
-      else
-        loadedModuleData.unshift("Modules.addCached(" + JSON.stringify(module.name) + "," + JSON.stringify(module.code) + ");");
-      // if we needed to load something, wait until we have all promises complete before resolving our promise!
-      Promise.all(newPromises).then(function(){ resolve(); });
+    var loadProcessedModule = function (module) {      
+      // if we needed to load something, wait until it's loaded before resolving this
+      Promise.all(newPromises).then(function(){
+        // add the module to end of our array
+        if (Espruino.Config.MODULE_AS_FUNCTION)
+          loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + ",function(){" + module.code + "});");
+        else
+          loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + "," + JSON.stringify(module.code) + ");"); 
+        // We're done
+        resolve(); 
+      });
     }
     if (alreadyMinified)
       loadProcessedModule({code:data,name:modName});
