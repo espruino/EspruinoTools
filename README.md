@@ -172,7 +172,10 @@ var esp = require("espruino");
 esp.init(callback);
 
 /** Send a file to an Espruino on the given port, call the callback when done (calls 'init' automatically) */
-esp.sendFile (port, filename, callback);
+esp.sendFile(port, filename, callback);
+
+/** Send code to an Espruino on the given port, call the callback when done (calls 'init' automatically) */
+esp.sendCode(port, "LED.set()\n", callback);
 
 /** Execute an expression on Espruino, call the callback with the result (calls 'init' automatically) */
 esp.expr(port, expr, callback(result));
