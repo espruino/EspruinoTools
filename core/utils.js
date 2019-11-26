@@ -238,8 +238,10 @@
     Espruino.Core.Serial.write('\n');
   };
 
-  /** Return the value of executing an expression on the board */
-  function executeExpression(expressionToExecute, callback) {
+  /** Return the value of executing an expression on the board. If
+  If exprPrintsResult=false/undefined the actual value returned by the expression is returned.
+  If exprPrintsResult=true, whatever expression prints to the console is returned */
+  function executeExpression(expressionToExecute, callback, exprPrintsResult) {
     var receivedData = "";
     var hadDataSinceTimeout = false;
 
@@ -281,10 +283,16 @@
 
       var timeout = undefined;
       // Don't Ctrl-C, as we've already got ourselves a prompt with Espruino.Core.Utils.getEspruinoPrompt
-      Espruino.Core.Serial.write('\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n',
+      var cmd;
+      if (exprPrintsResult)
+        cmd  = '\x10print("<","<<");'+expressionToExecute+';print(">>",">")\n';
+      else
+        cmd  = '\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n';
+
+      Espruino.Core.Serial.write(cmd,
                                  undefined, function() {
         // now it's sent, wait for data
-        var maxTimeout = 10; // seconds - how long we wait if we're getting data
+        var maxTimeout = 30; // seconds - how long we wait if we're getting data
         var minTimeout = 2; // seconds - how long we wait if we're not getting data
         var pollInterval = 500; // milliseconds
         var timeoutSeconds = 0;
@@ -563,7 +571,8 @@
       getLexer : getLexer,
       countBrackets : countBrackets,
       getEspruinoPrompt : getEspruinoPrompt,
-      executeExpression : executeExpression,
+      executeExpression : function(expr,callback) { executeExpression(expr,callback,false); },
+      executeStatement : function(statement,callback) { executeExpression(statement,callback,true); },
       versionToFloat : versionToFloat,
       htmlTable : htmlTable,
       markdownToHTML : markdownToHTML,
