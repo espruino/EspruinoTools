@@ -284,7 +284,9 @@
       }, 100);
     });
 
-
+    // Ensure that data from Espruino goes to this terminal
+    Espruino.Core.Serial.startListening(Espruino.Core.Terminal.outputDataHandler);
+    
     Espruino.addProcessor("connected", function(data, callback) {
       grabSerialPort();
       terminal.classList.add("terminal--connected");
