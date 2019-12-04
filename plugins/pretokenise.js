@@ -69,7 +69,7 @@
 /*LEX_R_DO :       */ "do",
 /*LEX_R_WHILE :    */ "while",
 /*LEX_R_FOR :      */ "for",
-/*LEX_R_BREAK :    */ "return",
+/*LEX_R_BREAK :    */ "break",
 /*LEX_R_CONTINUE   */ "continue",
 /*LEX_R_FUNCTION   */ "function",
 /*LEX_R_RETURN     */ "return",
@@ -98,7 +98,9 @@
 /*LEX_R_CLASS :    */ "class",
 /*LEX_R_EXTENDS :  */ "extends",
 /*LEX_R_SUPER :  */   "super",
-/*LEX_R_STATIC :   */ "static"];
+/*LEX_R_STATIC :   */ "static",
+/*LEX_R_OF    :   */  "of"
+];
 
 
   function pretokenise(code, callback) {
@@ -113,7 +115,7 @@
       var tokenString = code.substring(tok.startIdx, tok.endIdx);
       var tokenId = LEX_OPERATOR_START + TOKENS.indexOf(tokenString);
       if (tokenId<LEX_OPERATOR_START) tokenId=undefined;
-      console.log("prev "+JSON.stringify(previousString)+"   next "+tokenString);
+      //console.log("prev "+JSON.stringify(previousString)+"   next "+tokenString);
 
       if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;
       if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;
@@ -123,9 +125,10 @@
       if (brackets==0 && previousString.indexOf("\n")>=0)
         resultCode += "\n";
       // if we have a token for something, use that - else use the string
-      if (tokenId)
+      if (tokenId) {
+        //console.log(JSON.stringify(tok.str)+" => "+tokenId);
         resultCode += String.fromCharCode(tokenId);
-      else
+      } else
         resultCode += tokenString;
       // next
       lastIdx = tok.endIdx;
