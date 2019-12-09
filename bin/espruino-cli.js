@@ -42,7 +42,8 @@ function getHelp() {
    "  --storage .boot0:-       : Store program code in the given Storage file (not .bootcde)",
    "",
    "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
-   "                               Espruino must be in bootloader mode.",
+   "                               Must be a USB Espruino in bootloader mode",
+   "                               (bluetooth is not currently supported).",
    "                               Optionally skip N first bytes of the bin file.",
    "",
    "If no file, command, or firmware update is specified, this will act",
@@ -629,7 +630,7 @@ function terminal(devicePath, exitCallback) {
       return exitCallback();
     }
     if (!args.quiet) log("Connected");
-    process.stdin.on('data', function(chunk) {      
+    process.stdin.on('data', function(chunk) {
       if (chunk !== null) {
         chunk = chunk.toString();
         Espruino.Core.Serial.write(chunk);

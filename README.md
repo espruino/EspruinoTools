@@ -52,8 +52,9 @@ USAGE: espruino ...options... [file_to_upload.js]
   --storage fn:data.bin    : Write a file named 'fn' to Storage, must be used with --ohex
   --storage .boot0:-       : Store program code in the given Storage file (not .bootcde)
 
-  -f firmware.bin[:N]      : Update Espruino's firmware to the given file
-                               Espruino must be in bootloader mode.
+  -f firmware.bin[:N]      : Update Espruino's firmware to the given file.
+                               Must be a USB Espruino in bootloader mode
+                               (bluetooth is not currently supported).
                                Optionally skip N first bytes of the bin file.
 
 If no file, command, or firmware update is specified, this will act
