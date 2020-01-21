@@ -146,6 +146,7 @@
           s+=ch;
           if (ch=="\\") {
             nextCh();
+            s+=ch;
             // FIXME: handle hex/etc correctly here
           }
           value += ch;
@@ -245,6 +246,17 @@
     var receivedData = "";
     var hadDataSinceTimeout = false;
 
+    var progress = 100;
+    function incrementProgress() {
+      if (progress==100) {
+        Espruino.Core.Status.setStatus("Receiving...",100);
+        progress=0;
+      } else {
+        progress++;
+        Espruino.Core.Status.incrementProgress(1);
+      }
+    }
+
     function getProcessInfo(expressionToExecute, callback) {
       var prevReader = Espruino.Core.Serial.startListening(function (readData) {
         var bufView = new Uint8Array(readData);
@@ -254,6 +266,8 @@
         // check if we got what we wanted
         var startProcess = receivedData.indexOf("< <<");
         var endProcess = receivedData.indexOf(">> >", startProcess);
+        if(startProcess >= 0)
+          incrementProgress();
         if(startProcess >= 0 && endProcess > 0){
           // All good - get the data!
           var result = receivedData.substring(startProcess + 4,endProcess);
@@ -273,6 +287,7 @@
 
       // when we're done...
       var nextStep = function(result) {
+        Espruino.Core.Status.setStatus("");
         // start the previous reader listing again
         Espruino.Core.Serial.startListening(prevReader);
         // forward the original text to the previous reader
@@ -296,20 +311,22 @@
         var minTimeout = 2; // seconds - how long we wait if we're not getting data
         var pollInterval = 500; // milliseconds
         var timeoutSeconds = 0;
-        if (timeout != "cancelled")
+        if (timeout != "cancelled") {
           timeout = setInterval(function onTimeout(){
-          timeoutSeconds += pollInterval/1000;
-          // if we're still getting data, keep waiting for up to 10 secs
-          if (hadDataSinceTimeout && timeoutSeconds<maxTimeout) {
-            hadDataSinceTimeout = false;
-          } else if (timeoutSeconds > minTimeout) {
-            // No data yet...
-            // OR we keep getting data for > maxTimeout seconds
-            clearInterval(timeout);
-            console.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
-            nextStep(undefined);
-          }
-        }, pollInterval);
+            incrementProgress();
+            timeoutSeconds += pollInterval/1000;
+            // if we're still getting data, keep waiting for up to 10 secs
+            if (hadDataSinceTimeout && timeoutSeconds<maxTimeout) {
+              hadDataSinceTimeout = false;
+            } else if (timeoutSeconds > minTimeout) {
+              // No data yet...
+              // OR we keep getting data for > maxTimeout seconds
+              clearInterval(timeout);
+              console.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
+              nextStep(undefined);
+            }
+          }, pollInterval);
+        }
       });
     }
 
@@ -334,6 +351,66 @@
       html += '<tr><th>'+Espruino.Core.Utils.escapeHTML(key)+'</th><td>'+Espruino.Core.Utils.escapeHTML(obj[key])+'</td></tr>';
     }
     return html + '</table>';
+  }
+
+  // Convert a HTML element list to an array
+  function htmlToArray(collection) {
+    return [].slice.call(collection);
+  }
+
+  /* Return the HTML to display a loading indicator */
+  function htmlLoading() {
+    return '<div style="position:absolute;top:50%;left:50%;transform: translate(-50%, -50%);font-size:200%;" class="loading-text"><span class="spin-animation">&#x21bb;</span> Loading...</div>';
+  }
+
+  // turn the HTML string into an HTML element
+  function domElement(str) {
+    var div = document.createElement('div');
+    div.innerHTML = str.trim();
+    return div.firstChild;
+  }
+
+  /* Return the HTML to display a list.
+     items is an array of { icon, title, description(optional), callback(optional), right:[{icon,title,callback}] } */
+  function domList(items, options) {
+    var domList = Espruino.Core.Utils.domElement('<ul class="list"></ul>');
+
+    var itemAttribs = 'style="margin-bottom: 4px;"';
+
+    items.forEach(function(item) {
+      var domItem = Espruino.Core.Utils.domElement('<li class="list__item" '+itemAttribs+'></li>');
+      var html = item.right ?
+        ('<span style="padding:0px;position: relative;display: inline-block;width: 100%;"'):
+        ('<a class="button '+(item.icon?"button--icon":"")+' button--wide"');
+      html += ' title="'+ item.title +'" >';
+      if (item.icon)
+        html += '<i class="'+item.icon+' lrg button__icon"></i>';
+      html += '<span class="list__item__name">'+ item.title;
+      if (item.description)
+        html += '</br><span class="list__item__desc">' + item.description + '</span>';
+      html += '</span>' + (item.right ? '</span>':'</a>');
+      var domBtn = Espruino.Core.Utils.domElement(html);
+      if (item.right)
+        item.right.forEach(i=>{
+          var e = Espruino.Core.Utils.domElement(
+            '<a title="'+i.title+'" class="'+i.icon+' sml button__icon button list__itemicon-right" style="float: right;"></a>'
+          );
+          if (i.callback) e.addEventListener("click",function(e) {
+            e.stopPropagation();
+            i.callback(e);
+          });
+          domBtn.prepend(e);
+        });
+
+      domBtn.addEventListener('click',function(e) {
+        e.stopPropagation();
+        if (item.callback)
+          item.callback(e);
+      });
+      domItem.append(domBtn);
+      domList.append(domItem);
+    });
+    return domList;
   }
 
   function markdownToHTML(markdown) {
@@ -478,6 +555,48 @@
     fileLoader.click();
   }
 
+  // Save a file with a save file dialog
+  function fileSaveDialog(data, filename) {
+    function errorHandler() {
+      Espruino.Core.Notifications.error("Error Saving", true);
+    }
+
+    if (chrome.fileSystem) {
+      // Chrome Web App / NW.js
+      chrome.fileSystem.chooseEntry({type: 'saveFile', suggestedName:filename}, function(writableFileEntry) {
+        if (writableFileEntry.name)
+          setCurrentFileName(writableFileEntry.name);
+        writableFileEntry.createWriter(function(writer) {
+          var blob = new Blob([convertToOS(data)],{ type: "text/plain"} );
+          writer.onerror = errorHandler;
+          // when truncation has finished, write
+          writer.onwriteend = function(e) {
+            writer.onwriteend = function(e) {
+              console.log('FileWriter: complete');
+            };
+            console.log('FileWriter: writing');
+            writer.write(blob);
+          };
+          // truncate
+          console.log('FileWriter: truncating');
+          writer.truncate(blob.size);
+        }, errorHandler);
+      });
+    } else {
+      var a = document.createElement("a"),
+          file = new Blob([data], {type: "text/plain"});
+      var url = URL.createObjectURL(file);
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+      }, 0);
+    }
+  };
+
   /** Bluetooth device names that we KNOW run Espruino */
   function recognisedBluetoothDevices() {
     return [
@@ -556,6 +675,34 @@
     return String.fromCharCode.apply(null, new Uint8Array(buf));
   };
 
+  /* Parses a JSON string into JS, taking into account some of the issues
+  with Espruino's JSON from 2v04 and before */
+  function parseJSONish(str) {
+    var lex = getLexer(str);
+    var tok = lex.next();
+    var final = "";
+    while (tok!==undefined) {
+      var s = tok.str;
+      if (tok.type=="STRING") {
+        s = s.replace(/\\([0-9])/g,"\\u000$1");
+        s = s.replace(/\\x(..)/g,"\\u00$1");
+      }
+      final += s;
+      tok = lex.next();
+    }
+    return JSON.parse(final);
+  };
+
+  // Does the given string contain only ASCII characters?
+  function isASCII(str) {
+    for (var i=0;i<str.length;i++) {
+      var c = str.charCodeAt(i);
+      if ((c<32 || c>126) &&
+          (c!=10) && (c!=13) && (c!=9)) return false;
+    }
+    return true;
+  }
+
   Espruino.Core.Utils = {
       init : init,
       isWindows : isWindows,
@@ -575,6 +722,10 @@
       executeStatement : function(statement,callback) { executeExpression(statement,callback,true); },
       versionToFloat : versionToFloat,
       htmlTable : htmlTable,
+      htmlToArray : htmlToArray,
+      domElement : domElement,
+      domList: domList,
+      htmlLoading : htmlLoading,
       markdownToHTML : markdownToHTML,
       getURL : getURL,
       getBinaryURL : getBinaryURL,
@@ -582,6 +733,7 @@
       isURL : isURL,
       needsHTTPS : needsHTTPS,
       fileOpenDialog : fileOpenDialog,
+      fileSaveDialog : fileSaveDialog,
       recognisedBluetoothDevices : recognisedBluetoothDevices,
       isRecognisedBluetoothDevice : isRecognisedBluetoothDevice,
       getVersion : getVersion,
@@ -590,5 +742,7 @@
       stringToBuffer : stringToBuffer,
       dataViewToArrayBuffer : dataViewToArrayBuffer,
       arrayBufferToString : arrayBufferToString,
+      parseJSONish : parseJSONish,
+      isASCII : isASCII
   };
 }());
