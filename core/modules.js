@@ -29,10 +29,10 @@
     });
     Espruino.Core.Config.add("MODULE_AS_FUNCTION", {
       section : "Communications",
-      name : "Modules uploaded as functions (BETA)",
+      name : "Modules uploaded as functions",
       description : "Espruino 1v90 and later ONLY. Upload modules as Functions, allowing any functions inside them to be loaded directly from flash when 'Save on Send' is enabled.",
       type : "boolean",
-      defaultValue : false
+      defaultValue : true
     });
 
     Espruino.Core.Config.add("MODULE_PROXY_ENABLED", {
@@ -183,16 +183,16 @@
       }
     }
 
-    var loadProcessedModule = function (module) {      
+    var loadProcessedModule = function (module) {
       // if we needed to load something, wait until it's loaded before resolving this
       Promise.all(newPromises).then(function(){
         // add the module to end of our array
         if (Espruino.Config.MODULE_AS_FUNCTION)
           loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + ",function(){" + module.code + "});");
         else
-          loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + "," + JSON.stringify(module.code) + ");"); 
+          loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + "," + JSON.stringify(module.code) + ");");
         // We're done
-        resolve(); 
+        resolve();
       });
     }
     if (alreadyMinified)
