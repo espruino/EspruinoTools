@@ -245,6 +245,7 @@
   function executeExpression(expressionToExecute, callback, exprPrintsResult) {
     var receivedData = "";
     var hadDataSinceTimeout = false;
+    var allDataSent = false;
 
     var progress = 100;
     function incrementProgress() {
@@ -263,11 +264,10 @@
         for(var i = 0; i < bufView.length; i++) {
           receivedData += String.fromCharCode(bufView[i]);
         }
+        if(allDataSent) incrementProgress();
         // check if we got what we wanted
         var startProcess = receivedData.indexOf("< <<");
         var endProcess = receivedData.indexOf(">> >", startProcess);
-        if(startProcess >= 0)
-          incrementProgress();
         if(startProcess >= 0 && endProcess > 0){
           // All good - get the data!
           var result = receivedData.substring(startProcess + 4,endProcess);
@@ -306,6 +306,7 @@
 
       Espruino.Core.Serial.write(cmd,
                                  undefined, function() {
+        allDataSent = true;
         // now it's sent, wait for data
         var maxTimeout = 30; // seconds - how long we wait if we're getting data
         var minTimeout = 2; // seconds - how long we wait if we're not getting data
@@ -523,6 +524,7 @@
 
   /* Open a file load dialog. ID is to ensure that subsequent calls with
   the same ID remember the last used directory.
+    callback(contents, mimeType, fileName)
     type=="arraybuffer" => Callback is called with an arraybuffer
     type=="text" => Callback is called with a string
   */
@@ -540,13 +542,23 @@
       fileLoader.addEventListener('change', function(e) {
         if (!fileLoader.callback) return;
         var files = e.target.files;
+        var file = files[0];
         var reader = new FileReader();
         reader.onload = function(e) {
-          fileLoader.callback(e.target.result);
+          /* Doing reader.readAsText(file) interprets the file as UTF8
+          which we don't want. */
+          var result;
+          if (type=="text") {
+            var a = new Uint8Array(e.target.result);
+            result = "";
+            for (var i=0;i<a.length;i++)
+              result += String.fromCharCode(a[i]);
+          } else
+            result = e.target.result;
+          fileLoader.callback(result, file.type, file.name);
           fileLoader.callback = undefined;
         };
-        if (type=="text") reader.readAsText(files[0]);
-        else if (type=="arraybuffer") reader.readAsArrayBuffer(files[0]);
+        if (type=="text" || type=="arraybuffer") reader.readAsArrayBuffer(file);
         else throw new Error("fileOpenDialog: unknown type "+type);
       }, false);
       document.body.appendChild(fileLoader);
@@ -703,6 +715,34 @@
     return true;
   }
 
+  // btoa that works on utf8
+  function btoa(input) {
+    var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    var out = "";
+    var i=0;
+    while (i<input.length) {
+      var octet_a = 0|input.charCodeAt(i++);
+      var octet_b = 0;
+      var octet_c = 0;
+      var padding = 0;
+      if (i<input.length) {
+        octet_b = 0|input.charCodeAt(i++);
+        if (i<input.length) {
+          octet_c = 0|input.charCodeAt(i++);
+          padding = 0;
+        } else
+          padding = 1;
+      } else
+        padding = 2;
+      var triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
+      out += b64[(triple >> 18) & 63] +
+             b64[(triple >> 12) & 63] +
+             ((padding>1)?'=':b64[(triple >> 6) & 63]) +
+             ((padding>0)?'=':b64[triple & 63]);
+    }
+    return out;
+  }
+
   Espruino.Core.Utils = {
       init : init,
       isWindows : isWindows,
@@ -743,6 +783,7 @@
       dataViewToArrayBuffer : dataViewToArrayBuffer,
       arrayBufferToString : arrayBufferToString,
       parseJSONish : parseJSONish,
-      isASCII : isASCII
+      isASCII : isASCII,
+      btoa : btoa
   };
 }());
