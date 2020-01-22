@@ -355,13 +355,14 @@
   }
 
   // Convert a HTML element list to an array
-  function htmlToArray(collection) {
+  function domToArray(collection) {
     return [].slice.call(collection);
   }
 
   /* Return the HTML to display a loading indicator */
   function htmlLoading() {
-    return '<div style="position:absolute;top:50%;left:50%;transform: translate(-50%, -50%);font-size:200%;" class="loading-text"><span class="spin-animation">&#x21bb;</span> Loading...</div>';
+    // <span class="spin-animation">&#x21bb;</span>
+    return '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%, -50%);"><h2 class="list__no-results">Connecting...</h2></div>';
   }
 
   // turn the HTML string into an HTML element
@@ -386,10 +387,10 @@
       html += ' title="'+ item.title +'" >';
       if (item.icon)
         html += '<i class="'+item.icon+' lrg button__icon"></i>';
-      html += '<span class="list__item__name">'+ item.title;
+      html += '<div class="list__item__name">'+ item.title+'</div>';
       if (item.description)
-        html += '</br><span class="list__item__desc">' + item.description + '</span>';
-      html += '</span>' + (item.right ? '</span>':'</a>');
+        html += '<div class="list__item__desc">' + item.description + '</div>';
+      html += '</div>' + (item.right ? '</span>':'</a>');
       var domBtn = Espruino.Core.Utils.domElement(html);
       if (item.right)
         item.right.forEach(i=>{
@@ -762,7 +763,7 @@
       executeStatement : function(statement,callback) { executeExpression(statement,callback,true); },
       versionToFloat : versionToFloat,
       htmlTable : htmlTable,
-      htmlToArray : htmlToArray,
+      domToArray : domToArray,
       domElement : domElement,
       domList: domList,
       htmlLoading : htmlLoading,
