@@ -395,7 +395,7 @@
       // detect inline images and link them in
       var m = line.match(/data:image\/\w+;base64,[\w\+\/=]+/);
       if (m) {
-        line = line.substr(0,m.index)+'<img class="terminal-inline-image" src="'+m[0]+'"/>'+line.substr(m.index+m[0].length);
+        line = line.substr(0,m.index)+'<a href="'+m[0]+'" download><img class="terminal-inline-image" src="'+m[0]+'"/></a>'+line.substr(m.index+m[0].length);
       }
 
       // extra text is for stuff like tutorials
