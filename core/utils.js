@@ -345,88 +345,6 @@
     return parseFloat(version.trim().replace("v","."));
   };
 
-  /** Make an HTML table out of a simple key/value object */
-  function htmlTable(obj) {
-    var html = '<table>';
-    for (var key in obj) {
-      html += '<tr><th>'+Espruino.Core.Utils.escapeHTML(key)+'</th><td>'+Espruino.Core.Utils.escapeHTML(obj[key])+'</td></tr>';
-    }
-    return html + '</table>';
-  }
-
-  // Convert a HTML element list to an array
-  function domToArray(collection) {
-    return [].slice.call(collection);
-  }
-
-  /* Return the HTML to display a loading indicator */
-  function htmlLoading() {
-    // <span class="spin-animation">&#x21bb;</span>
-    return '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%, -50%);"><h2 class="list__no-results">Connecting...</h2></div>';
-  }
-
-  // turn the HTML string into an HTML element
-  function domElement(str) {
-    var div = document.createElement('div');
-    div.innerHTML = str.trim();
-    return div.firstChild;
-  }
-
-  /* Return the HTML to display a list.
-     items is an array of { icon, title, description(optional), callback(optional), right:[{icon,title,callback}] } */
-  function domList(items, options) {
-    var domList = Espruino.Core.Utils.domElement('<ul class="list"></ul>');
-
-    var itemAttribs = 'style="margin-bottom: 4px;"';
-
-    items.forEach(function(item) {
-      var domItem = Espruino.Core.Utils.domElement('<li class="list__item" '+itemAttribs+'></li>');
-      var html = item.right ?
-        ('<span style="padding:0px;position: relative;display: inline-block;width: 100%;"'):
-        ('<a class="button '+(item.icon?"button--icon":"")+' button--wide"');
-      html += ' title="'+ item.title +'" >';
-      if (item.icon)
-        html += '<i class="'+item.icon+' lrg button__icon"></i>';
-      html += '<div class="list__item__name">'+ item.title+'</div>';
-      if (item.description)
-        html += '<div class="list__item__desc">' + item.description + '</div>';
-      html += '</div>' + (item.right ? '</span>':'</a>');
-      var domBtn = Espruino.Core.Utils.domElement(html);
-      if (item.right)
-        item.right.forEach(i=>{
-          var e = Espruino.Core.Utils.domElement(
-            '<a title="'+i.title+'" class="'+i.icon+' sml button__icon button list__itemicon-right" style="float: right;"></a>'
-          );
-          if (i.callback) e.addEventListener("click",function(e) {
-            e.stopPropagation();
-            i.callback(e);
-          });
-          domBtn.prepend(e);
-        });
-
-      domBtn.addEventListener('click',function(e) {
-        e.stopPropagation();
-        if (item.callback)
-          item.callback(e);
-      });
-      domItem.append(domBtn);
-      domList.append(domItem);
-    });
-    return domList;
-  }
-
-  function markdownToHTML(markdown) {
-    var html = markdown;
-    //console.log(JSON.stringify(html));
-    html = html.replace(/([^\n]*)\n=====*\n/g, "<h1>$1</h1>"); // heading 1
-    html = html.replace(/([^\n]*)\n-----*\n/g, "<h2>$1</h2>"); // heading 2
-    html = html.replace(/\n\s*\n/g, "\n<br/><br/>\n"); // newlines
-    html = html.replace(/\*\*(.*)\*\*/g, "<strong>$1</strong>"); // bold
-    html = html.replace(/```(.*)```/g, "<span class=\"code\">$1</span>"); // code
-    //console.log(JSON.stringify(html));
-    return html;
-  };
-
   /// Gets a URL, and returns callback(data) or callback(undefined) on error
   function getURL(url, callback) {
     Espruino.callProcessor("getURL", { url : url, data : undefined }, function(result) {
@@ -762,12 +680,6 @@
       executeExpression : function(expr,callback) { executeExpression(expr,callback,false); },
       executeStatement : function(statement,callback) { executeExpression(statement,callback,true); },
       versionToFloat : versionToFloat,
-      htmlTable : htmlTable,
-      domToArray : domToArray,
-      domElement : domElement,
-      domList: domList,
-      htmlLoading : htmlLoading,
-      markdownToHTML : markdownToHTML,
       getURL : getURL,
       getBinaryURL : getBinaryURL,
       getJSONURL : getJSONURL,
