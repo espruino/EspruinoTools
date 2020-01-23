@@ -35,6 +35,8 @@
   var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
   var NORDIC_TX_MAX_LENGTH = 20;
   var testedCompatibility = false;
+  // List of previously paired devices that we could reconnect to without the chooser
+  var pairedDevices = [];
 
   var btServer = undefined;
   var connectionDisconnectCallback;
@@ -69,40 +71,52 @@
       if (!checkCompatibility())
         WEB_BLUETOOTH_OK = false;
     }
-    if (Espruino.Config.WEB_BLUETOOTH && WEB_BLUETOOTH_OK)
-      callback([{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth"}], true/*instantPorts*/);
-    else
+    if (Espruino.Config.WEB_BLUETOOTH && WEB_BLUETOOTH_OK) {
+      var list = [{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth"}];
+      pairedDevices.forEach(function(btDevice) {
+        list.push({path:btDevice.name, description:'Web Bluetooth device', type : "bluetooth"});
+      });
+      callback(list, true/*instantPorts*/);;
+    } else
       callback(undefined, true/*instantPorts*/);
   }
 
   function openSerial(serialPort, openCallback, receiveCallback, disconnectCallback) {
     connectionDisconnectCallback = disconnectCallback;
 
+    var btDevice;
     var btService;
-    var deviceName;
 
-    var filters = [];
-    Espruino.Core.Utils.recognisedBluetoothDevices().forEach(function(namePrefix) {
-      filters.push({ namePrefix: namePrefix });
-    });
-    filters.push({ services: [ NORDIC_SERVICE ] });
+    var promise;
+    // Check for pre-paired devices
+    btDevice = pairedDevices.find(btDevice=>btDevice.name == serialPort);
+    if (btDevice) {
+      console.log("Pre-paired Web Bluetooth device already found");
+      promise = btDevice.gatt.connect();
+    } else {
+      var filters = [];
+      Espruino.Core.Utils.recognisedBluetoothDevices().forEach(function(namePrefix) {
+        filters.push({ namePrefix: namePrefix });
+      });
+      filters.push({ services: [ NORDIC_SERVICE ] });
 
-    navigator.bluetooth.requestDevice({
-        filters: filters,
-        optionalServices: [ NORDIC_SERVICE ]}).then(function(device) {
-
-      deviceName = device.name;
-      Espruino.Core.Status.setStatus("Connecting to "+device.name);
-      console.log('BT>  Device Name:       ' + device.name);
-      console.log('BT>  Device ID:         ' + device.id);
-      // Was deprecated: Should use getPrimaryServices for this in future
-      //console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
-      device.addEventListener('gattserverdisconnected', function() {
-        console.log("BT> Disconnected (gattserverdisconnected)");
-        closeSerial();
-      }, {once:true});
-      return device.gatt.connect();
-    }).then(function(server) {
+      promise = navigator.bluetooth.requestDevice({
+          filters: filters,
+          optionalServices: [ NORDIC_SERVICE ]}).then(function(device) {
+        btDevice = device;
+        Espruino.Core.Status.setStatus("Connecting to "+btDevice.name);
+        console.log('BT>  Device Name:       ' + btDevice.name);
+        console.log('BT>  Device ID:         ' + btDevice.id);
+        // Was deprecated: Should use getPrimaryServices for this in future
+        //console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
+        btDevice.addEventListener('gattserverdisconnected', function() {
+          console.log("BT> Disconnected (gattserverdisconnected)");
+          closeSerial();
+        }, {once:true});
+        return btDevice.gatt.connect();
+      })
+    }
+    promise.then(function(server) {
       Espruino.Core.Status.setStatus("Connected to BLE");
       console.log("BT> Connected");
       btServer = server;
@@ -134,9 +148,11 @@
       Espruino.Core.Status.setStatus("Configuring BLE.....");
       txInProgress = false;
       Espruino.Core.Serial.setSlowWrite(false, true); // hack - leave throttling up to this implementation
+      if (!pairedDevices.includes(btDevice))
+        pairedDevices.push(btDevice);
       setTimeout(function() {
         Espruino.Core.Status.setStatus("BLE configured. Receiving data...");
-        openCallback({ portName : deviceName });
+        openCallback({ portName : btDevice.name });
       }, 500);
     }).catch(function(error) {
       console.log('BT> ERROR: ' + error);

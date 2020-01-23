@@ -49,6 +49,7 @@
 
   function openSerial(_, openCallback, receiveCallback, disconnectCallback) {
     // TODO: Pass USB vendor and product ID filter when supported by Chrome.
+    // TODO: Retrieve device name when/if supported and use a pairedDevices list like in Web Bluetooth
     navigator.serial.requestPort({}).then(function(port) {
       Espruino.Core.Status.setStatus("Connecting to serial port");
       serialPort = port;
