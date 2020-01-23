@@ -35,6 +35,7 @@ var Espruino;
    *   terminalNewLine      - When we get a new line on the terminal, this gets called with the last line's contents
    *   debugMode            - called with true or false when debug mode is entered or left
    *   editorHover          - called with { node : htmlNode, showTooltip : function(htmlNode) } when something is hovered over
+   *   notification         - called with { mdg, type:"success","error"/"warning"/"info" }
    **/
   var processors = {};
 
