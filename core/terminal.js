@@ -247,8 +247,8 @@
             term.classList.add("editor__canvas__fullscreen");
             document.body.append(term);
           }
-          // if we have a webcam it seems we need to start it playing again 
-          // after moving it 
+          // if we have a webcam it seems we need to start it playing again
+          // after moving it
           var vid = document.querySelector("video");
           if (vid) vid.play();
         }
@@ -286,7 +286,7 @@
 
     // Ensure that data from Espruino goes to this terminal
     Espruino.Core.Serial.startListening(Espruino.Core.Terminal.outputDataHandler);
-    
+
     Espruino.addProcessor("connected", function(data, callback) {
       grabSerialPort();
       terminal.classList.add("terminal--connected");
@@ -378,7 +378,7 @@
     // now write this to the screen
     var t = [];
     for (var y in termText) {
-      var line = termText[y];      
+      var line = termText[y];
       if (y == termCursorY) {
         var ch = Espruino.Core.Utils.getSubString(line,termCursorX,1);
         line = Espruino.Core.Utils.escapeHTML(
@@ -395,7 +395,7 @@
       if (m) {
         line = line.substr(0,m.index)+'<img class="terminal-inline-image" src="'+m[0]+'"/>'+line.substr(m.index+m[0].length);
       }
-      
+
       // extra text is for stuff like tutorials
       if (termExtraText[y])
         line = termExtraText[y] + line;
@@ -590,6 +590,11 @@
     updateTerminal();
   };
 
+  /// Does the terminal have focus?
+  function hasFocus() {
+    return document.querySelector("#terminal").classList.contains("focus");
+  };
+
   /// Give the terminal focus
   function focus() {
     $("#terminalfocus").focus();
@@ -640,6 +645,7 @@
       getTerminalLine : getTerminalLine,
       getCurrentLine : getCurrentLine,
       isVisible : isVisible, // Is the terminal actually visible, or is it so small it can't be seen?
+      hasFocus : hasFocus, // Does the termninal have focus?
       focus : focus, // Give this focus
       clearTerminal : clearTerminal, // Clear the contents of the terminal
 
