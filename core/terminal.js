@@ -26,6 +26,8 @@
   var termText = [ "" ];
   // Map of terminal line number to text to display before it
   var termExtraText = {};
+  // List of (jquerified) DOM elements for each line
+  var elements = [];
 
   var termCursorX = 0;
   var termCursorY = 0;
@@ -337,7 +339,7 @@
   var updateTerminal = function() {
     var terminal = $("#terminal");
     // gather a list of elements for each line
-    var elements = [];
+    elements = [];
     terminal.children().each(function() {
       var n = $(this).attr("lineNumber");
       if (n!==undefined)
@@ -630,12 +632,21 @@
     return termText[line];
   };
 
-  function addNotification(text, type) {
+  /** Add a notification to the terminal (as HTML). If options.buttonclick is set
+  then the first <button> inside the notification text
+  will have a click handler registered*/
+  function addNotification(text, options) {
+    options = options||{};
     var line = getInputLine(0);
     line = (line===undefined)?0:line.line;
     if (!termExtraText[line]) termExtraText[line]="";
     termExtraText[line] += '<div class="notification_text">'+text+'</div>';
     updateTerminal();
+    if (options.buttonclick) {
+      var btn = elements[line].find("button");
+      if (!btn.length) console.error("Espruino.Core.Terminal buttonclick set but no button");
+      btn.on('click', options.buttonclick);
+    }
   }
 
   Espruino.Core.Terminal = {
