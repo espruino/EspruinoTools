@@ -441,20 +441,29 @@
     return window.location.protocol=="https:";
   }
 
-  /* Open a file load dialog. ID is to ensure that subsequent calls with
-  the same ID remember the last used directory.
-    callback(contents, mimeType, fileName)
-    type=="arraybuffer" => Callback is called with an arraybuffer
-    type=="text" => Callback is called with a string
+  /* Open a file load dialog.
+  options = {
+   id :  ID is to ensure that subsequent calls with  the same ID remember the last used directory.
+   type :
+     type=="text" => (default) Callback is called with a string
+     type=="arraybuffer" => Callback is called with an arraybuffer
+   mimeType : (optional) comma-separated list of accepted mime types for files or extensions (eg. ".js,application/javascript")
+
+   callback(contents, mimeType, fileName)
   */
-  function fileOpenDialog(id, type, callback) {
-    var loaderId = id+"FileLoader";
+  function fileOpenDialog(options, callback) {
+    options = options||{};
+    options.type = options.type||"text";
+    options.id = options.id||"default";
+    var loaderId = options.id+"FileLoader";
     var fileLoader = document.getElementById(loaderId);
     if (!fileLoader) {
       fileLoader = document.createElement("input");
       fileLoader.setAttribute("id", loaderId);
       fileLoader.setAttribute("type", "file");
       fileLoader.setAttribute("style", "z-index:-2000;position:absolute;top:0px;left:0px;");
+      if (options.mimeType)
+        fileLoader.setAttribute("accept",options.mimeType);
       fileLoader.addEventListener('click', function(e) {
         e.target.value = ''; // handle repeated upload of the same file
       });
@@ -467,7 +476,7 @@
           /* Doing reader.readAsText(file) interprets the file as UTF8
           which we don't want. */
           var result;
-          if (type=="text") {
+          if (options.type=="text") {
             var a = new Uint8Array(e.target.result);
             result = "";
             for (var i=0;i<a.length;i++)
@@ -477,8 +486,8 @@
           fileLoader.callback(result, file.type, file.name);
           fileLoader.callback = undefined;
         };
-        if (type=="text" || type=="arraybuffer") reader.readAsArrayBuffer(file);
-        else throw new Error("fileOpenDialog: unknown type "+type);
+        if (options.type=="text" || options.type=="arraybuffer") reader.readAsArrayBuffer(file);
+        else throw new Error("fileOpenDialog: unknown type "+options.type);
       }, false);
       document.body.appendChild(fileLoader);
     }
