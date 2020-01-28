@@ -495,8 +495,8 @@
     fileLoader.click();
   }
 
-  // Save a file with a save file dialog
-  function fileSaveDialog(data, filename) {
+  /* Save a file with a save file dialog. callback(savedFileName) only called in chrome app case when we knopw the filename*/
+  function fileSaveDialog(data, filename, callback) {
     function errorHandler() {
       Espruino.Core.Notifications.error("Error Saving", true);
     }
@@ -504,15 +504,14 @@
     if (chrome.fileSystem) {
       // Chrome Web App / NW.js
       chrome.fileSystem.chooseEntry({type: 'saveFile', suggestedName:filename}, function(writableFileEntry) {
-        if (writableFileEntry.name)
-          setCurrentFileName(writableFileEntry.name);
         writableFileEntry.createWriter(function(writer) {
-          var blob = new Blob([convertToOS(data)],{ type: "text/plain"} );
+          var blob = new Blob([data],{ type: "text/plain"} );
           writer.onerror = errorHandler;
           // when truncation has finished, write
           writer.onwriteend = function(e) {
             writer.onwriteend = function(e) {
               console.log('FileWriter: complete');
+              if (callback) callback(writableFileEntry.name);
             };
             console.log('FileWriter: writing');
             writer.write(blob);
