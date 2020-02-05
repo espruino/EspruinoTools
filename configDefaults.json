@@ -34,6 +34,7 @@
     "NPM_MODULES": false,
     "RESET_BEFORE_SEND": true,
     "SAVE_ON_SEND": 0,
+    "SAVE_STORAGE_FILE": "",
     "SERIAL_AUDIO": 0,
     "SERIAL_TCPIP": "",
     "SERIAL_THROTTLE_SEND": false,
@@ -43,4 +44,3 @@
     "WEB_BLUETOOTH": true
   }
 }
-
