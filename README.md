@@ -229,10 +229,6 @@ The following table provides a guide for setting configuration fields, but consu
 | --list               | showDevices (false)    |                                                    |
 | -m,-minify           | minify (false)         | MINIFICATION_LEVEL ("")                            |
 |                      |                        | MINIFICATION_Mangle (true) *4*                     |
-|                      |                        | MINIFICATION_Unreachable (true) *4*                |
-|                      |                        | MINIFICATION_Unused (true) *4*                     |
-|                      |                        | MINIFICATION_Literal (true) *4*                    |
-|                      |                        | MINIFICATION_DeadCode (true) *4*                   |
 | -no-ble              | no-ble (false)         | BLUETOOTH_LOW_ENERGY (true)                        |
 | -o out.js            | outputJS ("")          |                                                    |
 | -p,--port /dev/ttyX  | ports ([""])           |                                                    |

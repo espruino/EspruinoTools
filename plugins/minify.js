@@ -63,39 +63,10 @@
       type : "boolean",
       defaultValue : true
     });
-
     Espruino.Core.Config.add("MINIFICATION_Mangle",{
       section : "Minification",
       name : "Esprima: Mangle",
-      description : "Shorten variable name",
-      type : "boolean",
-      defaultValue : true
-    });
-    Espruino.Core.Config.add("MINIFICATION_Unreachable",{
-      section : "Minification",
-      name : "Esprima: Unreachable branches",
-      description : "Remove unreachable branches",
-      type : "boolean",
-      defaultValue : true
-    });
-    Espruino.Core.Config.add("MINIFICATION_Unused",{
-      section : "Minification",
-      name : "Esprima: Unused variables",
-      description : "Remove unused variables",
-      type : "boolean",
-      defaultValue : true
-    });
-    Espruino.Core.Config.add("MINIFICATION_Literal",{
-      section : "Minification",
-      name : "Esprima: Fold constants",
-      description : "Fold (literal) constants",
-      type : "boolean",
-      defaultValue : true
-    });
-    Espruino.Core.Config.add("MINIFICATION_DeadCode",{
-      section : "Minification",
-      name : "Esprima: Dead Code",
-      description : "Eliminate dead code",
+      description : "Shorten variable names",
       type : "boolean",
       defaultValue : true
     });
@@ -126,11 +97,16 @@
     var code, syntax, option, str, before, after;
     var options = {};
     options["mangle"] = Espruino.Config.MINIFICATION_Mangle;
-    options["remove-unreachable-branch"] = Espruino.Config.MINIFICATION_Unreachable;
-    options["remove-unused-vars"] = Espruino.Config.MINIFICATION_Unused;
-    options["fold-constant"] = Espruino.Config.MINIFICATION_Literal;
-    options["eliminate-dead-code"] = Espruino.Config.MINIFICATION_DeadCode;
-    option = {format: {indent: {style: ''},quotes: 'auto',compact: true}};
+    option = {format: {
+      renumber: true,
+      hexadecimal: true,
+      escapeless: true,
+      indent: {style: ''},
+      quotes: 'auto',
+      compact: true,
+      semicolons: false,
+      parentheses: false
+    }};
     str = '';
     try {
         before = code.length;
@@ -154,55 +130,16 @@
     // hack for random changes between version we have included for Web IDE and node.js version
     if (typeof esmangle.require == "undefined")
       esmangle.require = esmangle.pass.require;
-    var result = esmangle.optimize(syntax, createPipeline(options));
-    if (options.mangle) { result = esmangle.mangle(result);}
-    return result;
-  }
-  function createPipeline(options) {
-    var passes, pipeline, inputs, i, el, optimizer;
-    passes = {
-      'eliminate-dead-code': 'pass/dead-code-elimination',
-      'fold-constant': 'pass/tree-based-constant-folding',
-      'remove-unreachable-branch': 'pass/remove-unreachable-branch',
-      'remove-unused-vars': 'pass/drop-variable-definition'
-    };
-    pipeline = [
-      'pass/hoist-variable-to-arguments',
-      'pass/transform-dynamic-to-static-property-access',
-      'pass/transform-dynamic-to-static-property-definition',
-      'pass/transform-immediate-function-call',
-      'pass/transform-logical-association',
-      'pass/reordering-function-declarations',
-      'pass/remove-unused-label',
-      'pass/remove-empty-statement',
-      'pass/remove-wasted-blocks',
-      'pass/transform-to-compound-assignment',
-      'pass/transform-to-sequence-expression',
-      'pass/transform-branch-to-expression',
-      'pass/transform-typeof-undefined',
-      'pass/reduce-sequence-expression',
-      'pass/reduce-branch-jump',
-      'pass/reduce-multiple-if-statements',
-      'pass/dead-code-elimination',
-      'pass/remove-side-effect-free-expressions',
-      'pass/remove-context-sensitive-expressions',
-      'pass/tree-based-constant-folding',
-      'pass/drop-variable-definition',
-      'pass/remove-unreachable-branch'
-    ];
-    for(var i in passes){if(!options[i]){delete(passes[i])};}
-    pipeline = pipeline.map(esmangle.require);
-    pipeline = [pipeline];
-    pipeline.push({
-      once: true,
-      pass: [
-        'post/transform-static-to-dynamic-property-access',
-        'post/transform-infinity',
-        'post/rewrite-boolean',
-        'post/rewrite-conditional-expression'
-      ].map(esmangle.require)
+    syntax = esmangle.optimize(syntax, null,{
+        destructive: true,
+        directive: true,
+        preserveCompletionValue: false,
+        legacy: false,
+        topLevelContext: false,
+        inStrictCode: false
     });
-    return pipeline;
+    if (options.mangle) syntax = esmangle.mangle(syntax);
+    return syntax;
   }
 
   // Use the 'online' Closure compiler

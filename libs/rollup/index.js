@@ -68,22 +68,6 @@ function buildEspruinoMinifyOptions() {
     if (job.MINIFICATION_Mangle === false) {
         options.mangle = false;
     }
-    if (job.MINIFICATION_Unused === false) {
-        options.compress = options.compress || {};
-        options.compress.unused = false;
-    }
-    if (job.MINIFICATION_DeadCode === false) {
-        options.compress = options.compress || {};
-        options.compress.dead_code = false;
-    }
-    if (job.MINIFICATION_Unreachable === false) {
-        options.compress = options.compress || {};
-        options.compress.dead_code = false; // in Terser dead_code ~ unreachable
-    }
-    if (job.MINIFICATION_Literal === false) {
-        options.compress = options.compress || {};
-        options.compress.reduce_vars = false;
-    }
 
     return options;
 }
