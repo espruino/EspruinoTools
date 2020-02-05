@@ -50,16 +50,16 @@
     });
 
     Espruino.Core.Config.add("ROLLUP",{
-      section : "Rollup",
-      name : "Use Rollup",
-      description : "Uses rollup.js along with rollup-plugin-espruino-modules for bundling",
+      section : "Minification",
+      name : "Rollup: Enable Rollup",
+      description : "Use rollup.js along with rollup-plugin-espruino-modules for bundling",
       type : "boolean",
       defaultValue : false
     });
     Espruino.Core.Config.add("MODULE_MERGE",{
-      section : "Rollup",
-      name : "Unwrap modules using rollup.js",
-      description : "Uses rollup.js wihout the Modules.addCache",
+      section : "Minification",
+      name : "Rollup: Unwrap modules using rollup.js",
+      description : "Uses rollup.js to merge modules and remove unused code",
       type : "boolean",
       defaultValue : true
     });
