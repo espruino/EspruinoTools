@@ -469,7 +469,7 @@ function sendCode(callback) {
 /* Connect and send file/expression/etc */
 function connect(devicePath, exitCallback) {
   if (args.ideServer) log("WARNING: --ide specified, but no terminal. Don't specify a file/expression to upload.");
-  if (!args.quiet) if (! args.nosend) log("Connecting to '"+devicePath+"'");
+  if (!args.quiet && !args.nosend) log("Connecting to '"+devicePath+"'");
   var currentLine = "";
   var exitTimeout;
   // Handle received data
@@ -487,7 +487,7 @@ function connect(devicePath, exitCallback) {
      exitTimeout = setTimeout(exitCallback, 500);
    }
   });
-  if (! args.nosend) {
+  if (!args.nosend) {
     Espruino.Core.Serial.open(devicePath, function(status) {
       if (status === undefined) {
         console.error("Unable to connect!");
@@ -517,8 +517,8 @@ function connect(devicePath, exitCallback) {
      });
   } else {
     sendCode(function() {
-          exitTimeout = setTimeout(exitCallback, 500);
-        });
+      exitTimeout = setTimeout(exitCallback, 500);
+    });
   }
 }
 
@@ -708,7 +708,6 @@ function startConnect() {
   if ((!args.file && !args.updateFirmware && !args.expr) || (args.file && args.watchFile)) {
     if (args.ports.length != 1)
       throw new Error("Can only have one port when using terminal mode");
-
     getPortPath(args.ports[0], function(path) {
       terminal(path, tasksComplete);
     });
@@ -763,14 +762,14 @@ function main() {
           if (! args.nosend) log("Using first port, "+JSON.stringify(ports[0]));
           args.ports = [{type:"path",name:ports[0].path}];
           startConnect();
-        } else
+        } else {
           console.error("Error: No Ports Found");
           process.exit(1);
+        }
       });
     } else startConnect();
   });
 }
-
 
 // Start up
 require('../index.js').init(main);
