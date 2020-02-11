@@ -29,7 +29,7 @@
     Espruino.Core.Config.add("WEB_SERIAL", {
       section : "Communications",
       name : "Connect over Serial (Web Serial)",
-      descriptionHTML : 'Allow connection to Espruino via serial',
+      descriptionHTML : 'Allow connection to Espruino from the Web Browser via Serial. The API must currently be enabled by pasting <code>chrome://flags#enable-experimental-web-platform-features</code> into the address bar and clicking <code>Enable</code>',
       type : "boolean",
       defaultValue : true,
     });
