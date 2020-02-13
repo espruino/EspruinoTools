@@ -18,7 +18,7 @@
       name : "Set Current Time",
       description : "When sending code, set Espruino's clock to the current time",
       type : "boolean",
-      defaultValue : false,
+      defaultValue : true,
       onChange : function(newValue) {  }
     });
 
