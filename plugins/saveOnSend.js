@@ -31,10 +31,21 @@
     });
     Espruino.Core.Config.add("SAVE_STORAGE_FILE", {
       section : "Communications",
-      name : "File in Storage to send to",
+      name : "Send to File in Storage",
       descriptionHTML : "If <code>Save on Send</code> is set to <code>To Storage File</code>, this is the name of the file to write to.",
       type : "string",
-      defaultValue : ""
+      defaultValue : "myapp"
+    });
+    Espruino.Core.Config.add("LOAD_STORAGE_FILE", {
+      section : "Communications",
+      name : "Load after saving",
+      descriptionHTML : "This applies only if saving to Flash (not RAM)",
+      type : {
+        0: "Don't load",
+        1: "Load default application",
+        2: "Load the Storage File just written to"
+      },
+      defaultValue : 2
     });
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
       wrap(code, callback);
@@ -86,9 +97,9 @@
         for (var i=CHUNKSIZE;i<len;i+=CHUNKSIZE)
           newCode.push('require("Storage").write("'+filename+'",'+JSON.stringify(code.substr(i,CHUNKSIZE))+','+i+');');
         code = newCode.join("\n");
-        if (isStorageUpload)
+        if (Espruino.Config.LOAD_STORAGE_FILE==2 && isStorageUpload)
           code += "\nload("+JSON.stringify(filename)+")\n";
-        else
+        else if (Espruino.Config.LOAD_STORAGE_FILE!=0)
           code += "\nload()\n";
       }
     }
