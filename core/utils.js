@@ -557,7 +557,7 @@
 
   function getVersion(callback) {
     var xmlhttp = new XMLHttpRequest();
-    var path = (window.location.pathname.indexOf("relay"))?"../":"";
+    var path = (window.location.pathname.indexOf("relay")>=0)?"../":"";
     xmlhttp.open('GET', path+'manifest.json');
     xmlhttp.onload = function (e) {
         var manifest = JSON.parse(xmlhttp.responseText);
