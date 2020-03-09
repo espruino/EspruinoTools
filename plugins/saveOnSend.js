@@ -86,7 +86,7 @@
         filename = Espruino.Config.SAVE_STORAGE_FILE;
       else
         filename = isFlashPersistent ? ".bootrst" : ".bootcde";
-      if (!filename || filename.length>8) {
+      if (!filename || filename.length>28) {
         Espruino.Core.Notifications.error("Invalid Storage file name "+JSON.stringify(filename));
         code = "";
       } else {

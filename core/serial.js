@@ -62,7 +62,7 @@ To add a new serial device, you must add an object to
      section : "Communications",
      name : "Software Flow Control",
      description : "Respond to XON/XOFF flow control characters to throttle data uploads. By default Espruino sends XON/XOFF for USB and Bluetooth (on 2v05+).",
-     type : "bool",
+     type : "boolean",
      defaultValue : true
    });
 
