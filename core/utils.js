@@ -504,6 +504,7 @@
     if (chrome.fileSystem) {
       // Chrome Web App / NW.js
       chrome.fileSystem.chooseEntry({type: 'saveFile', suggestedName:filename}, function(writableFileEntry) {
+        if (!writableFileEntry) return; // cancelled
         writableFileEntry.createWriter(function(writer) {
           var blob = new Blob([data],{ type: "text/plain"} );
           writer.onerror = errorHandler;
