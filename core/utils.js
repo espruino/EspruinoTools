@@ -132,10 +132,22 @@
         } while (isIn(chAlphaNum,ch));
       } else if (isIn(chNum,ch)) { // NUMBER
         type = "NUMBER";
-        do {
+        var chRange = chNum;
+        if (ch=="0") { // Handle 
           s+=ch;
           nextCh();
-        } while (isIn(chNum,ch) || ch==".")
+          if ("xXoObB".indexOf(ch)>=0) {
+            if (ch=="b" || ch=="B") chRange="01";
+            if (ch=="o" || ch=="O") chRange="01234567";
+            if (ch=="x" || ch=="X") chRange="0123456789ABCDEFabcdef";
+            s+=ch;
+            nextCh();
+          } 
+        }
+        while (isIn(chRange,ch) || ch==".") {
+          s+=ch;
+          nextCh();
+        } 
       } else if (isIn(chQuotes,ch)) { // STRING
         type = "STRING";
         var q = ch;
@@ -354,12 +366,22 @@
         var resultUrl = result.url ? result.url : url;
         if (typeof process === 'undefined') {
           // Web browser
-          $.get( resultUrl, function(d) {
-            callback(d);
-          }, "text").error(function(xhr,status,err) {
-            console.error("getURL("+JSON.stringify(url)+") error : "+err);
+          var xhr = new XMLHttpRequest();
+          xhr.responseType = "text";
+          xhr.addEventListener("load", function () {
+            if (xhr.status === 200) {
+              callback(xhr.response.toString());
+            } else {
+              console.error("getURL("+JSON.stringify(url)+") error : HTTP "+xhr.status);
+              callback(undefined);
+            }
+          });
+          xhr.addEventListener("error", function (e) {
+            console.error("getURL("+JSON.stringify(url)+") error "+e);
             callback(undefined);
           });
+          xhr.open("GET", url, true);
+          xhr.send(null);
         } else {
           // Node.js
           if (resultUrl.substr(0,4)=="http") {
