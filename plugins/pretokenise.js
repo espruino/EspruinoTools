@@ -118,18 +118,22 @@
       //console.log("prev "+JSON.stringify(previousString)+"   next "+tokenString);
 
       if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;
-      if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;
-
       // TODO: check for eg. two IDs/similar which can't be merged without a space
       // preserve newlines at root scope to avoid us filling up the command buffer all at once
       if (brackets==0 && previousString.indexOf("\n")>=0)
         resultCode += "\n";
+      if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;
       // if we have a token for something, use that - else use the string
       if (tokenId) {
         //console.log(JSON.stringify(tok.str)+" => "+tokenId);
         resultCode += String.fromCharCode(tokenId);
-      } else
+        tok.type = "TOKENISED";
+      } else {
+        if ((tok.type=="ID" || tok.type=="NUMBER") &&
+            (lastTok.type=="ID" || lastTok.type=="NUMBER"))
+          resultCode += " ";
         resultCode += tokenString;
+      }
       // next
       lastIdx = tok.endIdx;
       lastTok = tok;
