@@ -62,13 +62,8 @@ var Espruino;
     });
   }
 
-  // workaround for broken chrome on Mac
-  if (navigator.userAgent.indexOf("Mac OS X")>=0 &&
-      navigator.userAgent.indexOf("Chrome/33.0.1750")>=0) {
-    $(document).ready(function() { window.setTimeout(init,100); });
-  } else {
-    $(document).ready(init);
-  }
+  // Automatically start up when all is loaded
+  document.addEventListener("DOMContentLoaded", init);
 
   /** Add a processor function of type function(data,callback) */
   function addProcessor(eventType, processor) {
