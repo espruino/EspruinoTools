@@ -162,8 +162,9 @@ To add a new serial device, you must add an object to
       }
     }
 
+    var portInfo = { port:serialPort };
     connectionInfo = undefined;
-    flowControlXOFF = false;   
+    flowControlXOFF = false;
     currentDevice = portToDevice[serialPort];
     currentDevice.open(serialPort, function(cInfo) {  // CONNECT
       if (!cInfo) {
@@ -174,7 +175,6 @@ To add a new serial device, you must add an object to
         connectionInfo = cInfo;
         connectedPort = serialPort;
         console.log("Connected", cInfo);
-        var portInfo = { port:serialPort };
         if (connectionInfo.portName)
           portInfo.portName = connectionInfo.portName;
         Espruino.callProcessor("connected", portInfo, function() {
@@ -204,7 +204,7 @@ To add a new serial device, you must add an object to
         // Just call connectCallback(undefined), don't bother sending disconnect
         connectCallback(undefined);
         return;
-      }      
+      }
       connectionInfo = undefined;
       if (writeTimeout!==undefined)
         clearTimeout(writeTimeout);
@@ -213,8 +213,8 @@ To add a new serial device, you must add an object to
       sendingBinary = false;
       flowControlXOFF = false;
 
-      Espruino.callProcessor("disconnected", undefined, function() {
-        disconnectCallback();
+      Espruino.callProcessor("disconnected", portInfo, function() {
+        disconnectCallback(portInfo);
       });
     });
   };

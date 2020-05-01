@@ -296,7 +296,7 @@
     });
     Espruino.addProcessor("disconnected", function(data, callback) {
       // carriage return, clear to right - remove prompt, add newline
--      outputDataHandler("\n");
+-     outputDataHandler("\n");
       terminal.classList.remove("terminal--connected");
       callback(data);
     });
