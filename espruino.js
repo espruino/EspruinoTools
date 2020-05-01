@@ -20,6 +20,7 @@ var Espruino;
    *
    * Common processors are:
    *
+   *   jsCodeChanged        - called when the code in the editor changes with {code}
    *   sending              - sending code to Espruino (no data)
    *   transformForEspruino - transform code ready to be sent to Espruino
    *   transformModuleForEspruino({code,name})
