@@ -64,7 +64,7 @@ var Espruino;
   }
 
   // Automatically start up when all is loaded
-  document.addEventListener("DOMContentLoaded", init);
+  if (document) document.addEventListener("DOMContentLoaded", init);
 
   /** Add a processor function of type function(data,callback) */
   function addProcessor(eventType, processor) {

@@ -116,6 +116,7 @@ function init(callback) {
   
   // Finally init everything
   jqReady.forEach(function(cb){cb();});
+  Espruino.init();
   callback();
 };
 
