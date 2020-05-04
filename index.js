@@ -155,6 +155,22 @@ function sendCode(port, code, callback) {
 
 /** Execute an expression on Espruino, call the callback with the result */
 exports.expr = function(port, expr, callback) {
+  init(function() {
+    Espruino.Core.Serial.startListening(function(data) { });
+    Espruino.Core.Serial.open(port, function(status) {
+      Espruino.Core.Utils.executeExpression(expr, function(result) {
+        if (callback) callback(result);
+        Espruino.Core.Serial.close();
+        exprResult = result;
+      });
+    }, function() { // disconnected
+      console.log("disconnected");
+      // if (callback) callback(exprResult);
+    });
+  });
+};
+/*
+exports.expr = function(port, expr, callback) {
   var exprResult = undefined;
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
@@ -174,7 +190,7 @@ exports.expr = function(port, expr, callback) {
     });
   });
 };
-
+*/
 
 /** Flash the given firmware file to an Espruino board. */
 exports.flash = function(port, filename, flashOffset, callback) {
