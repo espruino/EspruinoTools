@@ -155,41 +155,23 @@ function sendCode(port, code, callback) {
 
 /** Execute an expression on Espruino, call the callback with the result */
 exports.expr = function(port, expr, callback) {
-  init(function() {
-    Espruino.Core.Serial.startListening(function(data) { });
-    Espruino.Core.Serial.open(port, function(status) {
-      Espruino.Core.Utils.executeExpression(expr, function(result) {
-        if (callback) callback(result);
-        Espruino.Core.Serial.close();
-        exprResult = result;
-      });
-    }, function() { // disconnected
-      console.log("disconnected");
-      // if (callback) callback(exprResult);
-    });
-  });
-};
-/*
-exports.expr = function(port, expr, callback) {
   var exprResult = undefined;
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
     Espruino.Core.Serial.open(port, function(status) {
-      if (status === undefined) {
-        console.error("Unable to connect!");
-        return callback();
-      }
       Espruino.Core.Utils.executeExpression(expr, function(result) { 
         setTimeout(function() {
           Espruino.Core.Serial.close();
         }, 500);
-        exprResult = result;
+        if (callback) callback(result);
       });
     }, function() { // disconnected
-      if (callback) callback(exprResult);
+      console.log("disconnected");
     });
   });
 };
+/*
+
 */
 
 /** Flash the given firmware file to an Espruino board. */
