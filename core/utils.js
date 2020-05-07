@@ -545,8 +545,10 @@
         }, errorHandler);
       });
     } else {
+      var rawdata = new Uint8Array(data.length);
+      for (var i=0;i<data.length;i++) rawdata[i]=data.charCodeAt(i);
       var a = document.createElement("a"),
-          file = new Blob([data], {type: "text/plain"});
+          file = new Blob([rawdata.buffer], {type: "text/plain"});
       var url = URL.createObjectURL(file);
       a.href = url;
       a.download = filename;
