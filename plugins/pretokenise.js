@@ -117,7 +117,8 @@
         var tp = "?";
         if (tk.type.label=="template" || tk.type.label=="string") tp="STRING";
         if (tk.type.label=="num") tp="NUMBER";
-        if (tk.type.keyword) tp="ID";
+        if (tk.type.keyword || tk.type.label=="name") tp="ID";
+        if (tp=="?" && tk.start+1==tk.end) tp="CHAR";
         return {
           startIdx : tk.start,
           endIdx : tk.end,
