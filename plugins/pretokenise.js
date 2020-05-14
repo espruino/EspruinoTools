@@ -120,7 +120,7 @@
         return {
           startIdx : tk.start,
           endIdx : tk.end,
-          str : code.substr(tk.start, tk.end),
+          str : code.substring(tk.start, tk.end),
           type : tp
         };
       }};
