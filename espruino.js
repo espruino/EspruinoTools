@@ -90,6 +90,9 @@ var Espruino;
       cbCalled = true;
       if (n < p.length) {
         cbCalled = false;
+        if ( inData !== undefined && typeof inData === "string" ) {
+          inData = "(function() {\n" + inData + "\n})();";
+        }
         p[n++](inData, cb);
       } else {
         if (callback!==undefined) callback(inData);
