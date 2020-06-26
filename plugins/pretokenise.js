@@ -137,6 +137,8 @@
       var tokenString = code.substring(tok.startIdx, tok.endIdx);
       var tokenId = LEX_OPERATOR_START + TOKENS.indexOf(tokenString);
       if (tokenId<LEX_OPERATOR_START) tokenId=undefined;
+      // Workaround for https://github.com/espruino/Espruino/issues/1868
+      if (tokenString=="catch") tokenId=undefined;
       //console.log("prev "+JSON.stringify(previousString)+"   next "+tokenString);
 
       if (tok.str=="(" || tok.str=="{" || tok.str=="[") brackets++;
