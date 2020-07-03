@@ -24,6 +24,9 @@ To add a new serial device, you must add an object to
 
 */
 (function() {
+  // If XOFF flow control is received, this is how long we wait
+  // before resuming anyway
+  const FLOW_CONTROL_RESUME_TIMEOUT = 20000; // 20 sec
 
   // List of ports and the devices they map to
   var portToDevice = undefined;
@@ -41,6 +44,8 @@ To add a new serial device, you must add an object to
   var writeTimeout = undefined;
   /// flow control XOFF received - we shouldn't send anything
   var flowControlXOFF = false;
+  /// Set up when flow control received - if no response is received we start sending anyway
+  var flowControlTimeout;
 
 
   function init() {
@@ -165,6 +170,10 @@ To add a new serial device, you must add an object to
     var portInfo = { port:serialPort };
     connectionInfo = undefined;
     flowControlXOFF = false;
+    if (flowControlTimeout) {
+      clearTimeout(flowControlTimeout);
+      flowControlTimeout = undefined;
+    }
     currentDevice = portToDevice[serialPort];
     currentDevice.open(serialPort, function(cInfo) {  // CONNECT
       if (!cInfo) {
@@ -189,16 +198,37 @@ To add a new serial device, you must add an object to
           if (u[i]==17) { // XON
             console.log("XON received => resume upload");
             flowControlXOFF = false;
+            if (flowControlTimeout) {
+              clearTimeout(flowControlTimeout);
+              flowControlTimeout = undefined;
+            }
           }
           if (u[i]==19) { // XOFF
             console.log("XOFF received => pause upload");
             flowControlXOFF = true;
+            if (flowControlTimeout)
+              clearTimeout(flowControlTimeout);
+            flowControlTimeout = setTimeout(function() {
+              console.log("XOFF timeout => resume upload anyway");
+              flowControlXOFF = false;
+              flowControlTimeout = undefined;
+            }, FLOW_CONTROL_RESUME_TIMEOUT);
           }
         }
       }
       if (readListener) readListener(data);
     }, function() { // DISCONNECT
       currentDevice = undefined;
+      if (writeTimeout!==undefined)
+        clearTimeout(writeTimeout);
+      writeTimeout = undefined;
+      writeData = [];
+      sendingBinary = false;
+      flowControlXOFF = false;
+      if (flowControlTimeout) {
+        clearTimeout(flowControlTimeout);
+        flowControlTimeout = undefined;
+      }
       if (!connectionInfo) {
         // we got a disconnect when we hadn't connected...
         // Just call connectCallback(undefined), don't bother sending disconnect
@@ -206,13 +236,6 @@ To add a new serial device, you must add an object to
         return;
       }
       connectionInfo = undefined;
-      if (writeTimeout!==undefined)
-        clearTimeout(writeTimeout);
-      writeTimeout = undefined;
-      writeData = [];
-      sendingBinary = false;
-      flowControlXOFF = false;
-
       Espruino.callProcessor("disconnected", portInfo, function() {
         disconnectCallback(portInfo);
       });
