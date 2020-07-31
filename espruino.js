@@ -46,8 +46,13 @@ var Espruino;
       // Initialise all modules
       function initModule(modName, mod) {
         console.log("Initialising "+modName);
-        if (mod.init !== undefined)
-          mod.init();
+        if (mod.init !== undefined) {
+          try {
+            mod.init();
+          } catch (e) {
+            console.warn("Module initialisation failed for "+modName, e);
+          }
+        }
       }
 
       var module;
@@ -64,7 +69,7 @@ var Espruino;
   }
 
   // Automatically start up when all is loaded
-  if (typeof document!=="undefined") 
+  if (typeof document!=="undefined")
     document.addEventListener("DOMContentLoaded", init);
 
   /** Add a processor function of type function(data,callback) */
