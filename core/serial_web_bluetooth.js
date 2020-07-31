@@ -83,7 +83,7 @@
         OK = false;
     }
     if (Espruino.Config.WEB_BLUETOOTH && OK) {
-      var list = [{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth"}];
+      var list = [{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth", promptsUser:true}];
       pairedDevices.forEach(function(btDevice) {
         list.push({path:btDevice.name, description:'Web Bluetooth device', type : "bluetooth"});
       });

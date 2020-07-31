@@ -19,6 +19,7 @@ To add a new serial device, you must add an object to
                    description:"test",   // description displayed to user
                    type:"test",           // bluetooth|usb|socket - used to show icon in UI
                    // autoconnect : true  // automatically conect to this (without the connect menu)
+                   // promptsUser : true  // this is set if we expect the Web Browser to prompt the user for this item
                  }], true); // instantPorts - will getPorts return all the ports on the first call, or does it need multiple calls (eg. Bluetooth)
     "open": function(path, openCallback, receiveCallback, disconnectCallback),
     "write": function(dataAsString, callbackWhenWritten)

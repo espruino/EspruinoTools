@@ -45,7 +45,7 @@
         OK = false;
     }
     if (Espruino.Config.WEB_SERIAL && OK)
-      callback([{path:'Web Serial', description:'Serial', type : "serial"}], true/*instantPorts*/);
+      callback([{path:'Web Serial', description:'Serial', type : "serial", promptsUser:true}], true/*instantPorts*/);
     else
       callback(undefined, true/*instantPorts*/);
   }
