@@ -1,35 +1,46 @@
 (function() {
 
-  // Fix up prefixing
-  if (typeof navigator == "undefined") {
-    console.log("Not running in a browser - Web Bluetooth not enabled");
-    return;
-  }
-
-  function checkCompatibility() {
+  function getStatus(ignoreSettings) {
+    /* If BLE is handled some other way (eg winnus), then it
+    can be disabled here */
+    if (Espruino.Core.Serial.NO_WEB_BLUETOOTH) {
+      OK = false;
+      return {warning:`Disabled by another Serial service in Web IDE (Serial.NO_WEB_BLUETOOTH)`};
+    }
+    if (typeof navigator == "undefined") {
+      return {warning:"Not running in a browser"};
+    }
     if (!navigator.bluetooth) {
-      console.log("No navigator.bluetooth - Web Bluetooth not enabled");
-      return false;
+      if (Espruino.Core.Utils.isAppleDevice())
+        return {error:`Safari on iOS has no Web Bluetooth support. You need <a href="https://itunes.apple.com/us/app/webble/id1193531073" target="_blank">to use the WebBLE app</a>`};
+      else if (Espruino.Core.Utils.isChrome() && Espruino.Core.Utils.isLinux())
+        return {error:`Chrome on Linux requires <code>chrome://flags/#enable-experimental-web-platform-features</code> to be enabled.`};
+      else if (Espruino.Core.Utils.isFirefox())
+        return {error:`Firefox doesn't support Web Bluetooth - try using Chrome`};
+      else
+        return {error:"No navigator.bluetooth. Do you have a supported browser?"};
     }
     if (navigator.bluetooth.requestDevice &&
         navigator.bluetooth.requestDevice.toString().indexOf('callExtension') >= 0) {
-      console.log("Using Urish's Windows 10 Web Bluetooth Polyfill");
+      status("info","Using Urish's Windows 10 Web Bluetooth Polyfill");
     } else if (navigator.platform.indexOf("Win")>=0 &&
         (navigator.userAgent.indexOf("Chrome/")>=0)) {
       var chromeVer = navigator.userAgent.match(/Chrome\/(\d+)/);
       if (chromeVer && chromeVer[1]<68) {
-        console.log("Web Bluetooth available, but Windows Web Bluetooth is broken in <68 - not using it");
-        return false;
+        return {error:"Web Bluetooth available, but Windows Web Bluetooth is broken in <68"};
       }
     }
-    if (window && window.location && window.location.protocol=="http:") {
-      console.log("Serving off HTTP (not HTTPS) - Web Bluetooth not enabled");
-      return false;
+    if (window && window.location && window.location.protocol=="http:" &&
+        window.location.hostname!="localhost") {
+      return {error:"Serving off HTTP (not HTTPS)"};
     }
+    if (!ignoreSettings && !Espruino.Config.WEB_BLUETOOTH)
+      return {warning:`"Web Bluetooth" disabled in settings`};
+
     return true;
   }
 
-  var WEB_BLUETOOTH_OK = true;
+  var OK = true;
   var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
   var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
   var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
@@ -46,13 +57,6 @@
   var txInProgress = false;
 
   function init() {
-    /* If BLE is handled some other way (eg winnus), then it
-    can be disabled here */
-    if (Espruino.Core.Serial.NO_WEB_BLUETOOTH) {
-      WEB_BLUETOOTH_OK = false;
-      return;
-    }
-
     Espruino.Core.Config.add("WEB_BLUETOOTH", {
       section : "Communications",
       name : "Connect over Bluetooth Smart (Web Bluetooth)",
@@ -68,10 +72,10 @@
       /* Check compatibility here - the Web Bluetooth Polyfill for windows
       loads after everything else, so we can't check when this page is
       parsed.*/
-      if (!checkCompatibility())
-        WEB_BLUETOOTH_OK = false;
+      if (getStatus(true)!==true)
+        OK = false;
     }
-    if (Espruino.Config.WEB_BLUETOOTH && WEB_BLUETOOTH_OK) {
+    if (Espruino.Config.WEB_BLUETOOTH && OK) {
       var list = [{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth"}];
       pairedDevices.forEach(function(btDevice) {
         list.push({path:btDevice.name, description:'Web Bluetooth device', type : "bluetooth"});
@@ -206,10 +210,10 @@
   }
 
   // ----------------------------------------------------------
-
   Espruino.Core.Serial.devices.push({
     "name" : "Web Bluetooth",
     "init" : init,
+    "getStatus": getStatus,
     "getPorts": getPorts,
     "open": openSerial,
     "write": writeSerial,

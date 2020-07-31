@@ -20,8 +20,20 @@
     return (typeof navigator!="undefined") && navigator.userAgent.indexOf("Windows")>=0;
   }
 
+  function isLinux() {
+    return (typeof navigator!="undefined") && navigator.userAgent.indexOf("Linux")>=0;
+  }
+
   function isAppleDevice() {
     return (typeof navigator!="undefined") && (typeof window!="undefined") && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  function isChrome(){
+    return navigator.userAgent.indexOf("Chrome")>=0;
+  }
+
+  function isFirefox(){
+    return navigator.userAgent.indexOf("Firefox")>=0;
   }
 
   function getChromeVersion(){
@@ -133,7 +145,7 @@
       } else if (isIn(chNum,ch)) { // NUMBER
         type = "NUMBER";
         var chRange = chNum;
-        if (ch=="0") { // Handle 
+        if (ch=="0") { // Handle
           s+=ch;
           nextCh();
           if ("xXoObB".indexOf(ch)>=0) {
@@ -142,12 +154,12 @@
             if (ch=="x" || ch=="X") chRange="0123456789ABCDEFabcdef";
             s+=ch;
             nextCh();
-          } 
+          }
         }
         while (isIn(chRange,ch) || ch==".") {
           s+=ch;
           nextCh();
-        } 
+        }
       } else if (isIn(chQuotes,ch)) { // STRING
         type = "STRING";
         var q = ch;

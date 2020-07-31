@@ -8,9 +8,23 @@ Use embed.js on the client side to link this in.
 */
 
 (function() {
-  if (typeof window == "undefined" || typeof window.parent == undefined) return;
-  console.log("serial_frame: Running in a frame - enabling frame messaging");
-  var ENABLED = true;
+  if (typeof navigator == "undefined" || typeof window == "undefined") {
+    console.log("serial_frame: Not running in a browser");
+    return;
+  }
+  if (typeof window.parent == undefined ||
+      window.parent === window) {
+    console.log("serial_frame: Not running inside an iframe");
+    return;
+  }
+
+  var ERROR = "No 'init' message received";
+
+  function getStatus(ignoreSettings) {
+    if (ERROR)
+      return {error:ERROR};
+    return true;
+  }
 
   var callbacks = {
     connected : undefined,
@@ -28,7 +42,7 @@ Use embed.js on the client side to link this in.
     if (typeof event!="object" || event.for!="ide") return;
     switch (event.type) {
       case "initialised": {
-        // response to init. Could disable if we don't get this?
+        ERROR = false;
       } break;
       case "ports": if (callbacks.ports) {
         callbacks.ports(event.data);
@@ -75,12 +89,13 @@ Use embed.js on the client side to link this in.
   }
 
   var device = {
-    "name" : "window.postMessage",
+    "name" : "Embedded IDE",
     "init" : function() {
       post({type:"init"});
     },
+    getStatus : getStatus,
     "getPorts": function(callback) {
-      if (!ENABLED) {
+      if (ERROR !== false) {
         callback([], true/*instantPorts*/);
         return;
       }
@@ -89,8 +104,8 @@ Use embed.js on the client side to link this in.
         timeout = undefined;
         callbacks.ports = undefined;
         callback([], false/*instantPorts*/);
-        console.error("serial_frame: getPorts timeout, disabling");
-        ENABLED = false;
+        ERROR = "getPorts timeout, disabling";
+        console.error("serial_frame: "+ERROR);
       },100);
       callbacks.ports = function(d) {
         if (!timeout) {

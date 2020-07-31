@@ -1,25 +1,27 @@
 (function() {
 
-  // Fix up prefixing
-  if (typeof navigator == "undefined") {
-    console.log("Not running in a browser - Web Serial not enabled");
-    return;
-  }
-
-  function checkCompatibility() {
+  function getStatus(ignoreSettings) {
+    if (typeof navigator == "undefined") {
+      return {warning:"Not running in a browser"};
+    }
     if (!navigator.serial) {
-      console.log("No navigator.serial - Web Serial not enabled");
-      return false;
+      if (Espruino.Core.Utils.isChrome())
+        return {error:`Chrome currently requires <code>chrome://flags/#enable-experimental-web-platform-features</code> to be enabled.`};
+      else if (Espruino.Core.Utils.isFirefox())
+        return {error:`Firefox doesn't support Web Serial - try using Chrome`};
+      else
+        return {error:"No navigator.serial. Do you have a supported browser?"};
     }
     if (window && window.location && window.location.protocol=="http:" &&
         window.location.hostname!="localhost") {
-      console.log("Serving off HTTP (not HTTPS) - Web Serial not enabled");
-      return false;
+      return {error:"Serving off HTTP (not HTTPS)"};
     }
+    if (!ignoreSettings && !Espruino.Config.WEB_SERIAL)
+      return {warning:`"Web Serial" disabled in settings`};
     return true;
   }
 
-  var WEB_SERIAL_OK = true;
+  var OK = true;
   var testedCompatibility = false;
 
   var serialPort = undefined;
@@ -38,10 +40,10 @@
   function getPorts(callback) {
     if (!testedCompatibility) {
       testedCompatibility = true;
-      if (!checkCompatibility())
-        WEB_SERIAL_OK = false;
+      if (getStatus(true)!==true)
+        OK = false;
     }
-    if (Espruino.Config.WEB_SERIAL && WEB_SERIAL_OK)
+    if (Espruino.Config.WEB_SERIAL && OK)
       callback([{path:'Web Serial', description:'Serial', type : "serial"}], true/*instantPorts*/);
     else
       callback(undefined, true/*instantPorts*/);
@@ -106,6 +108,7 @@
   Espruino.Core.Serial.devices.push({
     "name" : "Web Serial",
     "init" : init,
+    "getStatus": getStatus,
     "getPorts": getPorts,
     "open": openSerial,
     "write": writeSerial,

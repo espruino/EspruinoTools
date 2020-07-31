@@ -10,6 +10,10 @@ To add a new serial device, you must add an object to
   Espruino.Core.Serial.devices.push({
     "name" : "Test",               // Name, when initialising
     "init" : function()            // Gets called at startup
+    "getStatus" : function(ignoreSettings)   // Optional - returns:
+      // true - all ok
+      // {error: error_string}
+      // {warning: warning_string}
     "getPorts": function(callback) // calls 'callback' with an array of ports:
         callback([{path:"TEST",          // path passed to 'open' (and displayed to user)
                    description:"test",   // description displayed to user
