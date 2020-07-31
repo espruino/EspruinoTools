@@ -1,5 +1,10 @@
 (function() {
 
+  // TODO: Pass USB vendor and product ID filter when supported by Chrome.
+  // TODO: Retrieve device name when/if supported
+  // TODO: Use a pairedDevices list (and serial.getPorts()) like in Web Bluetooth
+  //         - no point doing this until we can get the name of a device!
+
   function getStatus(ignoreSettings) {
     if (typeof navigator == "undefined") {
       return {warning:"Not running in a browser"};
@@ -51,8 +56,6 @@
   }
 
   function openSerial(_, openCallback, receiveCallback, disconnectCallback) {
-    // TODO: Pass USB vendor and product ID filter when supported by Chrome.
-    // TODO: Retrieve device name when/if supported and use a pairedDevices list like in Web Bluetooth
     navigator.serial.requestPort({}).then(function(port) {
       Espruino.Core.Status.setStatus("Connecting to serial port");
       serialPort = port;
