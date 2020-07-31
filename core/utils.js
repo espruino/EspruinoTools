@@ -711,7 +711,9 @@
   Espruino.Core.Utils = {
       init : init,
       isWindows : isWindows,
+      isLinux : isLinux,
       isAppleDevice : isAppleDevice,
+      isChrome : isChrome,
       getChromeVersion : getChromeVersion,
       isNWApp : isNWApp,
       isChromeWebApp : isChromeWebApp,
