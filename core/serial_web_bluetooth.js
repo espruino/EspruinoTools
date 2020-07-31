@@ -46,7 +46,7 @@
   var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
   var NORDIC_TX_MAX_LENGTH = 20;
   var testedCompatibility = false;
-  // List of previously paired devices that we could reconnect to without the chooser
+  /// List of previously paired devices that we could reconnect to without the chooser
   var pairedDevices = [];
 
   var btServer = undefined;
@@ -64,6 +64,13 @@
       type : "boolean",
       defaultValue : true,
     });
+    // If we're ok and have the getDevices extension, use it to remember previously paired devices
+    if (getStatus(true)===true && navigator.bluetooth.getDevices) {
+      console.log("BT> bluetooth.getDevices exists - grab known devices");
+      navigator.bluetooth.getDevices().then(devices=>{
+        pairedDevices = devices;
+      });
+    }
   }
 
   function getPorts(callback) {
@@ -80,7 +87,7 @@
       pairedDevices.forEach(function(btDevice) {
         list.push({path:btDevice.name, description:'Web Bluetooth device', type : "bluetooth"});
       });
-      callback(list, true/*instantPorts*/);;
+      callback(list, true/*instantPorts*/);
     } else
       callback(undefined, true/*instantPorts*/);
   }
@@ -93,34 +100,34 @@
 
     var promise;
     // Check for pre-paired devices
-    btDevice = pairedDevices.find(btDevice=>btDevice.name == serialPort);
+    btDevice = pairedDevices.find(dev=>dev.name == serialPort);
     if (btDevice) {
-      console.log("Pre-paired Web Bluetooth device already found");
-      promise = btDevice.gatt.connect();
+      console.log("BT> Pre-paired Web Bluetooth device already found");
+      promise = Promise.resolve(btDevice);
     } else {
       var filters = [];
       Espruino.Core.Utils.recognisedBluetoothDevices().forEach(function(namePrefix) {
         filters.push({ namePrefix: namePrefix });
       });
       filters.push({ services: [ NORDIC_SERVICE ] });
-
+      console.log("BT> Starting device chooser");
       promise = navigator.bluetooth.requestDevice({
           filters: filters,
-          optionalServices: [ NORDIC_SERVICE ]}).then(function(device) {
-        btDevice = device;
-        Espruino.Core.Status.setStatus("Connecting to "+btDevice.name);
-        console.log('BT>  Device Name:       ' + btDevice.name);
-        console.log('BT>  Device ID:         ' + btDevice.id);
-        // Was deprecated: Should use getPrimaryServices for this in future
-        //console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
-        btDevice.addEventListener('gattserverdisconnected', function() {
-          console.log("BT> Disconnected (gattserverdisconnected)");
-          closeSerial();
-        }, {once:true});
-        return btDevice.gatt.connect();
-      })
+          optionalServices: [ NORDIC_SERVICE ]});
     }
-    promise.then(function(server) {
+    promise.then(function(device) {
+      btDevice = device;
+      Espruino.Core.Status.setStatus("Connecting to "+btDevice.name);
+      console.log('BT>  Device Name:       ' + btDevice.name);
+      console.log('BT>  Device ID:         ' + btDevice.id);
+      // Was deprecated: Should use getPrimaryServices for this in future
+      //console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
+      btDevice.addEventListener('gattserverdisconnected', function() {
+        console.log("BT> Disconnected (gattserverdisconnected)");
+        closeSerial();
+      }, {once:true});
+      return btDevice.gatt.connect();
+    }).then(function(server) {
       Espruino.Core.Status.setStatus("Connected to BLE");
       console.log("BT> Connected");
       btServer = server;
