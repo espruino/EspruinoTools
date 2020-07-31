@@ -714,6 +714,7 @@
       isLinux : isLinux,
       isAppleDevice : isAppleDevice,
       isChrome : isChrome,
+      isFirefox : isFirefox,
       getChromeVersion : getChromeVersion,
       isNWApp : isNWApp,
       isChromeWebApp : isChromeWebApp,
