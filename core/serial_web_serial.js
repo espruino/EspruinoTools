@@ -24,7 +24,8 @@
   var OK = true;
   var testedCompatibility = false;
 
-  var serialPort = undefined;
+  var serialPort;
+  var serialPortReader;
   var connectionDisconnectCallback;
 
   function init() {
@@ -58,9 +59,9 @@
       return port.open({ baudrate: parseInt(Espruino.Config.BAUD_RATE) });
     }).then(function () {
       function readLoop() {
-        var reader = serialPort.readable.getReader();
-        reader.read().then(function ({ value, done }) {
-          reader.releaseLock();
+        serialPortReader = serialPort.readable.getReader();
+        serialPortReader.read().then(function ({ value, done }) {
+          serialPortReader.releaseLock();
           if (value) {
             receiveCallback(value.buffer);
           }
@@ -83,8 +84,11 @@
 
   function closeSerial() {
     if (serialPort) {
-      serialPort.close();
-      serialPort = undefined;
+      serialPortReader.cancel().then(function() {
+        serialPort.close();
+        serialPort = undefined;
+        serialPortReader = undefined;
+      });
     }
     if (connectionDisconnectCallback) {
       connectionDisconnectCallback();
