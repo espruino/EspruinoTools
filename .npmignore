@@ -2,7 +2,6 @@
 CONTRIBUTING.md
 index.html
 libs/esprima
-libs/rollup/espruino-rollup.browser.js
 libs/targz.js
 libs/utf8.js
 plugins/_examplePlugin.js

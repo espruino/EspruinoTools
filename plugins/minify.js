@@ -29,7 +29,6 @@
       name : "Minification",
       description : "Automatically minify code from the Editor window?",
       type : { "":"No Minification",
-               "TERSER":"Terser (uglify-es)",
                "ESPRIMA":"Esprima (offline)",
                "WHITESPACE_ONLY":"Closure (online) - Whitespace Only",
                "SIMPLE_OPTIMIZATIONS":"Closure (online) - Simple Optimizations",
@@ -41,7 +40,6 @@
       name : "Module Minification",
       description : "Automatically minify modules? Only modules with a .js extension will be minified - if a file with a .min.js extension exists then it will be used instead.",
       type : { "":"No Minification",
-               "TERSER":"Terser (uglify-es)",
                "ESPRIMA":"Esprima (offline)",
                "WHITESPACE_ONLY":"Closure (online) - Whitespace Only",
                "SIMPLE_OPTIMIZATIONS":"Closure (online) - Simple Optimizations",
@@ -49,20 +47,6 @@
       defaultValue : "ESPRIMA"
     });
 
-    Espruino.Core.Config.add("ROLLUP",{
-      section : "Minification",
-      name : "Rollup: Enable Rollup",
-      description : "Use rollup.js along with rollup-plugin-espruino-modules for bundling",
-      type : "boolean",
-      defaultValue : false
-    });
-    Espruino.Core.Config.add("MODULE_MERGE",{
-      section : "Minification",
-      name : "Rollup: Unwrap modules using rollup.js",
-      description : "Uses rollup.js to merge modules and remove unused code",
-      type : "boolean",
-      defaultValue : true
-    });
     Espruino.Core.Config.add("MINIFICATION_Mangle",{
       section : "Minification",
       name : "Esprima: Mangle",
@@ -199,28 +183,7 @@
     }
   }
 
-  function minifyCodeTerser(code, callback, description){
-    rollupTools.minifyCodeTerser(code)
-      .then(generated => {
-        var minified = generated.code;
-
-        // FIXME: needs warnings?
-        Espruino.Core.Notifications.info('Terser no errors'+description+'. Minifying ' + code.length + ' bytes to ' + minified.length + ' bytes');
-        callback(minified);
-      })
-      .catch(err => {
-        Espruino.Core.Notifications.warning("Terser errors"+description+" - sending unminified code.");
-        Espruino.Core.Notifications.error(String(err).trim());
-        callback(code);
-      });
-  }
-
-
   function minify(code, callback, level, isModule, description) {
-    if (Espruino.Config.ROLLUP) {
-        // already minified by the ROLLUP pipeline
-        return callback(code);
-    }
     (function() {
       Espruino.Core.Status.setStatus("Minifying"+(isModule?description.substr(2):""));
       var _callback = callback;
@@ -229,7 +192,6 @@
         _callback(code);
       };
     })();
-
     var minifyCode = code;
     var minifyCallback = callback;
     if (isModule) {
@@ -248,7 +210,6 @@
       case "SIMPLE_OPTIMIZATIONS":
       case "ADVANCED_OPTIMIZATIONS": minifyCodeGoogle(code, callback, level, description); break;
       case "ESPRIMA": minifyCodeEsprima(code, callback, description); break;
-      case "TERSER": minifyCodeTerser(code, callback, description); break;
       default: callback(code); break;
     }
   }
