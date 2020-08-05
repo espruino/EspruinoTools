@@ -61,32 +61,36 @@
     var terminal = document.getElementById("terminal");
     var terminalfocus = document.getElementById("terminalfocus");
 
-    var html = "";
-    html+='<div style="max-width:400px;margin:auto;">\n';
-    html+='  <p><a href="http://www.espruino.com/Web+IDE" target="_blank"><img src="img/ide_logo.png" width="299" height="96" alt="Espruino IDE"/></a></p>\n';
-    html+='  <p id="versioninfo" style="text-align:right"></p>\n';
-    html+='  <p style="text-align:center;font-weight:bold">A Code Editor and Terminal for <a href="http://www.espruino.com" target="_blank">Espruino JavaScript Microcontrollers</a></p>\n';
-    html+='  <p>Try the <a class="tour_link" href="#">guided tour</a> and <a href="http://www.espruino.com/Quick+Start" target="_blank">getting started</a> guide for more information, tutorials and example projects.</p>\n';
-    html+='  <div id="terminalnews"></div>\n';
-    html+='  <p>Espruino is <a href="https://github.com/espruino" target="_blank">Open Source</a>.\n';
-    html+='Please support us by <a href="http://www.espruino.com/Donate" target="_blank">donating</a> or\n';
-    html+='  <a href="http://www.espruino.com/Order" target="_blank">buying an official board</a>.</p>\n';
-    html+='  <p style="text-align:right">\n'
-    html+='    <a href="http://twitter.com/Espruino" target="_blank"><img src="img/icon_twitter.png" width="16" height="16" alt="Follow on Twitter"/></a>\n';
-    html+='    <a href="http://youtube.com/subscription_center?add_user=espruino" target="_blank"><img src="img/icon_youtube.png" width="44" height="16" alt="Subscribe on YouTube"/></a>\n';
-    html+='    <a href="https://www.patreon.com/espruino" target="_blank"><img src="img/icon_patreon.png" width="45" height="16" alt="Support on Patreon"/></a>\n';
-    html+='  </p>\n';
-    html+='</div>\n';
+    var html;
+    if (Espruino.Core.Terminal.OVERRIDE_CONTENTS) {
+      html = Espruino.Core.Terminal.OVERRIDE_CONTENTS;
+    } else {
+      html = `
+    <div style="max-width:400px;margin:auto;">
+      <p><a href="http://www.espruino.com/Web+IDE" target="_blank"><img src="img/ide_logo.png" width="299" height="96" alt="Espruino IDE"/></a></p>
+      <p id="versioninfo" style="text-align:right"></p>
+      <p style="text-align:center;font-weight:bold">A Code Editor and Terminal for <a href="http://www.espruino.com" target="_blank">Espruino JavaScript Microcontrollers</a></p>
+      <p>Try the <a class="tour_link" href="#">guided tour</a> and <a href="http://www.espruino.com/Quick+Start" target="_blank">getting started</a> guide for more information, tutorials and example projects.</p>
+      <div id="terminalnews"></div>
+      <p>Espruino is <a href="https://github.com/espruino" target="_blank">Open Source</a>.
+    Please support us by <a href="http://www.espruino.com/Donate" target="_blank">donating</a> or
+      <a href="http://www.espruino.com/Order" target="_blank">buying an official board</a>.</p>
+      <p style="text-align:right">
+        <a href="http://twitter.com/Espruino" target="_blank"><img src="img/icon_twitter.png" width="16" height="16" alt="Follow on Twitter"/></a>
+        <a href="http://youtube.com/subscription_center?add_user=espruino" target="_blank"><img src="img/icon_youtube.png" width="44" height="16" alt="Subscribe on YouTube"/></a>
+        <a href="https://www.patreon.com/espruino" target="_blank"><img src="img/icon_patreon.png" width="45" height="16" alt="Support on Patreon"/></a>
+      </p>
+    </div>`;
+      Espruino.Core.Utils.getVersionInfo(function(v) {
+        $("#versioninfo").html(v);
 
-    terminal.innerHTML = html;
-    Espruino.Core.Utils.getVersionInfo(function(v) {
-      $("#versioninfo").html(v);
-
-      var r = 0|(Math.random()*1000000);
-      $.get("https://www.espruino.com/ide/news.html?v="+encodeURIComponent(v.replace(/[ ,]/g,"")+"&r="+r), function (data){
-        $("#terminalnews").html(data);
+        var r = 0|(Math.random()*1000000);
+        $.get("https://www.espruino.com/ide/news.html?v="+encodeURIComponent(v.replace(/[ ,]/g,"")+"&r="+r), function (data){
+          $("#terminalnews").html(data);
+        });
       });
-    });
+    }
+    terminal.innerHTML = html;
 
     $(".tour_link").click(function(e) {
       e.preventDefault();
