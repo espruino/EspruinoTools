@@ -19,11 +19,11 @@ Gordon Williams (gw@pur3.co.uk)
   var connection = undefined;
 
   var getPorts=function(callback) {
-    serialport.list(function(err, ports) {
+    serialport.list().then(function(ports) {
       if (ports===undefined) return callback([], true/*instantPorts*/);
       // On Linux we get spammed with ttySx ports - remove these
       if (process.platform == 'linux')
-        ports = ports.filter(function(port) { return !port.comName.match(/^\/dev\/ttyS[0-9]*$/); });
+        ports = ports.filter(function(port) { return !port.path.match(/^\/dev\/ttyS[0-9]*$/); });
 
         /**
          * Filter the available serial ports to find the one(s)
@@ -49,13 +49,16 @@ Gordon Williams (gw@pur3.co.uk)
             // port.pnpId could be handy
             var vid = parseInt(port.vendorId);
             var pid = parseInt(port.productId);
-            var d = { path : port.comName };
+            var d = { path : port.path };
             if (vid||pid) d.usb = [vid,pid];
             if (port.manufacturer) d.description = port.manufacturer;
             if (!port.vendorId || !port.productId) d.unimportant = true;
             return d;
           }), true/*instantPorts*/
       );
+    }).catch(function(err) {
+      console.log("serialport error: "+err.toString());
+      return callback([], true/*instantPorts*/);
     });
   };
 
