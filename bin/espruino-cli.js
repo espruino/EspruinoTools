@@ -676,7 +676,7 @@ function getPortPath(port, callback) {
   else if (port.type=="name") {
     log("Searching for device named "+JSON.stringify(port.name));
     var searchString = port.name.toLowerCase();
-    var timeout = 2;
+    var timeout = 5;
     Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
       //log(JSON.stringify(ports,null,2));
       var found = ports.find(function(p) { return p.description && p.description.toLowerCase().indexOf(searchString)>=0; });
@@ -685,7 +685,9 @@ function getPortPath(port, callback) {
         callback(found.path);
       } else {
         if (timeout-- > 0 && shouldCallAgain) // try again - sometimes BLE devices take a while
-          Espruino.Core.Serial.getPorts(cb);
+          setTimeout(function() {
+            Espruino.Core.Serial.getPorts(cb);
+          }, 500);
         else {
          log("Port named "+JSON.stringify(port.name)+" not found");
          process.exit(1);
@@ -734,33 +736,43 @@ function main() {
       sendCode(tasksComplete);
     } else if (args.ports.length == 0 || args.showDevices) {
       console.log("Searching for serial ports...");
-      Espruino.Core.Serial.getPorts(function(ports, shouldCallAgain) {
-        function gotPorts(ports) {
-          log("PORTS:\n  "+ports.map(function(p) {
-            if (p.description) return p.path + " ("+p.description+")";
-            return p.path;
-          }).join("\n  "));
-          process.exit(0);
+      var timeout = 5;
+      var allPorts = [];
+      var outputHeader = false;
+      Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
+        var newPorts = ports.filter(port=> !allPorts.find(p=>p.path==port.path));
+        allPorts = allPorts.concat(newPorts);
+        // if we're explictly asked for ports, output them
+        // else just write it only if verbose
+        if (newPorts.length) {
+          if (args.showDevices) {
+            if (!outputHeader) {
+              console.log("PORTS:");
+            }
+            newPorts.forEach(p=>
+              log("  "+p.path + " ("+p.description+")"));
+          } else {
+            newPorts.forEach(p=>
+              console.log("NEW PORT: "+p.path + " ("+p.description+")"));
+          }
         }
-        // If we've been asked to list all devices, do it and exit
-        if (args.showDevices) {
-          /* Note - we want to search again because some things
-          like `noble` won't catch everything on the first try */
-          if (shouldCallAgain) Espruino.Core.Serial.getPorts(gotPorts);
-          else gotPorts(ports);
-          return;
-        }
-        console.log("PORTS:\n  "+ports.map(function(p) {
-          if (p.description) return p.path + " ("+p.description+")";
-          return p.path;
-        }).join("\n  "));
-        if (ports.length>0) {
-          if (! args.nosend) log("Using first port, "+JSON.stringify(ports[0]));
-          args.ports = [{type:"path",name:ports[0].path}];
+          
+        if (!args.showDevices && allPorts.length) {
+          if (!args.nosend) log("Using first port, "+JSON.stringify(allPorts[0]));
+          args.ports = [{type:"path",name:allPorts[0].path}];
           startConnect();
+        } else if (timeout-- > 0 && shouldCallAgain) {
+          // try again - sometimes BLE devices take a while
+          setTimeout(function() {
+            Espruino.Core.Serial.getPorts(cb);
+          }, 500);
         } else {
-          console.error("Error: No Ports Found");
-          process.exit(1);
+          if (allPorts.length==0) {
+            console.error("Error: No Ports Found");
+            process.exit(1);
+          } else {
+            process.exit(0);
+          }
         }
       });
     } else startConnect();

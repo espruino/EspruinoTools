@@ -16,7 +16,6 @@
 
   var initialised = false;
   var errored = false;
-  var scanWhenInitialised = undefined;
 
   function findByUUID(list, uuid) {
     for (var i=0;i<list.length;i++)
@@ -46,8 +45,19 @@
     });
   }
 
+  /* Needed because Noble just throws a global exception if
+  it tries to start and no device is there! */
+  function nobleExceptionHandler(err) { 
+    if (err.toString().includes("ENODEV")) {
+      process.removeListener('uncaughtException', nobleExceptionHandler);
+      console.log("Noble: "+err.toString()+" - disabling.");
+      errored = true;
+    } else throw err;
+  }
+
   function startNoble() {
     try {
+      process.on('uncaughtException', nobleExceptionHandler);
       try {
         noble = require('noble');
       } catch (e) {
@@ -62,6 +72,7 @@
     }
 
     noble.on('stateChange', function(state) {
+      process.removeListener('uncaughtException', nobleExceptionHandler);
       console.log("Noble: stateChange -> "+state);
       if (state=="poweredOn") {
         if (Espruino.Config.WEB_BLUETOOTH) {
@@ -71,26 +82,10 @@
           Espruino.Config.WEB_BLUETOOTH = false;
         }
         initialised = true;
-        /* if getPorts was called before initialisation, be sure
-        to wait for stuff to arrive before just calling back
-        with nothing - we're in the CLI */
-        if (scanWhenInitialised) {
-          var scb = scanWhenInitialised;
-          scanWhenInitialised = undefined;
-          getPorts(function() {
-            setTimeout(function() {
-              getPorts(scb);
-            }, 1500);
-          });
-        }
+        startScan();
       }
       if (state=="poweredOff") {
         initialised = false;
-        if (scanWhenInitialised) {
-          var scb = scanWhenInitialised;
-          scanWhenInitialised = undefined;
-          scb(undefined, true/*instantPorts*/);
-        }
       }
     });
 
@@ -114,12 +109,25 @@
       if (initialised) return;
       console.log("Noble: Didn't initialise in 10 seconds, disabling.");
       errored = true;
-      if (scanWhenInitialised) {
-        scanWhenInitialised([]);
-        scanWhenInitialised = undefined;
-      }
     }, 10000);
     return true;
+  }
+
+  function startScan() {
+    if (scanStopTimeout) {
+      clearTimeout(scanStopTimeout);
+      scanStopTimeout = undefined;
+    } else {
+      console.log("Noble: Starting scan");
+      lastDevices = [];
+      newDevices = [];
+      noble.startScanning([], true);
+    }
+    scanStopTimeout = setTimeout(function () {
+      scanStopTimeout = undefined;
+      console.log("Noble: Stopping scan");
+      noble.stopScanning();
+    }, 3000);
   }
 
   var getPorts = function (callback) {
@@ -127,29 +135,14 @@
       console.log("Noble: getPorts - disabled");
       callback([], true/*instantPorts*/);
     } else if (!initialised) {
+      console.log("Noble: getPorts - initialising...");
       if (!noble)
         if (!startNoble()) 
-          return callback([]);
-      console.log("Noble: getPorts - not initialised");
-      // if not initialised yet, wait until we are
-      if (scanWhenInitialised) scanWhenInitialised([]);
-      scanWhenInitialised = callback;
+          return callback([], true/*instantPorts*/);
+      callback(reportedDevices, false/*instantPorts*/);
     } else { // all ok - let's go!
       // Ensure we're scanning
-      if (scanStopTimeout) {
-        clearTimeout(scanStopTimeout);
-        scanStopTimeout = undefined;
-      } else {
-        console.log("Noble: Starting scan");
-        lastDevices = [];
-        newDevices = [];
-        noble.startScanning([], true);
-      }
-      scanStopTimeout = setTimeout(function () {
-        scanStopTimeout = undefined;
-        console.log("Noble: Stopping scan");
-        noble.stopScanning();
-      }, 3000);
+      startScan();
       // report back device list from both the last scan and this one...
       var reportedDevices = [];
       newDevices.forEach(function (d) {
