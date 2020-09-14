@@ -84,7 +84,7 @@
     option = {format: {
       renumber: true,
       hexadecimal: true,
-      escapeless: true,
+      escapeless: false,
       indent: {style: ''},
       quotes: 'auto',
       compact: true,
