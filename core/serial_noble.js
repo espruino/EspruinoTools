@@ -47,7 +47,7 @@
 
   /* Needed because Noble just throws a global exception if
   it tries to start and no device is there! */
-  function nobleExceptionHandler(err) { 
+  function nobleExceptionHandler(err) {
     if (err.toString().includes("ENODEV")) {
       process.removeListener('uncaughtException', nobleExceptionHandler);
       console.log("Noble: "+err.toString()+" - disabling.");
@@ -99,7 +99,7 @@
       if (hasUartService ||
           Espruino.Core.Utils.isRecognisedBluetoothDevice(name)) {
         console.log("Noble: Found UART device:", name, dev.address);
-        newDevices.push({ path: dev.address, description: name, type : "bluetooth" });
+        newDevices.push({ path: dev.address, description: name, type: "bluetooth", rssi: dev.rssi });
         btDevices[dev.address] = dev;
       } else console.log("Noble: Found device:", name, dev.address);
     });
@@ -137,7 +137,7 @@
     } else if (!initialised) {
       console.log("Noble: getPorts - initialising...");
       if (!noble)
-        if (!startNoble()) 
+        if (!startNoble())
           return callback([], true/*instantPorts*/);
       callback(reportedDevices, false/*instantPorts*/);
     } else { // all ok - let's go!

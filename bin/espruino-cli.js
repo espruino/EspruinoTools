@@ -747,16 +747,17 @@ function main() {
         if (newPorts.length) {
           if (args.showDevices) {
             if (!outputHeader) {
-              console.log("PORTS:");
+              log("PORTS:");
+              outputHeader = true;
             }
             newPorts.forEach(p=>
-              log("  "+p.path + " ("+p.description+")"));
+              log(`  ${p.path}  (${p.description})${p.rssi?` RSSI ${p.rssi}`:""}`));
           } else {
             newPorts.forEach(p=>
               console.log("NEW PORT: "+p.path + " ("+p.description+")"));
           }
         }
-          
+
         if (!args.showDevices && allPorts.length) {
           if (!args.nosend) log("Using first port, "+JSON.stringify(allPorts[0]));
           args.ports = [{type:"path",name:allPorts[0].path}];
