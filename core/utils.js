@@ -576,7 +576,7 @@
   /** Bluetooth device names that we KNOW run Espruino */
   function recognisedBluetoothDevices() {
     return [
-       "Puck.js", "Pixl.js", "MDBT42Q", "Espruino", "Badge", "Thingy", "RuuviTag", "iTracker", "Smartibot", "Bangle.js",
+       "Puck.js", "Pixl.js", "MDBT42Q", "Espruino", "Badge", "Thingy", "RuuviTag", "iTracker", "Smartibot", "Bangle.js", "Micro:bit"
     ];
   }
 
