@@ -535,7 +535,7 @@
       Espruino.Core.Notifications.error("Error Saving", true);
     }
 
-    if (chrome.fileSystem) {
+    if (typeof chrome !== 'undefined' && chrome.fileSystem) {
       // Chrome Web App / NW.js
       chrome.fileSystem.chooseEntry({type: 'saveFile', suggestedName:filename}, function(writableFileEntry) {
         if (!writableFileEntry) return; // cancelled
