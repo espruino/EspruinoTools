@@ -1,5 +1,14 @@
 (function() {
 
+  var isSupportedByBrowser = false;
+  if (typeof navigator != "undefined" &&
+      navigator.bluetooth) {
+    if (navigator.bluetooth.getAvailability)
+      navigator.bluetooth.getAvailability().then(x=>isSupportedByBrowser=x);
+    else
+     isSupportedByBrowser=true;
+  }
+
   function getStatus(ignoreSettings) {
     /* If BLE is handled some other way (eg winnus), then it
     can be disabled here */
@@ -34,9 +43,11 @@
         window.location.hostname!="localhost") {
       return {error:"Serving off HTTP (not HTTPS)"};
     }
+    if (!isSupportedByBrowser) {
+  //    return {error:"Web Bluetooth API available, but not supported by this Browser"};
+    }
     if (!ignoreSettings && !Espruino.Config.WEB_BLUETOOTH)
       return {warning:`"Web Bluetooth" disabled in settings`};
-
     return true;
   }
 
@@ -174,7 +185,7 @@
         rxCharacteristic = undefined;
       }
       if (connectionDisconnectCallback) {
-        connectionDisconnectCallback(undefined);
+        connectionDisconnectCallback({error:error.toString()});
         connectionDisconnectCallback = undefined;
       }
     });

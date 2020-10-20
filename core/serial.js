@@ -222,7 +222,7 @@ To add a new serial device, you must add an object to
         }
       }
       if (readListener) readListener(data);
-    }, function() { // DISCONNECT
+    }, function(error) { // DISCONNECT
       currentDevice = undefined;
       if (writeTimeout!==undefined)
         clearTimeout(writeTimeout);
@@ -237,7 +237,7 @@ To add a new serial device, you must add an object to
       if (!connectionInfo) {
         // we got a disconnect when we hadn't connected...
         // Just call connectCallback(undefined), don't bother sending disconnect
-        connectCallback(undefined);
+        connectCallback(error);
         return;
       }
       connectionInfo = undefined;
