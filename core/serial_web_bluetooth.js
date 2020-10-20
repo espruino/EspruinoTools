@@ -44,7 +44,7 @@
       return {error:"Serving off HTTP (not HTTPS)"};
     }
     if (!isSupportedByBrowser) {
-  //    return {error:"Web Bluetooth API available, but not supported by this Browser"};
+      return {error:"Web Bluetooth API available, but not supported by this Browser"};
     }
     if (!ignoreSettings && !Espruino.Config.WEB_BLUETOOTH)
       return {warning:`"Web Bluetooth" disabled in settings`};
