@@ -7,3 +7,6 @@ libs/utf8.js
 plugins/_examplePlugin.js
 tmp
 .project
+*.js.test
+*.bak
+*.test
