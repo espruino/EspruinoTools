@@ -467,7 +467,7 @@ function sendCode(callback) {
 }
 
 /* Download a file from Espruino */
-function downloadFile(exitCallback) {
+function downloadFile(callback) {
   Espruino.Core.Utils.executeStatement(`(function(filename) {
     var f = require("Storage").open(filename,"r");
     var d = f.read(384);
@@ -479,19 +479,24 @@ function downloadFile(exitCallback) {
     if (contents===undefined) {
       log("Timed out receiving file")
       if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
-      return;
+      if (callback) return callback();
     }
-    let buff = new Buffer(contents, 'base64');
+
+    //Convert buffer to ASCII
+    let buff = new Buffer.from(contents, 'base64');
     let ascii = buff.toString('ascii');
 
     if (ascii.length === 0) {
       log("File not found.");
       if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
+      if (callback) return callback();
     }
-    
+
+    //Write file to current directory
     require("fs").writeFileSync(args.fileToDownload, ascii);
     log(`"${args.fileToDownload}" successfully downloaded.`);
     if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
+    if (callback) return callback();
   });
 }
 
@@ -523,10 +528,6 @@ function connect(devicePath, exitCallback) {
         return exitCallback();
       }
       if (!args.quiet) log("Connected");
-      // Is there a file we should download?
-      if (args.fileToDownload) {
-        downloadFile();
-      }
       // Do we need to update firmware?
       if (args.updateFirmware) {
         var bin = fs.readFileSync(args.updateFirmware, {encoding:"binary"});
@@ -536,10 +537,20 @@ function connect(devicePath, exitCallback) {
           exitTimeout = setTimeout(exitCallback, 500);
         });
       } else {
-        // figure out what code we need to send (if any)
-        sendCode(function() {
-          exitTimeout = setTimeout(exitCallback, 500);
-        });
+        // Is there a file we should download?
+        if (args.fileToDownload) {
+          // figure out what code we need to send (if any) and download the file
+          sendCode(function() {
+            downloadFile(function() {
+              exitTimeout = setTimeout(exitCallback, 500);
+            });
+          });
+        } else {
+          // figure out what code we need to send (if any)
+          sendCode(function() {
+            exitTimeout = setTimeout(exitCallback, 500);
+          });
+        }
       }
       // send code over here...
 
@@ -663,10 +674,6 @@ function terminal(devicePath, exitCallback) {
       return exitCallback();
     }
     if (!args.quiet) log("Connected");
-    // Is there a file we should download?
-    if (args.fileToDownload) {
-      downloadFile();
-    }
     process.stdin.on('data', function(chunk) {
       if (chunk !== null) {
         chunk = chunk.toString();
@@ -699,11 +706,20 @@ function terminal(devicePath, exitCallback) {
         Espruino.Core.Serial.write(data);
       });
 
-    // figure out what code we need to send (if any)
-    sendCode(function() {
-      if (args.watchFile) sendOnFileChanged();
-    });
-
+    if (args.fileToDownload) {
+      // figure out what code we need to send (if any) and download the file
+      sendCode(function() {
+        downloadFile(function() {
+          if (args.watchFile) sendOnFileChanged();
+        });
+      });
+    }
+    else {
+      // figure out what code we need to send (if any)
+      sendCode(function() {
+        if (args.watchFile) sendOnFileChanged();
+      });
+    }
    }, function() {
      log("\nDisconnected.");
      exitCallback();
