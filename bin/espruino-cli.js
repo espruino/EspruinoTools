@@ -28,6 +28,7 @@ function getHelp() {
    "  -p,--port aa:bb:cc:dd:ee : Connect to a Bluetooth device by addresses",
    "  -p,--port tcp://192.168.1.50 : Connect to a network device (port 23 default)",
    "  -d deviceName            : Connect to the first device with a name containing deviceName",
+   "  --download fileName      : Download a file with the name matching fileName to the current directory",
    "  -b baudRate              : Set the baud rate of the serial connection",
    "                               No effect when using USB, default: 9600",
    "  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)",
@@ -115,6 +116,9 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="-d") {
      i++; args.ports.push({type:"name",name:next});
      if (!isNextValid(next)) throw new Error("Expecting a name argument to -d");
+   } else if (arg=="--download") {
+     i++; args.fileToDownload = next;
+     if (!isNextValid(next)) throw new Error("Expecting a file name argument to --download");
    } else if (arg=="--config") {
      i++;
      if (!next || next.indexOf("=")==-1) throw new Error("Expecting a key=value argument to --config");
@@ -462,6 +466,40 @@ function sendCode(callback) {
   }
 }
 
+/* Download a file from Espruino */
+function downloadFile(callback) {
+  Espruino.Core.Utils.executeStatement(`(function(filename) {
+    var f = require("Storage").open(filename,"r");
+    var d = f.read(384);
+    while (d!==undefined) {
+      console.log(btoa(d));
+      d = f.read(384);
+    }
+  })("${args.fileToDownload}");`, function(contents) {
+    if (contents===undefined) {
+      log("Timed out receiving file")
+      if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
+      if (callback) return callback();
+    }
+
+    //Convert buffer to ASCII
+    let buff = new Buffer.from(contents, 'base64');
+    let ascii = buff.toString('ascii');
+
+    if (ascii.length === 0) {
+      log("File not found.");
+      if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
+      if (callback) return callback();
+    }
+
+    //Write file to current directory
+    require("fs").writeFileSync(args.fileToDownload, ascii);
+    log(`"${args.fileToDownload}" successfully downloaded.`);
+    if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
+    if (callback) return callback();
+  });
+}
+
 /* Connect and send file/expression/etc */
 function connect(devicePath, exitCallback) {
   if (args.ideServer) log("WARNING: --ide specified, but no terminal. Don't specify a file/expression to upload.");
@@ -499,10 +537,20 @@ function connect(devicePath, exitCallback) {
           exitTimeout = setTimeout(exitCallback, 500);
         });
       } else {
-        // figure out what code we need to send (if any)
-        sendCode(function() {
-          exitTimeout = setTimeout(exitCallback, 500);
-        });
+        // Is there a file we should download?
+        if (args.fileToDownload) {
+          // figure out what code we need to send (if any) and download the file
+          sendCode(function() {
+            downloadFile(function() {
+              exitTimeout = setTimeout(exitCallback, 500);
+            });
+          });
+        } else {
+          // figure out what code we need to send (if any)
+          sendCode(function() {
+            exitTimeout = setTimeout(exitCallback, 500);
+          });
+        }
       }
       // send code over here...
 
@@ -658,11 +706,20 @@ function terminal(devicePath, exitCallback) {
         Espruino.Core.Serial.write(data);
       });
 
-    // figure out what code we need to send (if any)
-    sendCode(function() {
-      if (args.watchFile) sendOnFileChanged();
-    });
-
+    if (args.fileToDownload) {
+      // figure out what code we need to send (if any) and download the file
+      sendCode(function() {
+        downloadFile(function() {
+          if (args.watchFile) sendOnFileChanged();
+        });
+      });
+    }
+    else {
+      // figure out what code we need to send (if any)
+      sendCode(function() {
+        if (args.watchFile) sendOnFileChanged();
+      });
+    }
    }, function() {
      log("\nDisconnected.");
      exitCallback();
