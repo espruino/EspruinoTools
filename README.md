@@ -19,7 +19,7 @@ USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help                : Show this message
   -j [job.json]            : Load options from JSON job file - see configDefaults.json
-                               Calling without a job filename creates a new job file
+                               Calling without a job filename creates a new job file 
                                named after the uploaded file
   -v,--verbose             : Verbose
   -q,--quiet               : Quiet - apart from Espruino output
@@ -39,6 +39,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   -p,--port aa:bb:cc:dd:ee : Connect to a Bluetooth device by addresses
   -p,--port tcp://192.168.1.50 : Connect to a network device (port 23 default)
   -d deviceName            : Connect to the first device with a name containing deviceName
+  --download fileName      : Download a file with the name matching fileName to the current directory
   -b baudRate              : Set the baud rate of the serial connection
                                No effect when using USB, default: 9600
   --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)
@@ -49,10 +50,10 @@ USAGE: espruino ...options... [file_to_upload.js]
 
   -o out.js                : Write the actual JS code sent to Espruino to a file
   --ohex out.hex           : Write the JS code to a hex file as if sent by E.setBootCode
-  --storage fn:data.bin    : Write a file named 'fn' to Storage, must be used with --ohex
+  --storage fn:data.bin    : Load 'data.bin' from disk and write it to Storage as 'fn'
   --storage .boot0:-       : Store program code in the given Storage file (not .bootcde)
 
-  -f firmware.bin[:N]      : Update Espruino's firmware to the given file.
+  -f firmware.bin[:N]      : Update Espruino's firmware to the given file
                                Must be a USB Espruino in bootloader mode
                                (bluetooth is not currently supported).
                                Optionally skip N first bytes of the bin file.
@@ -92,6 +93,15 @@ espruino -p /dev/ttyACM1 /dev/ttyACM2 mycode.js
 
 # Load a file into Espruino and save
 espruino -p /dev/ttyACM0 mycode.js -e "save()"
+
+# Write mycode.js to the first Bangle.js device found as a Storage file named app.js
+espruino -d Bangle.js mycode.js --storage app.js:-
+
+# As above, but also write app_image.bin to the device as a Storage file named app.img
+espruino -d Bangle.js mycode.js --storage app.js:- --storage app.img:app_image.bin
+
+# Connect to Bluetooth device address c6:a8:1a:1f:87:16 and download setting.json from Storage to a local file
+bin/espruino-cli.js -p c6:a8:1a:1f:87:16 --download setting.json
 
 # Execute a single command on the default serial device
 espruino -e "digitalWrite(LED1,1);"

@@ -31,6 +31,20 @@
     });
   }
 
+  function setFirmwareVersion(v) {
+    environmentData.VERSION = v;
+    var vIdx = v.indexOf("v");
+    if (vIdx>=0) {
+      environmentData.VERSION_MAJOR = parseInt(v.substr(0,vIdx));
+      var minor = v.substr(vIdx+1);
+      var dot = minor.indexOf(".");
+      if (dot>=0)
+        environmentData.VERSION_MINOR = parseInt(minor.substr(0,dot)) + parseInt(minor.substr(dot+1))*0.001;
+      else
+        environmentData.VERSION_MINOR = parseFloat(minor);
+    }
+  }
+
   function queryBoardProcess(data, callback) {
     if ((!Espruino.Config.ENV_ON_CONNECT) ||
         (Espruino.Core.MenuFlasher && Espruino.Core.MenuFlasher.isFlashing())) {
@@ -64,19 +78,8 @@
         boardData[k] = json[k];
         environmentData[k] = json[k];
       }
-      if (environmentData.VERSION) {
-        var v = environmentData.VERSION;
-        var vIdx = v.indexOf("v");
-        if (vIdx>=0) {
-          environmentData.VERSION_MAJOR = parseInt(v.substr(0,vIdx));
-          var minor = v.substr(vIdx+1);
-          var dot = minor.indexOf(".");
-          if (dot>=0)
-            environmentData.VERSION_MINOR = parseInt(minor.substr(0,dot)) + parseInt(minor.substr(dot+1))*0.001;
-          else
-            environmentData.VERSION_MINOR = parseFloat(minor);
-        }
-      }
+      if (environmentData.VERSION)
+        setFirmwareVersion(environmentData.VERSION);
 
       Espruino.callProcessor("environmentVar", environmentData, function(envData) {
         environmentData = envData;
@@ -131,5 +134,6 @@
     getData : getData,
     getBoardData : getBoardData,
     getBoardList : getBoardList,
+    setFirmwareVersion : setFirmwareVersion
   };
 }());

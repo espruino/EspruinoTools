@@ -39,7 +39,7 @@ function getHelp() {
    "",
    "  -o out.js                : Write the actual JS code sent to Espruino to a file",
    "  --ohex out.hex           : Write the JS code to a hex file as if sent by E.setBootCode",
-   "  --storage fn:data.bin    : Write a file named 'fn' to Storage, must be used with --ohex",
+   "  --storage fn:data.bin    : Load 'data.bin' from disk and write it to Storage as 'fn'",
    "  --storage .boot0:-       : Store program code in the given Storage file (not .bootcde)",
    "",
    "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
@@ -212,14 +212,12 @@ function setupConfig(Espruino, callback) {
    Espruino.Config.MODULE_AS_FUNCTION = true;
  }
  if (Object.keys(args.storageContents).length) {
-   if (!args.outputHEX)
-     throw new Error("-storage used without --ohex");
   for (var storageName in args.storageContents) {
-    if (storageName=="-")
+    var fileName = args.storageContents[storageName];
+    if (fileName=="-")
       args.storageContents[storageName] = { code : true };
     else {
-      var fileName = args.storageContents[storageName];
-      args.storageContents[storageName] = { file: fs.readFileSync(fileName, {encoding:"utf8"}).toString() };
+      args.storageContents[storageName] = { data: fs.readFileSync(fileName, {encoding:"utf8"}).toString() };
     }
   }
  }
@@ -269,6 +267,12 @@ function setupConfig(Espruino, callback) {
  }
  if (args.board) {
    log("Explicit board JSON supplied: "+JSON.stringify(args.board));
+   var jsonLoaded = function(json) {
+     console.log("Manual board JSON load complete");
+     if (json && json.info && json.info.binary_version)
+       Espruino.Core.Env.setFirmwareVersion(json.info.binary_version);
+     callback();
+   }
    Espruino.Config.ENV_ON_CONNECT = false;
    var env = Espruino.Core.Env.getData();
    env.BOARD = args.board;
@@ -276,15 +280,9 @@ function setupConfig(Espruino, callback) {
      var data = JSON.parse(require("fs").readFileSync(args.board).toString());
      for (var key in data)
        env[key] = data[key];
-     Espruino.callProcessor("boardJSONLoaded", env, function() {
-       console.log("Manual board JSON load complete");
-       callback();
-     });
+     Espruino.callProcessor("boardJSONLoaded", env, jsonLoaded);
    } else { // download the JSON
-     Espruino.Plugins.BoardJSON.loadJSON(env, Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json", function() {
-       console.log("Manual board JSON load complete");
-       callback();
-     });
+     Espruino.Plugins.BoardJSON.loadJSON(env, Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json", jsonLoaded);
    }
  } else callback();
 }
@@ -426,11 +424,18 @@ function sendCode(callback) {
       log("* with '-p devicePath' or use '--board BOARDNAME'                  *");
       log("********************************************************************");
     }
-    Espruino.callProcessor("transformForEspruino", code, function(code) {
-      if (args.outputJS) {
-        log("Writing output to "+args.outputJS);
-        require("fs").writeFileSync(args.outputJS, code);
+    if (!args.outputHEX) {
+      // if we're supposed to upload code somewhere ensure we do that properly
+      for (var storageName in args.storageContents) {
+        var storageContent = args.storageContents[storageName];
+        if (storageContent.code) {
+          Espruino.Config.SAVE_ON_SEND = 3; // to storage file
+          Espruino.Config.SAVE_STORAGE_FILE = storageName; // the filename
+          Espruino.Config.LOAD_STORAGE_FILE = 2; // Load the Storage File just written to
+        }
       }
+    }
+    Espruino.callProcessor("transformForEspruino", code, function(code) {
       if (args.outputHEX) {
         log("Writing hex output to "+args.outputHEX);
         var storage = {}
@@ -441,12 +446,25 @@ function sendCode(callback) {
             storage[storageName] = code;
             hadCode = true;
           } else {
-            storage[storageName] = storageContent.file;
+            storage[storageName] = storageContent.data;
           }
         }
         // add code in default place
         if (!hadCode) storage[".bootcde"]=code;
         require("fs").writeFileSync(args.outputHEX, toIntelHex(storage));
+      } else {
+        // if not creating a hex, we just add the code needed to upload
+        // files to the beginning of what we upload
+        for (var storageName in args.storageContents) {
+          var storageContent = args.storageContents[storageName];
+          if (!storageContent.code) {
+            code = Espruino.Core.Utils.getUploadFileCode(storageName, storageContent.data)+"\n" + code;
+          }
+        }
+      }
+      if (args.outputJS) {
+        log("Writing output to "+args.outputJS);
+        require("fs").writeFileSync(args.outputJS, code);
       }
       if (!args.nosend)
         Espruino.Core.CodeWriter.writeToEspruino(code, function() {
@@ -468,32 +486,15 @@ function sendCode(callback) {
 
 /* Download a file from Espruino */
 function downloadFile(callback) {
-  Espruino.Core.Utils.executeStatement(`(function(filename) {
-    var f = require("Storage").open(filename,"r");
-    var d = f.read(384);
-    while (d!==undefined) {
-      console.log(btoa(d));
-      d = f.read(384);
-    }
-  })("${args.fileToDownload}");`, function(contents) {
+  Espruino.Core.Utils.downloadFile(args.fileToDownload, function(contents) {
     if (contents===undefined) {
       log("Timed out receiving file")
       if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
       if (callback) return callback();
     }
 
-    //Convert buffer to ASCII
-    let buff = new Buffer.from(contents, 'base64');
-    let ascii = buff.toString('ascii');
-
-    if (ascii.length === 0) {
-      log("File not found.");
-      if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
-      if (callback) return callback();
-    }
-
     //Write file to current directory
-    require("fs").writeFileSync(args.fileToDownload, ascii);
+    require("fs").writeFileSync(args.fileToDownload, contents);
     log(`"${args.fileToDownload}" successfully downloaded.`);
     if (!args.file && !args.updateFirmware && !args.expr) return process.exit(0);
     if (callback) return callback();

@@ -12,8 +12,19 @@
 "use strict";
 (function(){
 
+  /// Chunk size that files are uploaded/downloaded to Espruino in
+  var CHUNKSIZE = 384;// or any multiple of 96 for atob/btoa
+
   function init() {
 
+  }
+
+  function decodeBase64(d) {
+    return Buffer.from(d,'base64').toString('binary');
+  }
+
+  function encodeBase64(d) {
+    return Buffer.from(d,'binary').toString('base64');
   }
 
   function isWindows() {
@@ -264,9 +275,13 @@
   };
 
   /** Return the value of executing an expression on the board. If
-  If exprPrintsResult=false/undefined the actual value returned by the expression is returned.
-  If exprPrintsResult=true, whatever expression prints to the console is returned */
-  function executeExpression(expressionToExecute, callback, exprPrintsResult) {
+  If options.exprPrintsResult=false/undefined the actual value returned by the expression is returned.
+  If options.exprPrintsResult=true, whatever expression prints to the console is returned
+  options.maxTimeout (default 30) is how long we're willing to wait (in seconds) for data if Espruino keeps transmitting */
+  function executeExpression(expressionToExecute, callback, options) {
+    options = options||{};
+    options.exprPrintsResult = !!options.exprPrintsResult;
+    options.maxTimeout = options.maxTimeout||30;
     var receivedData = "";
     var hadDataSinceTimeout = false;
     var allDataSent = false;
@@ -323,7 +338,7 @@
       var timeout = undefined;
       // Don't Ctrl-C, as we've already got ourselves a prompt with Espruino.Core.Utils.getEspruinoPrompt
       var cmd;
-      if (exprPrintsResult)
+      if (options.exprPrintsResult)
         cmd  = '\x10print("<","<<");'+expressionToExecute+';print(">>",">")\n';
       else
         cmd  = '\x10print("<","<<",JSON.stringify('+expressionToExecute+'),">>",">")\n';
@@ -332,20 +347,19 @@
                                  undefined, function() {
         allDataSent = true;
         // now it's sent, wait for data
-        var maxTimeout = 30; // seconds - how long we wait if we're getting data
         var minTimeout = 2; // seconds - how long we wait if we're not getting data
-        var pollInterval = 500; // milliseconds
+        var pollInterval = 200; // milliseconds
         var timeoutSeconds = 0;
         if (timeout != "cancelled") {
           timeout = setInterval(function onTimeout(){
             incrementProgress();
             timeoutSeconds += pollInterval/1000;
             // if we're still getting data, keep waiting for up to 10 secs
-            if (hadDataSinceTimeout && timeoutSeconds<maxTimeout) {
+            if (hadDataSinceTimeout && timeoutSeconds<options.maxTimeout) {
               hadDataSinceTimeout = false;
             } else if (timeoutSeconds > minTimeout) {
               // No data yet...
-              // OR we keep getting data for > maxTimeout seconds
+              // OR we keep getting data for > options.maxTimeout seconds
               clearInterval(timeout);
               console.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
               nextStep(undefined);
@@ -364,6 +378,41 @@
       callback(undefined);
     }
   };
+
+  // Download a file - storageFile or normal file
+  function downloadFile(fileName, callback) {
+    var options = {exprPrintsResult:true, maxTimeout:600}; // ten minute timeout
+    executeExpression(`(function(filename) {
+var s = require("Storage").read(filename);
+if(s){ for (var i=0;i<s.length;i+=${CHUNKSIZE}) console.log(btoa(s.substr(i,${CHUNKSIZE}))); } else {
+var f=require("Storage").open(filename,"r");var d=f.read(${CHUNKSIZE});
+while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
+}})(${JSON.stringify(fileName)});`, function(contents) {
+        if (contents===undefined) callback();
+        else callback(atob(contents));
+      }, options);
+  }
+
+  // Get the JS needed to upload a file
+  function getUploadFileCode(fileName, contents) {
+    var js = [];
+    if ("string" != typeof contents)
+      throw new Error("Expecting a string for contents");
+    if (fileName.length==0 || fileName.length>28)
+      throw new Error("Invalid filename length");
+    var fn = JSON.stringify(fileName);
+    for (var i=0;i<contents.length;i+=CHUNKSIZE) {
+      var part = contents.substr(i,CHUNKSIZE);
+      js.push(`require("Storage").write(${fn},atob(${JSON.stringify(btoa(part))}),${i}${(i==0)?","+contents.length:""})`);
+    }
+    return js.join("\n");
+  }
+
+  // Upload a file
+  function uploadFile(fileName, contents, callback) {
+    var js = "\x10"+getUploadFileCode(fileName, contents).replace(/\n/g,"\n\x10");
+    Espruino.Core.Utils.executeStatement(js, callback);
+  }
 
   function versionToFloat(version) {
     return parseFloat(version.trim().replace("v","."));
@@ -708,6 +757,41 @@
     return out;
   }
 
+  function atob(input) {
+    // Copied from https://github.com/strophe/strophejs/blob/e06d027/src/polyfills.js#L149
+    // This code was written by Tyler Akins and has been placed in the
+    // public domain.  It would be nice if you left this header intact.
+    // Base64 code from Tyler Akins -- http://rumkin.com
+    var keyStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+    var output = '';
+    var chr1, chr2, chr3;
+    var enc1, enc2, enc3, enc4;
+    var i = 0;
+    // remove all characters that are not A-Z, a-z, 0-9, +, /, or =
+    input = input.replace(/[^A-Za-z0-9\+\/\=]/g, '');
+    do {
+      enc1 = keyStr.indexOf(input.charAt(i++));
+      enc2 = keyStr.indexOf(input.charAt(i++));
+      enc3 = keyStr.indexOf(input.charAt(i++));
+      enc4 = keyStr.indexOf(input.charAt(i++));
+
+      chr1 = (enc1 << 2) | (enc2 >> 4);
+      chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+      chr3 = ((enc3 & 3) << 6) | enc4;
+
+      output = output + String.fromCharCode(chr1);
+
+      if (enc3 !== 64) {
+        output = output + String.fromCharCode(chr2);
+      }
+      if (enc4 !== 64) {
+        output = output + String.fromCharCode(chr3);
+      }
+    } while (i < input.length);
+    return output;
+  }
+
   Espruino.Core.Utils = {
       init : init,
       isWindows : isWindows,
@@ -726,8 +810,11 @@
       getLexer : getLexer,
       countBrackets : countBrackets,
       getEspruinoPrompt : getEspruinoPrompt,
-      executeExpression : function(expr,callback) { executeExpression(expr,callback,false); },
-      executeStatement : function(statement,callback) { executeExpression(statement,callback,true); },
+      executeExpression : function(expr,callback) { executeExpression(expr,callback,{exprPrintsResult:false}); },
+      executeStatement : function(statement,callback) { executeExpression(statement,callback,{exprPrintsResult:true}); },
+      downloadFile : downloadFile, // (fileName, callback)
+      getUploadFileCode : getUploadFileCode, //(fileName, contents);
+      uploadFile : uploadFile, // (fileName, contents, callback)
       versionToFloat : versionToFloat,
       getURL : getURL,
       getBinaryURL : getBinaryURL,
@@ -746,6 +833,7 @@
       arrayBufferToString : arrayBufferToString,
       parseJSONish : parseJSONish,
       isASCII : isASCII,
-      btoa : btoa
+      btoa : btoa,
+      atob : atob
   };
 }());
