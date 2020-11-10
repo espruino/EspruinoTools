@@ -412,7 +412,7 @@ To add a new serial device, you must add an object to
     "open": openSerial,
     "isConnected": isConnected,
     "startListening": startListening,
-    "write": writeSerial,
+    "write": writeSerial, // function(data, showStatus, callback)
     "close": closeSerial,
     "isSlowWrite": function() { return slowWrite; },
     "setSlowWrite": function(isOn, force) {
