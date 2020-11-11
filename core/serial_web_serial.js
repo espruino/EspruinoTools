@@ -93,7 +93,8 @@
     promise.then(function(port) {
       Espruino.Core.Status.setStatus("Connecting to serial port");
       serialPort = port;
-      return port.open({ baudrate: parseInt(Espruino.Config.BAUD_RATE) });
+      var br = parseInt(Espruino.Config.BAUD_RATE);
+      return port.open({ baudrate: br/*old*/, baudRate: br/*new*/ });
     }).then(function () {
       function readLoop() {
         serialPortReader = serialPort.readable.getReader();
