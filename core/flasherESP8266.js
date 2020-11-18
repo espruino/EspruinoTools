@@ -21,14 +21,27 @@
   function init() {
   }
 
+  function defaultOptions(options) {
+    options.serialDevice = options.serialDevice||"Serial2";
+    options.serialRx = options.serialRx||"A3";
+    options.serialTx = options.serialTx||"A2";
+  }
+
   /* options = {
     binary : ArrayBuffer,
     cbStatus,
-    cbDone */
+    cbDone,
+    serialDevice, // Serial2
+    serialRx, // A3
+    serialTx, // A2
+    chBoot, // A14
+    chPD, // A13
+     */
   function flashDevice(options) {
     if (!options.binary) throw new Error("Needs binary");
+    defaultOptions(options);
 
-    Espruino.Core.Serial.startListening(function (buffer) {
+    var prevReader = Espruino.Core.Serial.startListening(function (buffer) {
       var bufView = new Uint8Array(buffer);
       for (var i=0;i<bufView.length;i++)
         uartLine += String.fromCharCode(bufView[i]);
@@ -37,7 +50,7 @@
           var a = l.shift();
           console.log(">>>",a);
           try {
-          if (packetHandler) packetHandler(JSON.parse(a));
+          if (packetHandler) packetHandler(Espruino.Core.Utils.parseJSONish(a));
           } catch(e) { console.log("Unable to decode"); }
         }
         uartLine = l[0];
@@ -49,6 +62,7 @@
       // ignore keyPress from terminal during flashing
     });
     function finish() {
+      Espruino.Core.Serial.startListening(prevReader);
       Espruino.Core.Serial.setSlowWrite(hadSlowWrite);
       Espruino.Core.Serial.setBinary(false);
       Espruino.Core.Terminal.setInputDataHandler(oldHandler);
@@ -66,12 +80,12 @@
     }).catch(function(error) {
       console.log("Error!", error);
       finish();
-      if (options.cbDone) options.cbDone();
+      if (options.cbDone) options.cbDone(error);
     });
   }
 
 
-function wr(cmd,data) {
+function wr(options,cmd,data) {
   //console.log("Write",cmd,data.length,data);
   if (typeof data !== "string")
     data = String.fromCharCode.apply(null,data);
@@ -83,12 +97,12 @@ function wr(cmd,data) {
   pk = pk.replace(/\xDB/g,"\xDB\xDD").replace(/\xC0/g,"\xDB\xDC");
   pk = "\xC0"+pk+"\xC0";
   //console.log("OUT: ",pk.length,pk.split("").map(x=>x.charCodeAt().toString(16).padStart(2,'0')).join(" "));
-  Espruino.Core.Serial.write(`\x10n="${Espruino.Core.Utils.btoa(pk)}";Serial2.write(atob(n))\n`, false);
+  Espruino.Core.Serial.write(`\x10n="${Espruino.Core.Utils.btoa(pk)}";${options.serialDevice}.write(atob(n))\n`, false);
 }
 
-function sendCmd(cmd, data) {
+function sendCmd(options, cmd, data) {
   return new Promise((resolve,reject)=>{
-    wr(cmd, data);
+    wr(options, cmd, data);
     packetHandler = function(d) {
       //console.log(d);
       packetHandler = undefined;
@@ -104,9 +118,9 @@ function setupEspruino(options) {
     Espruino.Core.Serial.write('\x03\x10reset()\n', false, function() {
       setTimeout(function() {
           console.log("Start Wifi, add handler");
-          Espruino.Core.Serial.write(`\x10Serial2.setup(74880, { rx: A3, tx : A2 });
-\x10var packetHandler, packetData="";
-\x10Serial2.on('data', function(d) {
+          Espruino.Core.Serial.write(`\x10${options.serialDevice}.setup(115200, { rx: ${options.serialRx}, tx : ${options.serialTx} });
+\x10var packetHandler, packetData="", OUT=eval(process.env.CONSOLE);
+\x10${options.serialDevice}.on('data', function(d) {
   packetData+=d;
   if (packetData[0]!="\\xc0") {
     var i = packetData.indexOf("\\xc0");
@@ -117,7 +131,7 @@ function setupEspruino(options) {
     if (e<0) break;
     var packet = packetData.substr(1,e-1);
     var len = packet.charCodeAt(2)|(packet.charCodeAt(3)<<8);
-    USB.println(JSON.stringify({
+    OUT.println(JSON.stringify({
       dir : packet.charCodeAt(0),
       cmd : packet.charCodeAt(1),
       len: len,
@@ -126,9 +140,9 @@ function setupEspruino(options) {
     packetData=packetData.substr(e+1);
   }
 });
-\x10digitalWrite(A14, 0); // make sure WiFi starts off
-\x10digitalWrite(A13, 0); // into of boot mode
-\x10digitalWrite(A14, 1); // turn on wifi
+\x10${options.chPD?`digitalWrite(${options.chPD}, 0);`:``/*make sure WiFi starts off*/}
+\x10${options.chBoot?`digitalWrite(${options.chBoot}, 0);`:`` /* into of boot mode */}
+\x10${options.chPD?`digitalWrite(${options.chPD}, 1);`:`` /* turn on wifi */}
 `, false, function() {
             console.log("Handler added");
             resolve();
@@ -168,7 +182,7 @@ function cmdSync(options) {
         }, 500);
       }
     }
-    var tries = 5;
+    var tries = 20;
     interval = setInterval(function() {
       if (tries-- <= 0) {
         clearInterval(interval);
@@ -178,7 +192,7 @@ function cmdSync(options) {
       var d = new Uint8Array(36);
       d.fill(0x55);
       d.set([0x07,0x07,0x12,0x20]);
-      wr(8 /* SYNC */, d);
+      wr(options, 8 /* SYNC */, d);
     }, 500);
   });
 }
@@ -196,7 +210,7 @@ function cmdFlash(options) {
     0 // flash offset
   ]);
   var idx = 0;
-  return sendCmd(2 /* FLASH_BEGIN */, new Uint8Array(d.buffer)).then(function flash() {
+  return sendCmd(options, 2 /* FLASH_BEGIN */, new Uint8Array(d.buffer)).then(function flash() {
     console.log("Block "+idx);
     if (options.cbStatus) options.cbStatus(`Writing Block ${idx} / ${blockCount}`, idx / blockCount);
     if (idx>=blockCount) return true;
@@ -209,27 +223,35 @@ function cmdFlash(options) {
     ]);
     d.set(new Uint8Array(binary.buffer, BLOCK_SIZE*idx, BLOCK_SIZE), 16);
     idx++;
-    return sendCmd(3 /* FLASH_DATA */, d).then(flash);
+    return sendCmd(options, 3 /* FLASH_DATA */, d).then(flash);
   });
 }
 
-function getFirmwareVersion(callback) {
+function getFirmwareVersion(options, callback) {
+  defaultOptions(options);
   Espruino.Core.Serial.write('\x03\x10reset()\n', false, function() {
     setTimeout(function() {
-      Espruino.Core.Serial.write(`\x10digitalWrite(A14, 0);/*WiFi off*/digitalWrite(A13, 1);/*no boot*/digitalWrite(A14, 1);/*WiFi On*/\n`, false, function() {
+      var cmd = "\x10\n";
+      if (options.chPD && options.chBoot)
+        cmd = `\x10digitalWrite(${options.chPD}, 0);/*WiFi off*/digitalWrite(${options.chBoot}, 1);/*no boot*/digitalWrite(${options.chPD}, 1);/*WiFi On*/\n`;
+      else if (options.chPD)
+        cmd = `\x10digitalWrite(${options.chPD}, 1);/*WiFi On*/\n`;
+
+      Espruino.Core.Serial.write(cmd, false, function() {
         setTimeout(function() {
           var result = "";
-          Espruino.Core.Serial.startListening(function (buffer) {
+          var prevReader = Espruino.Core.Serial.startListening(function (buffer) {
             var bufView = new Uint8Array(buffer);
             for (var i=0;i<bufView.length;i++)
               result += String.fromCharCode(bufView[i]);
           });
-          Espruino.Core.Serial.write(`\x10Serial2.pipe(USB);Serial2.setup(115200, { rx: A3, tx : A2 });Serial2.print("AT+GMR\\r\\n");\n`, false, function() {
+          Espruino.Core.Serial.write(`\x10${options.serialDevice}.pipe(eval(process.env.CONSOLE));${options.serialDevice}.setup(115200, { rx: ${options.serialRx}, tx : ${options.serialTx} });${options.serialDevice}.print("AT+GMR\\r\\n");\n`, false, function() {
             setTimeout(function() {
               Espruino.Core.Serial.write('\x03\x10reset()\n', false, function() {
+                Espruino.Core.Serial.startListening(prevReader);
                 callback(result.trim());
               });
-            }, 500);
+            }, 1500);
           });
         }, 500);
       });
