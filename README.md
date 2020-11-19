@@ -19,7 +19,7 @@ USAGE: espruino ...options... [file_to_upload.js]
 
   -h,--help                : Show this message
   -j [job.json]            : Load options from JSON job file - see configDefaults.json
-                               Calling without a job filename creates a new job file 
+                               Calling without a job filename creates a new job file
                                named after the uploaded file
   -v,--verbose             : Verbose
   -q,--quiet               : Quiet - apart from Espruino output
@@ -190,6 +190,9 @@ esp.sendCode(port, "LED.set()\n", callback);
 
 /** Execute an expression on Espruino, call the callback with the result (calls 'init' automatically) */
 esp.expr(port, expr, callback(result));
+
+/** Execute a statement on Espruino, call the callback with anything that gets printed (calls 'init' automatically) */
+esp.statement(port, expr, callback(result));
 
 /** Flash the given firmware file to an Espruino board (calls 'init' automatically) */
 esp.flash(port, filename, callback);
