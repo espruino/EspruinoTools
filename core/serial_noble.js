@@ -90,6 +90,11 @@
     });
 
     noble.on('discover', function(dev) {
+      if (!scanStopTimeout) {
+        // we should already have stopped!
+        noble.stopScanning();
+        return;
+      }
       if (!dev.advertisement) return;
       for (var i in newDevices)
         if (newDevices[i].path == dev.address) return; // already seen it

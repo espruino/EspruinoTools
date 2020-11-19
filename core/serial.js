@@ -142,7 +142,7 @@ To add a new serial device, you must add an object to
   };
 
   var openSerial=function(serialPort, connectCallback, disconnectCallback) {
-    return openSerialInternal(serialPort, connectCallback, disconnectCallback, 2);
+    return openSerialInternal(serialPort, connectCallback, disconnectCallback, 5);
   }
 
   var openSerialInternal=function(serialPort, connectCallback, disconnectCallback, attempts) {
@@ -162,9 +162,12 @@ To add a new serial device, you must add an object to
       } else {
         if (attempts>0) {
           console.log("Port "+JSON.stringify(serialPort)+" not found - checking ports again ("+attempts+" attempts left)");
-          return getPorts(function() {
-            openSerialInternal(serialPort, connectCallback, disconnectCallback, attempts-1);
-          });
+          setTimeout(function() {
+            getPorts(function() {
+              openSerialInternal(serialPort, connectCallback, disconnectCallback, attempts-1);
+            });
+          }, 500);
+          return;
         } else {
           console.error("Port "+JSON.stringify(serialPort)+" not found");
           return connectCallback(undefined);
@@ -242,7 +245,8 @@ To add a new serial device, you must add an object to
       }
       connectionInfo = undefined;
       Espruino.callProcessor("disconnected", portInfo, function() {
-        disconnectCallback(portInfo);
+        if (disconnectCallback) disconnectCallback(portInfo);
+        disconnectCallback = undefined;
       });
     });
   };
