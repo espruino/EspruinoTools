@@ -7,7 +7,11 @@ use these files normally in the Web IDE */
 function loadJS(filePath) {
   console.log("Found "+filePath);
   var contents = fs.readFileSync(filePath, {encoding:"utf8"});
-  return eval(contents);
+  var realExports = exports;
+  exports = undefined;
+  var r = eval(contents);
+  exports = realExports; // utf8 lib somehow breaks this
+  return r;
   /* the code below would be better, but it doesn't seem to work when running
    CLI - works fine when running as a module. */
   //return require("vm").runInThisContext(contents, filePath );
@@ -147,7 +151,8 @@ function sendCode(port, code, callback) {
         });
       });
     }, function() { // disconnected
-      if (callback) callback(response);
+      if (callback)
+        callback(response);
     });
   });
 };
