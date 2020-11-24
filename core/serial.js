@@ -188,6 +188,7 @@ To add a new serial device, you must add an object to
 //        Espruino.Core.Notifications.error("Unable to connect");
         console.error("Unable to open device (connectionInfo="+cInfo+")");
         connectCallback(undefined);
+        connectCallback = undefined;
       } else {
         connectionInfo = cInfo;
         connectedPort = serialPort;
@@ -196,6 +197,7 @@ To add a new serial device, you must add an object to
           portInfo.portName = connectionInfo.portName;
         Espruino.callProcessor("connected", portInfo, function() {
           connectCallback(cInfo);
+          connectCallback = undefined;
         });
       }
     }, function(data) { // RECEIEVE DATA
@@ -237,10 +239,11 @@ To add a new serial device, you must add an object to
         clearTimeout(flowControlTimeout);
         flowControlTimeout = undefined;
       }
-      if (!connectionInfo) {
+      if (connectCallback) {
         // we got a disconnect when we hadn't connected...
         // Just call connectCallback(undefined), don't bother sending disconnect
         connectCallback(error);
+        connectCallback = undefined;
         return;
       }
       connectionInfo = undefined;
