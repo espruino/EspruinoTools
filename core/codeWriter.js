@@ -43,10 +43,14 @@
       while (code[code.length-2]!="\n" || code[code.length-1]!="\n")
         code += "\n";
 
+      // By sending an empty print, we remove the Espruino '>' prompt
+      // which then allows us to see if upload has finished
+      code = "\x10print()\n"+code;
       // If we're supposed to reset Espruino before sending...
       if (Espruino.Config.RESET_BEFORE_SEND) {
-        code = "\x10reset();\n"+code;
-      }
+        // reset Espruino
+        code = "\x10reset();\n"+code;        
+      }      
 
       //console.log("Sending... "+data);
       Espruino.Core.Serial.write(code, true, function() {
@@ -54,7 +58,7 @@
         var count = Espruino.Config.SAVE_ON_SEND ? 50 : 20;
         setTimeout(function cb() {
           if (Espruino.Core.Terminal!==undefined &&
-              Espruino.Core.Terminal.getTerminalLine()!=">") {
+              !Espruino.Core.Terminal.getTerminalLine().startsWith(">")) {
             count--;
             if (count>0) {
               setTimeout(cb, 100);
