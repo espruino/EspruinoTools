@@ -294,22 +294,24 @@ function setStorageBufferFile(buffer, addr, filename, data) {
   if (!typeof data=="string") throw "Expecting string";
   if (addr&3) throw "Unaligned";
   var fileSize = data.length;
-  var nextAddr = addr+16+((fileSize+3)&~3);
+  var nextAddr = addr+32+((fileSize+3)&~3);
   if (nextAddr>buffer.length) throw "File too big for buffer";
   // https://github.com/espruino/Espruino/blob/master/src/jsflash.h#L30
   // 'size'
   buffer.set([fileSize&255, (fileSize>>8)&255,
               (fileSize>>16)&255, (fileSize>>24)&255], addr);
   // 'replacement' - none, since this is the only file
-  buffer.set([0xFF,0xFF,0xFF,0xFF], addr+4);
   // 'filename', 8 bytes
-  if (filename.length>8) throw "Filename "+JSON.stringify(filename)+" too big";
-  buffer.set([0,0,0,0,0,0,0,0], addr+8);
+  if (filename.length>28) throw "Filename "+JSON.stringify(filename)+" too big";
+  buffer.set([0,0,0,0,0,0,0,0,
+              0,0,0,0,0,0,0,0,
+              0,0,0,0,0,0,0,0,
+              0,0,0,0], addr+4);
   for (var i=0;i<filename.length;i++)
-    buffer[addr+8+i] = filename.charCodeAt(i);
+    buffer[addr+4+i] = filename.charCodeAt(i);
   // Write the data in
   for (var i=0;i<fileSize;i++)
-    buffer[addr+16+i] = data.charCodeAt(i);
+    buffer[addr+32+i] = data.charCodeAt(i);
   // return next addr
   return nextAddr;
 }
