@@ -55,7 +55,7 @@
   var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
   var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
   var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-  var NORDIC_TX_MAX_LENGTH = 20;
+  var NORDIC_DEFAULT_TX_LENGTH = 20; ///< default value for maxPacketLength
   var testedCompatibility = false;
   /// List of previously paired devices that we could reconnect to without the chooser
   var pairedDevices = [];
@@ -65,6 +65,7 @@
 
   var txCharacteristic;
   var rxCharacteristic;
+  var maxPacketLength; ///< packet length (MTU-3) for the currently active connection
   var txInProgress = false;
 
   function init() {
@@ -103,12 +104,16 @@
       callback(undefined, true/*instantPorts*/);
   }
 
+  function setMaxPacketLength(n) {
+    maxPacketLength = n;
+    SerialDevice.maxWriteLength = n;
+  }
+
   function openSerial(serialPort, openCallback, receiveCallback, disconnectCallback) {
     connectionDisconnectCallback = disconnectCallback;
 
     var btDevice;
     var btService;
-
     var promise;
     // Check for pre-paired devices
     btDevice = pairedDevices.find(dev=>dev.name == serialPort);
@@ -151,10 +156,15 @@
     }).then(function (characteristic) {
       Espruino.Core.Status.setStatus("Configuring BLE....");
       rxCharacteristic = characteristic;
+      setMaxPacketLength(NORDIC_DEFAULT_TX_LENGTH); // set default packet length
       console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
         // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.
         var value = event.target.value.buffer;
+        if (value.byteLength > maxPacketLength) {
+          console.log("BT> Received packet of length "+value.byteLength+" - assuming increased MTU");
+          setMaxPacketLength(value.byteLength);
+        }
         //console.log("BT> RX:"+JSON.stringify(Espruino.Core.Utils.arrayBufferToString(value)));
         receiveCallback(value);
       });
@@ -178,28 +188,20 @@
       }, 500);
     }).catch(function(error) {
       console.log('BT> ERROR: ' + error);
-      if (btServer) {
-        btServer.disconnect();
-        btServer = undefined;
-        txCharacteristic = undefined;
-        rxCharacteristic = undefined;
-      }
-      if (connectionDisconnectCallback) {
-        connectionDisconnectCallback({error:error.toString()});
-        connectionDisconnectCallback = undefined;
-      }
+      closeSerial({error:error.toString()});
     });
   }
 
-  function closeSerial() {
+  function closeSerial(err) {
     if (btServer) {
       btServer.disconnect();
       btServer = undefined;
       txCharacteristic = undefined;
       rxCharacteristic = undefined;
+      setMaxPacketLength(NORDIC_DEFAULT_TX_LENGTH); // set default
     }
     if (connectionDisconnectCallback) {
-      connectionDisconnectCallback();
+      connectionDisconnectCallback(err);
       connectionDisconnectCallback = undefined;
     }
   }
@@ -208,8 +210,8 @@
   function writeSerial(data, callback) {
     if (!txCharacteristic) return;
 
-    if (data.length>NORDIC_TX_MAX_LENGTH) {
-      console.error("BT> TX length >"+NORDIC_TX_MAX_LENGTH);
+    if (data.length>maxPacketLength) {
+      console.error("BT> TX length >"+maxPacketLength);
       return callback();
     }
     if (txInProgress) {
@@ -228,7 +230,7 @@
   }
 
   // ----------------------------------------------------------
-  Espruino.Core.Serial.devices.push({
+  var SerialDevice = {
     "name" : "Web Bluetooth",
     "init" : init,
     "getStatus": getStatus,
@@ -236,6 +238,7 @@
     "open": openSerial,
     "write": writeSerial,
     "close": closeSerial,
-    "maxWriteLength" : NORDIC_TX_MAX_LENGTH,
-  });
+    "maxWriteLength" : maxPacketLength,
+  };
+  Espruino.Core.Serial.devices.push(SerialDevice);
 })();
