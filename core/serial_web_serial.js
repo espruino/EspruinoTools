@@ -8,6 +8,9 @@
     if (typeof navigator == "undefined") {
       return {warning:"Not running in a browser"};
     }
+    if (getPortsErrorMessage!==undefined) {
+      return {error:getPortsErrorMessage};
+    }
     if (!navigator.serial) {
       if (Espruino.Core.Utils.isChrome())
         return {error:`Chrome currently requires <code>chrome://flags/#enable-experimental-web-platform-features</code> to be enabled.`};
@@ -26,6 +29,7 @@
   }
 
   var OK = true;
+  var getPortsErrorMessage = undefined;
   var testedCompatibility = false;
   /// List of previously paired devices that we could reconnect to without the chooser
   var pairedDevices = [];
@@ -47,6 +51,9 @@
       console.log("Serial> serial.getPorts exists - grab known devices");
       navigator.serial.getPorts().then(devices=>{
         pairedDevices = devices;
+      }, err=>{
+        getPortsErrorMessage = err.toString();
+        console.log("Serial> "+err.toString());
       });
     }
   }
