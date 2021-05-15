@@ -417,6 +417,9 @@ function sendCode(callback) {
       Espruino.Config.RESET_BEFORE_SEND = false;
     code += args.expr+"\n";
   }
+  if (Object.keys(args.storageContents).length && !code) {
+    code += "\n";
+  }
   if (code) {
     var env = Espruino.Core.Env.getData();
     if (!env.info || !env.info.builtin_modules) {
