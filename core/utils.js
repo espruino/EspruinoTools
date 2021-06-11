@@ -584,12 +584,15 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       Espruino.Core.Notifications.error("Error Saving", true);
     }
 
+    var rawdata = new Uint8Array(data.length);
+    for (var i=0;i<data.length;i++) rawdata[i]=data.charCodeAt(i);
+    var fileBlob = new Blob([rawdata.buffer], {type: "text/plain"});
+
     if (typeof chrome !== 'undefined' && chrome.fileSystem) {
       // Chrome Web App / NW.js
       chrome.fileSystem.chooseEntry({type: 'saveFile', suggestedName:filename}, function(writableFileEntry) {
         if (!writableFileEntry) return; // cancelled
         writableFileEntry.createWriter(function(writer) {
-          var blob = new Blob([data],{ type: "text/plain"} );
           writer.onerror = errorHandler;
           // when truncation has finished, write
           writer.onwriteend = function(e) {
@@ -598,19 +601,16 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
               if (callback) callback(writableFileEntry.name);
             };
             console.log('FileWriter: writing');
-            writer.write(blob);
+            writer.write(fileBlob);
           };
           // truncate
           console.log('FileWriter: truncating');
-          writer.truncate(blob.size);
+          writer.truncate(fileBlob.size);
         }, errorHandler);
       });
     } else {
-      var rawdata = new Uint8Array(data.length);
-      for (var i=0;i<data.length;i++) rawdata[i]=data.charCodeAt(i);
-      var a = document.createElement("a"),
-          file = new Blob([rawdata.buffer], {type: "text/plain"});
-      var url = URL.createObjectURL(file);
+      var a = document.createElement("a");
+      var url = URL.createObjectURL(fileBlob);
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
