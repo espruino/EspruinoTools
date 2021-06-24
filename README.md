@@ -145,12 +145,21 @@ functions that are defined in your program will be executed directly
 from Flash, without taking up any RAM.
 
 ```
-# Get a hex file that can be flashed directly to the board
+# Get a hex file that can be flashed directly to the board (containing just the code)
 espruino --board PUCKJS mycode.js --ohex output.hex
 
 # Get a hex file, include 'myModule.js' as a file inside Storage
 espruino --board PUCKJS mycode.js --storage myModule:myModule.js --ohex output.hex
+
+# Create a complete hex file (including Espruino)
+espruino --board PUCKJS mycode.js --ohex output.hex
+mergehex -m espruino_2vXX_puckjs.hex output.hex -o out.hex
 ```
+
+**Note:** If you're creating a complete hex file including the firmware,
+we do not distribute complete firmware hex files for our devices. You can
+either build your own from source or get in touch to request one.
+
 
 Configuration
 -------------
