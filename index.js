@@ -65,32 +65,15 @@ function init(callback) {
 
   try {
     global.acorn = require("acorn");
-    acorn.walk = require("acorn/util/walk");
+    acorn.walk = require("acorn/util/walk"); // FIXME - Package subpath './util/walk' is not defined by "exports" in latest 
   } catch(e) {
     console.log("Acorn library not found - you'll need it for compiled code");
-  }
-  try {
-    global.esprima = require("esprima");
-  } catch(e) {
-    console.log("esprima library not found - you'll need it to minify code");
-  }
-  try {
-    global.esmangle = require("esmangle");
-  } catch(e) {
-    console.log("esmangle library not found - you'll need it to minify code");
-  }
-  try {
-    global.escodegen = require("escodegen");
-  } catch(e) {
-    console.log("escodegen library not found - you'll need it to minify code");
   }
 
   // Load each JS file...
   // libraries needed by the tools
   loadDir(__dirname+"/libs");
-  /* NOTE: we have libs/esprima that we're not parsing here.
-   it's got some detection for node.js and loading this way
-   doesn't work - instead we require it using NPM below. */
+  loadDir(__dirname+"/libs/esprima");
   // the 'main' file
   Espruino = loadJS(__dirname+"/espruino.js");
   // Core features
