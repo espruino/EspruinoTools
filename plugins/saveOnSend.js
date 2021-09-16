@@ -108,5 +108,6 @@
 
   Espruino.Plugins.SaveOnSend = {
     init : init,
+    sortOrder : 1000, // after most plugins, before setTime
   };
 }());

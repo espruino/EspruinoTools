@@ -32,7 +32,10 @@
     });
    // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformModuleForEspruino", function(module, callback) {
-      if (!Espruino.Config.PRETOKENISE) return callback(module);
+      if (!Espruino.Config.PRETOKENISE ||
+          Espruino.Config.MODULE_AS_FUNCTION) return callback(module);
+      /* if MODULE_AS_FUNCTION is specified the module is uploaded inside a 'function'
+      block, in which case it will be pretokenised anyway in a later step */ 
       pretokenise(module.code, function(code) {
         module.code = code;
         callback(module);
@@ -168,5 +171,6 @@
 
   Espruino.Plugins.Pretokenise = {
     init : init,
+    sortOrder : 100, // after most plugins, before saveOnSend
   };
 }());

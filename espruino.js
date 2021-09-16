@@ -56,8 +56,19 @@ var Espruino;
       }
 
       var module;
-      for (module in Espruino.Core) initModule(module, Espruino.Core[module]);
-      for (module in Espruino.Plugins) initModule(module, Espruino.Plugins[module]);
+
+      function initModules(moduleList) {
+        var moduleNames = Object.keys(moduleList).sort(function(a,b) {
+          return (0|moduleList[a].sortOrder) - (0|moduleList[b].sortOrder);
+        });
+        //console.log(moduleNames);
+        moduleNames.forEach(function(module) {
+          initModule(module, moduleList[module]);
+        });
+      }
+
+      initModules(Espruino.Core);
+      initModules(Espruino.Plugins);
 
       callProcessor("initialised", undefined, function() {
         // We need the delay because of background.js's url_handler...
