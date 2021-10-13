@@ -15,7 +15,7 @@
 
   // Node.js doesn't have utf8 installed
   var utf8lib;
-  if ("undefined"==typeof utf8) {    
+  if ("undefined"==typeof utf8) {
     if ("undefined"!=typeof require) {
       console.log("Loading UTF8 with require");
       utf8lib = require('utf8');
@@ -29,8 +29,20 @@
   }
 
   function init() {
+    // Configuration
+    Espruino.Core.Config.add("UNICODE", {
+      section : "Communications",
+      name : "Unicode transforms",
+      description : "When encountering non-ASCII characters in strings, encode them into UTF-8 unicode",
+      type : "boolean",
+      defaultValue : false,
+    });
+    // code transforms
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
-      escapeUnicode(code, callback);
+      if (Espruino.Config.UNICODE)
+        escapeUnicode(code, callback);
+      else
+        callback(code);
     });
   }
 
