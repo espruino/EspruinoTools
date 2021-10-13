@@ -19,8 +19,16 @@
 
   var onInputData = function(d){}; // the handler for character data from user
 
+  /* we don't update the terminal as soon as new data arrives as that might block
+  it, so instead we wait a while using displayTimeout */
   var displayTimeout = null;
   var displayData = [];
+
+  /* If images are displayed inline, we want to convert them from BMP to
+  PNG - but we don't want to do that as they are displayed because they
+  keep being updated over and over as data arrives. Instead, update
+  after a delay. */
+  var imageTimeout = null;
 
   // Text to be displayed in the terminal
   var termText = [ "" ];
@@ -315,6 +323,31 @@
 
   };
 
+  /* check for any terminal-inline-image and if they are still BMP
+  then convert them to PNG using canvas */
+  function convertInlineImages() {
+    imageTimeout = null;
+    var images = document.getElementsByClassName("terminal-inline-image");
+    for (var i=0;i<images.length;i++)
+      (function(img) {
+        if (img.src.startsWith("data:image/bmp;")) {
+          // still a BMP
+          var oImage = new Image();
+          oImage.onload = function(){
+            var oCanvas = document.createElement('canvas');
+            oCanvas.width = oImage.width;
+            oCanvas.height = oImage.height;
+            var oCtx = oCanvas.getContext('2d');
+            oCtx.drawImage(oImage, 0, 0);
+            var url = oCanvas.toDataURL();
+            img.src = url;
+            img.parentElement.href = url;
+          }
+          oImage.src = img.src;
+        }
+      })(images[i]);
+  }
+
   /// send the given characters as if they were typed
   var typeCharacters = function(s) {
     onInputData(s);
@@ -399,7 +432,10 @@
       // detect inline images and link them in
       var m = line.match(/data:image\/\w+;base64,[\w\+\/=]+/);
       if (m) {
-        line = line.substr(0,m.index)+'<a href="'+m[0]+'" download><img class="terminal-inline-image" src="'+m[0]+'"/></a>'+line.substr(m.index+m[0].length);
+        var src = m[0];
+        line = line.substr(0,m.index)+'<a href="'+src+'" download><img class="terminal-inline-image" src="'+src+'"/></a>'+line.substr(m.index+m[0].length);
+        if (imageTimeout) clearTimeout(imageTimeout);
+        imageTimeout = setTimeout(convertInlineImages, 1000);
       }
 
       // extra text is for stuff like tutorials
