@@ -164,8 +164,8 @@
         receiveCallback(new Uint8Array(data).buffer)
       );
 
-      return rxCharacteristic.startNotifications(() =>
-        openCallback({})
+      return rxCharacteristic.startNotifications().then(() =>
+        openCallback(true)
       );
     }).catch((e) => {
       console.error("BT> ERROR getting services/characteristics");
