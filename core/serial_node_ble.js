@@ -86,7 +86,7 @@
       adapter.getDevice(address)).then((d) => {
         newDevice = { path: address, type: "bluetooth" };
         return d.helper.prop('UUIDs').then((uuids) => {
-          d.getName().catch(() => '').then((n) => {
+          d.getAlias().catch(() => '').then((n) => {
             newDevice['description'] = n;
             if (uuids.includes(NORDIC_SERVICE) || Espruino.Core.Utils.isRecognisedBluetoothDevice(n))
               reportedDevices.push(newDevice);
@@ -190,12 +190,12 @@
 
     console.log("BT> send "+JSON.stringify(data));
     txInProgress = true;
-    txCharacteristic.writeValue(Espruino.Core.Utils.stringToBuffer(data)).then(() => {
+    txCharacteristic.writeValue(Espruino.Core.Utils.stringToBuffer(data), {type:'command'}).then(() => {
       txInProgress = false;
       return callback();
     }).catch((e) => {
       console.error("BT> SEND ERROR " + e);
-      closeSerial();
+        closeSerial();
     });
   };
 
