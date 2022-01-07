@@ -164,7 +164,10 @@
         receiveCallback(new Uint8Array(data).buffer)
       );
 
-      return rxCharacteristic.startNotifications().then(() =>
+      return rxCharacteristic.isNotifying().then((n) => {
+        if (n)
+          console.error("Another process is connected to this device, problems may occur.");
+      }).then(() => rxCharacteristic.startNotifications()).then(() =>
         openCallback(true)
       );
     }).catch((e) => {
