@@ -196,8 +196,10 @@ function setupConfig(Espruino, callback) {
    Espruino.Config.MINIFICATION_LEVEL = "ESPRIMA";
  if (args.baudRate && !isNaN(args.baudRate))
    Espruino.Config.BAUD_RATE = args.baudRate;
- if (args.noBle)
+ if (args.noBle) {
    Espruino.Config.BLUETOOTH_LOW_ENERGY = false;
+   Espruino.Config.BLUETOOTH_LOW_ENERGY_DBUS = false;
+ }
  if (args.setTime)
    Espruino.Config.SET_TIME_ON_WRITE = true;
  if (args.watchFile && !args.file)
