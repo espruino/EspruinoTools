@@ -180,7 +180,7 @@
         while (ch!==undefined && ch!=q) {
           s+=ch;
           if (ch=="\\") { // handle escape characters
-            var escape = "'\\";
+            var escape = '"\\';
             var escapeNum = 1;
             nextCh();
             if (ch=="x") escapeNum=3;
@@ -190,7 +190,7 @@
               escape += ch;
               nextCh();
             }
-            s+=JSON.parse(escape+"'");
+            s+=JSON.parse(escape+'"');
           }
           value += ch;
           nextCh();
