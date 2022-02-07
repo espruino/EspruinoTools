@@ -179,10 +179,18 @@
         nextCh();
         while (ch!==undefined && ch!=q) {
           s+=ch;
-          if (ch=="\\") {
+          if (ch=="\\") { // handle escape characters
+            var escape = "'\\";
+            var escapeNum = 1;
             nextCh();
-            s+=ch;
-            // FIXME: handle hex/etc correctly here
+            if (ch=="x") escapeNum=3;
+            if (ch=="u") escapeNum=5;
+            // TODO: octal parsing? \123
+            while (escapeNum--) {
+              escape += ch;
+              nextCh();
+            }
+            s+=JSON.parse(escape+"'");
           }
           value += ch;
           nextCh();
