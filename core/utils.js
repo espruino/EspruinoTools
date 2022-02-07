@@ -178,21 +178,27 @@
         s+=ch;
         nextCh();
         while (ch!==undefined && ch!=q) {
-          s+=ch;
           if (ch=="\\") { // handle escape characters
-            var escape = "'\\";
-            var escapeNum = 1;
             nextCh();
-            if (ch=="x") escapeNum=3;
-            if (ch=="u") escapeNum=5;
+            var escape = '\\'+ch;
+            var escapeExtra = 0;
+            if (ch=="x") escapeExtra=2;
+            if (ch=="u") escapeExtra=4;
             // TODO: octal parsing? \123
-            while (escapeNum--) {
-              escape += ch;
+            while (escapeExtra--) {
               nextCh();
+              escape += ch;
             }
-            s+=JSON.parse(escape+"'");
+            s += escape;
+            try {
+              value += JSON.parse('"'+escape+'"');
+            } catch (e) {
+              value += escape;
+            }
+          } else {
+            s+=ch;
+            value += ch;
           }
-          value += ch;
           nextCh();
         };
         if (ch!==undefined) s+=ch;
