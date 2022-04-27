@@ -35,7 +35,7 @@
       if (!Espruino.Config.PRETOKENISE ||
           Espruino.Config.MODULE_AS_FUNCTION) return callback(module);
       /* if MODULE_AS_FUNCTION is specified the module is uploaded inside a 'function'
-      block, in which case it will be pretokenised anyway in a later step */ 
+      block, in which case it will be pretokenised anyway in a later step */
       pretokenise(module.code, function(code) {
         module.code = code;
         callback(module);
@@ -169,8 +169,40 @@
     callback(resultCode);
   }
 
+  function isTokenised(code) {
+    for (var i=0;i<code.length;i++) {
+      var ch = code.charCodeAt(i);
+      // check for chars out of range
+      if (ch>=LEX_OPERATOR_START+TOKENS.length) return false;
+    }
+    return true;
+  }
+
+  function untokenise(code) {
+    function needSpaceBetween(lastch, ch) {
+      var chAlphaNum="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$0123456789";
+      return (lastch>=LEX_OPERATOR_START || ch>=LEX_OPERATOR_START) &&
+         (lastch>=LEX_OPERATOR_START || chAlphaNum.includes(String.fromCharCode(lastch))) &&
+         (ch>=LEX_OPERATOR_START || chAlphaNum.includes(String.fromCharCode(ch)));
+    }
+    var resultCode = "";
+    var lastCh = 0;
+    for (var i=0;i<code.length;i++) {
+      var ch = code.charCodeAt(i);
+      if (needSpaceBetween(lastCh, ch))
+        resultCode += " ";
+      if (ch>=LEX_OPERATOR_START && ch<LEX_OPERATOR_START+TOKENS.length) {
+        resultCode += TOKENS[ch-LEX_OPERATOR_START];
+      } else resultCode += code[i];
+      lastCh = ch;
+    }
+    return resultCode;
+  }
+
   Espruino.Plugins.Pretokenise = {
     init : init,
     sortOrder : 100, // after most plugins, before saveOnSend
+    isTokenised : isTokenised, // could the given data be tokenised JS?
+    untokenise : untokenise // convert a file containing tokens back into strings
   };
 }());
