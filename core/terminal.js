@@ -46,6 +46,18 @@
 
   function init()
   {
+    // Add stuff we need
+    $('<div id="terminal" class="terminal"></div>').appendTo(".editor--terminal .editor__canvas");
+    $('<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1"></textarea>').appendTo(document.body);
+
+    var terminal = document.getElementById("terminal");
+    var terminalfocus = document.getElementById("terminalfocus");
+    if (terminal === null) {
+      console.log("Terminal: terminal element not found, aborting.");
+      delete Espruino.Core.Terminal;
+      return;
+    }
+    
     // Add buttons
     if (Espruino.Core.App) Espruino.Core.App.addIcon({
       id: "clearScreen",
@@ -60,14 +72,7 @@
         clearTerminal();
         focus();
       }
-    });
-
-    // Add stuff we need
-    $('<div id="terminal" class="terminal"></div>').appendTo(".editor--terminal .editor__canvas");
-    $('<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1"></textarea>').appendTo(document.body);
-
-    var terminal = document.getElementById("terminal");
-    var terminalfocus = document.getElementById("terminalfocus");
+    });    
 
     var html;
     if (Espruino.Core.Terminal.OVERRIDE_CONTENTS) {

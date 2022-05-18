@@ -31,7 +31,6 @@ function loadDir(dir) {
 // Horrible jQuery stubs. We don't want to pull in jQuery itself because it drags in a million other
 // modules that we don't care about, and needs jsDom which has nasty dependency problems
 // ---------------
-
 var jqReady = [];
 var jqShim = {
   ready : function(cb) { jqReady.push(cb); },
@@ -45,8 +44,6 @@ var jqShim = {
   show : function() {},
   hide : function() {},
 };
-global.$ = function() { return jqShim; };
-
 // ---------------
 
 var espruinoInitialised = false;
@@ -57,10 +54,15 @@ function init(callback) {
     return callback();
   }
   espruinoInitialised = true;
-
-  global.navigator = { userAgent : "node" };
-  global.document = {};
-  global.document = undefined;
+  
+  if (global.$ === undefined)
+    global.$ = function() { return jqShim; };
+  if (global.navigator === undefined)
+    global.navigator = { userAgent : "node" };
+  if (global.document === undefined) {
+    global.document = {};
+    global.document = undefined;
+  }
   global.Espruino = undefined;
 
   try {

@@ -10,9 +10,15 @@ Gordon Williams (gw@pur3.co.uk)
   if (typeof require === 'undefined') return;
   var serialport;
   try {
-    serialport = require('serialport');
+    require.resolve('serialport');    
   } catch (e) {
     console.log("No 'serialport' module found");
+    return;
+  }
+  try {
+    serialport = require('serialport');
+  } catch (e) {
+    console.log("Error initialising 'serialport':" + e.toString());
     return;
   }
 
