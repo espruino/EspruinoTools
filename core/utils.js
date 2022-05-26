@@ -590,7 +590,8 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       fileLoader.setAttribute("id", loaderId);
       fileLoader.setAttribute("type", "file");
       fileLoader.setAttribute("style", "z-index:-2000;position:absolute;top:0px;left:0px;");
-      fileLoader.setAttribute("multiple","multiple");
+      if (options.multi)
+        fileLoader.setAttribute("multiple","multiple");
       if (options.mimeType)
         fileLoader.setAttribute("accept",options.mimeType);
       fileLoader.addEventListener('click', function(e) {
