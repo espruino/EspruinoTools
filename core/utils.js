@@ -538,6 +538,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return window.location.protocol=="https:";
   }
 
+  
   /* Open a file load dialog.
   options = {
    id :  ID is to ensure that subsequent calls with  the same ID remember the last used directory.
@@ -549,6 +550,36 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
    callback(contents, mimeType, fileName)
   */
   function fileOpenDialog(options, callback) {
+    function readerLoaded(e,files,i,options,fileLoader) {
+    /* Doing reader.readAsText(file) interprets the file as UTF8
+      which we don't want. */
+      var result;
+      if (options.type=="text") {
+        var a = new Uint8Array(e.target.result);
+        result = "";
+        for (var j=0;j<a.length;j++)
+          result += String.fromCharCode(a[j]);
+      } else
+        result = e.target.result;
+      fileLoader.callback(result, files[i].type, files[i].name);
+      
+
+      // If there's a file left to load
+      if (i < files.length - 1 && options.multi) {
+        // Load the next file
+        setupReader(files, i+1,options,fileLoader);
+      } else {
+        fileLoader.callback = undefined;
+      }
+  }
+  function setupReader(files,i,options,fileLoader) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      readerLoaded(e,files,i,options,fileLoader)
+    };
+    if (options.type=="text" || options.type=="arraybuffer") reader.readAsArrayBuffer(files[i]);
+    else throw new Error("fileOpenDialog: unknown type "+options.type);
+  }
     options = options||{};
     options.type = options.type||"text";
     options.id = options.id||"default";
@@ -559,6 +590,8 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       fileLoader.setAttribute("id", loaderId);
       fileLoader.setAttribute("type", "file");
       fileLoader.setAttribute("style", "z-index:-2000;position:absolute;top:0px;left:0px;");
+      if (options.multi)
+        fileLoader.setAttribute("multiple","multiple");
       if (options.mimeType)
         fileLoader.setAttribute("accept",options.mimeType);
       fileLoader.addEventListener('click', function(e) {
@@ -566,25 +599,10 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       });
       fileLoader.addEventListener('change', function(e) {
         if (!fileLoader.callback) return;
-        var files = e.target.files;
-        var file = files[0];
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          /* Doing reader.readAsText(file) interprets the file as UTF8
-          which we don't want. */
-          var result;
-          if (options.type=="text") {
-            var a = new Uint8Array(e.target.result);
-            result = "";
-            for (var i=0;i<a.length;i++)
-              result += String.fromCharCode(a[i]);
-          } else
-            result = e.target.result;
-          fileLoader.callback(result, file.type, file.name);
-          fileLoader.callback = undefined;
-        };
-        if (options.type=="text" || options.type=="arraybuffer") reader.readAsArrayBuffer(file);
-        else throw new Error("fileOpenDialog: unknown type "+options.type);
+
+        var files = e.target.files;  
+        setupReader(files,0,options,fileLoader);
+        
       }, false);
       document.body.appendChild(fileLoader);
     }
