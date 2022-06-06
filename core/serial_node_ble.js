@@ -21,6 +21,9 @@
   */
 
   if (typeof require === 'undefined') return;
+  if (require("os").platform() != "linux") {
+    console.log("serial_node_ble: Not running Linux - disabling Bluetopoth DBUS support");
+  }
 
   var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
   var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
@@ -59,7 +62,7 @@
       bluetooth = BT.bluetooth;
       process.on('exit', () => BT.destroy());
     } catch (e) {
-      console.log("Node-ble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
+      console.log("serial_node_ble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
       errored = true;
     }
 
@@ -67,7 +70,7 @@
     if (Espruino.Config.WEB_BLUETOOTH || Espruino.Config.BLUETOOTH_LOW_ENERGY) {
       // Everything has already initialised, so we must disable
       // web bluetooth this way instead
-      console.log("Node-ble: Disable other bluetooth plugins as we have Node-ble instead");
+      console.log("serial_node_ble: Disable other bluetooth plugins as we have Node-ble instead");
       Espruino.Config.WEB_BLUETOOTH = false;
       Espruino.Config.BLUETOOTH_LOW_ENERGY = false;
     }
@@ -103,7 +106,7 @@
   var getPorts = function (callback) {
     console.log("Getting ports");
     if (errored || !Espruino.Config.BLUETOOTH_LOW_ENERGY_DBUS) {
-      console.log("Node-ble: getPorts - disabled");
+      console.log("serial_node_ble: getPorts - disabled");
       callback([], true);
       return;
     }
