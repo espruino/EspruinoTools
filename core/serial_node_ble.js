@@ -29,15 +29,8 @@
 
   var adapter = undefined;
   var errored = false;
-
-  try {
-    var {createBluetooth} = require('node-ble');
-    var {bluetooth, destroy} = createBluetooth();
-    process.on('exit', () => destroy());
-  } catch (e) {
-    console.log("Node-ble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
-    errored = true;
-  }
+  
+  var bluetooth;
 
   var btDevice;
   var btUARTService;
@@ -59,6 +52,16 @@
   async function getAdapter() {
     if (adapter)
       return adapter;
+      
+    try {
+      var {createBluetooth} = require('node-ble');
+      var BT = createBluetooth();
+      bluetooth = BT.bluetooth;
+      process.on('exit', () => BT.destroy());
+    } catch (e) {
+      console.log("Node-ble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
+      errored = true;
+    }
 
     adapter = await bluetooth.defaultAdapter();
     if (Espruino.Config.WEB_BLUETOOTH || Espruino.Config.BLUETOOTH_LOW_ENERGY) {
