@@ -835,6 +835,8 @@ function main() {
         } else {
           if (allPorts.length==0) {
             console.error("Error: No Ports Found");
+            if (!args.verbose)
+              log("  - Try running with --verbose and check for errors initialisting modules");
             process.exit(1);
           } else {
             process.exit(0);
