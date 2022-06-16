@@ -24,7 +24,6 @@
   "dependencies": {
     "acorn": ">=8.5.0",
     "es6-shim": "",
-    "node-ble": "^1.7.0",
     "request": "^2.74.0",
     "tar.gz": "^1.0.7",
     "utf8": "^3.0.0"

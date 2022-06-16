@@ -1,5 +1,17 @@
 (function () {
 
+/* THIS IS TOTALLY BROKEN
+
+* It broke Windows builds - but I've now fixed that
+* It often fails with `Discovery already in progress`, and in doing so calls the
+  getPorts callback twice with `[]` as well as the data it's got. But it also disables
+  Noble so it completely breaks bluetooth on Linux too.
+* node-ble was a dependency (not optional) so it probably broke Mac OS too.  
+
+If enabled, this will need `"node-ble": "^1.7.0",` in package.json optionalDependencies
+
+*/
+
   /*
   In order to allow a connection with the DBus daemon, you have to set up right permissions.
 
