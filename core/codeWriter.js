@@ -230,6 +230,7 @@
 
   Espruino.Core.CodeWriter = {
     init : init,
-    writeToEspruino : writeToEspruino,
+    writeToEspruino : writeToEspruino, // call this to send to Espruino
+    reformatCode : reformatCode  // Parse and fix issues like `if (false)\n foo` in the root scope
   };
 }());
