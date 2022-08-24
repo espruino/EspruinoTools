@@ -11,8 +11,6 @@
 **/
 "use strict";
 
-var Espruino;
-
 (function() {
 
   /** List of processors. These are functions that are called one
@@ -38,6 +36,7 @@ var Espruino;
    *   editorHover          - called with { node : htmlNode, showTooltip : function(htmlNode) } when something is hovered over
    *   notification         - called with { mdg, type:"success","error"/"warning"/"info" }
    **/
+  var Espruino;
   var processors = {};
 
   function init() {
@@ -123,6 +122,22 @@ var Espruino;
     initialised : false,
     init : init, // just in case we need to initialise this by hand
   };
+ 
+  /*
+    This allows the use of the Espruino library within webpack if ProvidePlugin is used with the following config.
+
+    new webpack.ProvidePlugin({
+      Espruino: ["espruino/espruino.js", "Espruino"]
+    })
+  */
+  if ( typeof module === "object" && typeof module.exports === "object" ) {
+    module.exports.Espruino = Espruino;
+  }
+  
+  // Set window.Espruino so that this can still be used in a browser without the use of something like webpack.
+  if ( typeof window !== "undefined" && typeof window.Espruino === "undefined" ) {
+    window.Espruino = Espruino;
+  }
 
   return Espruino;
 })();
