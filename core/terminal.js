@@ -57,7 +57,7 @@
       delete Espruino.Core.Terminal;
       return;
     }
-    
+
     // Add buttons
     if (Espruino.Core.App) Espruino.Core.App.addIcon({
       id: "clearScreen",
@@ -72,7 +72,7 @@
         clearTerminal();
         focus();
       }
-    });    
+    });
 
     var html;
     if (Espruino.Core.Terminal.OVERRIDE_CONTENTS) {
@@ -679,13 +679,21 @@
 
   /** Add a notification to the terminal (as HTML). If options.buttonclick is set
   then the first <button> inside the notification text
-  will have a click handler registered*/
+  will have a click handler registered
+
+  options = {
+      buttonclick // callback for if clicked
+      noBorder // don't wrap in a green notification border
+  }
+  */
   function addNotification(text, options) {
     options = options||{};
     var line = getInputLine(0);
     line = (line===undefined)?0:line.line;
     if (!termExtraText[line]) termExtraText[line]="";
-    termExtraText[line] += '<div class="notification_text">'+text+'</div>';
+    if (!options.noBorder)
+      text = '<div class="notification_text">'+text+'</div>';
+    termExtraText[line] += text;
     updateTerminal();
     if (options.buttonclick) {
       var btn = elements[line].find("button");
