@@ -481,6 +481,7 @@
   }
 
   var handleReceivedCharacter = function (/*char*/ch) {
+    // SGA Version for issue #154
     //console.log("IN = "+ch);
     if (termControlChars.length==0) {
       switch (ch) {
