@@ -30,19 +30,64 @@
   after a delay. */
   var imageTimeout = null;
 
-  // Text to be displayed in the terminal
+  // Text to be displayed in the terminal as array holding lines of text
   var termText = [ "" ];
+  var termCursorX = 0;
+  var termCursorY = 0;
+
   // Map of terminal line number to text to display before it
   var termExtraText = {};
+  
   // List of (jquerified) DOM elements for each line
   var elements = [];
 
-  var termCursorX = 0;
-  var termCursorY = 0;
-  var termControlChars = [];
+  // current control character sequence as string
+  var termControlChars = '';
 
   // maximum lines on the terminal
   var MAX_LINES = 2048;
+
+  // mapping of display attribute type/ID to HTML in line style - in response to ANSI Seq - esc [ ... 
+  const attributes = [                                                  
+    {ID:0,name:'resetAll',styleStr:''},                                    //  0m resets all
+    {ID:1,name:'foregroud',styleStr:'color:'},         //styleStr+colour  30->37m set, 39m clear 
+    {ID:2,name:'bold',styleStr:'font-weight:'},        //styleStr+'bolder'     1m set, 22m clear 
+ // {ID:2,name:'faint',styleStr:'font-weight:'},         styleStr+'lighter'    2m set, 22m clear 
+    {ID:3,name:'italic',styleStr:'font-style:italic'},                     //  3m set, 23m clear  
+    {ID:4,name:'underline',styleStr:'text-decoration:underline'},          //  4m set, 24m clear 
+    {ID:5,name:'crossedOut',styleStr:'text-decoration:line-through'},      //  9m set, 29m clear 
+    {ID:6,name:'background',styleStr:'background-color:'} //style+colour  40->47 set, 49 clear 
+  ]
+
+  /* Display Attributes of each termText line as array of array of objects
+     set during recievedCharacter() processing.  object properties: 
+       seq: int - sequence order of attribute in termtext line
+       pos: int - character position of style on termtext line
+       type: int - type of attribute corresponding to attribute ID
+       value: string - parameter (depending on type) eg reset,on,off,colour
+  */
+  var termAttribute = [];  
+
+  /* Styles currently active during HTML creation. As array:
+     index = ID-1 of corresponding attribute  
+     value (string) = undefined || complete style string (as per attributes[]) inc colour/font weight value
+  */
+  var activeStyles = [];
+
+  const fullModalAttribs = true; //set true then any active attribute styles carry to new lines
+
+  // map of ANSI display attribute colours for code 0->7,  index = code
+  const colorMap = ["black","red","green","yellow","blue","magenta","cyan","white"];
+  
+  // updates active style for a termAttribute object
+  function setActiveStyles(obj){
+    switch (obj.value) {
+      case 'reset' : activeStyles = [] ; break;
+      case 'on' : activeStyles[obj.type-1] = attributes[obj.type].styleStr ; break;
+      case 'off' : activeStyles[obj.type-1] = undefined ; break;
+      default : activeStyles[obj.type-1] = attributes[obj.type].styleStr + obj.value; break;
+    }
+  }
 
   function init()
   {
@@ -368,14 +413,43 @@
     for (var l in termText)
       termText[l] = (l==0?">":":") + termText[l];
     // reset other stuff...
+    termAttribute = [];
     termExtraText = {};
     // leave X cursor where it was...
     termCursorY -= currentLine.line; // move Y cursor back
-    termControlChars = [];
+    termControlChars = '';
     // finally update the HTML
     updateTerminal();
     // fire off a clear terminal processor
     Espruino.callProcessor("terminalClear");
+  };
+
+ /**
+  * function buildAttribSpans 
+  * returns {string} updated line with HTML spans created to style as per corresponding line attributes 
+  *                  with text elements in line Escaped via Utils.escapeHTML()
+  * param {string} line - line form termText[]
+  * param {array of objects} attribs - line attributes as defined in termAttribute[] for the line of text 
+  */
+  var buildAttribSpans = function (line, attribs) {
+    // full modal mode uses any current attribte styles set on previous lines 
+    if (!fullModalAttribs && !attribs) return Espruino.Core.Utils.escapeHTML(line);
+    if (!attribs) return  "<span style=" + activeStyles.join(";") + ">" + Espruino.Core.Utils.escapeHTML(line) + "</span>" ;
+
+    var result = attribs.reduce(function (acc, obj, i, arr) {
+      setActiveStyles(obj);
+      let end = !arr[i + 1] ? line.length : arr[i + 1].pos;
+      if (end == obj.pos) return acc; // no text just styles
+      return (
+        acc +
+        "<span style=" +
+        activeStyles.join(";") +
+        ">" +
+        Espruino.Core.Utils.escapeHTML(line.slice(obj.pos, end)) +
+        "</span>"
+      );
+    }, Espruino.Core.Utils.escapeHTML(line.slice(0, attribs[0].pos)));  // initial value is any text before first attribute position
+    return result;
   };
 
   var updateTerminal = function() {
@@ -394,6 +468,7 @@
     if (termText.length > MAX_LINES) {
       var removedLines = termText.length - MAX_LINES;
       termText = termText.slice(removedLines);
+      termAttribute = termAttribute.slice(removedLines);
       termCursorY -= removedLines;
       var newTermExtraText = {};
       for (var i in termExtraText) {
@@ -421,16 +496,16 @@
         elements[i].remove();
     // now write this to the screen
     var t = [];
-    for (var y in termText) {
+    for (var y in termText) {   
       var line = termText[y];
-      if (y == termCursorY) {
+      if (y == termCursorY) {  // current line 
         var ch = Espruino.Core.Utils.getSubString(line,termCursorX,1);
         line = Espruino.Core.Utils.escapeHTML(
             Espruino.Core.Utils.getSubString(line,0,termCursorX)) +
             "<span class='terminal__cursor'>" + Espruino.Core.Utils.escapeHTML(ch) + "</span>" +
             Espruino.Core.Utils.escapeHTML(Espruino.Core.Utils.getSubString(line,termCursorX+1));
       } else {
-        line = Espruino.Core.Utils.escapeHTML(line);
+        line = buildAttribSpans(line,termAttribute[y]);
         // handle URLs
         line = line.replace(/(https?:\/\/[-a-zA-Z0-9@:%._\+~#=\/\?]+)/g, '<a href="$1" target="_blank">$1</a>');
       }
@@ -442,6 +517,7 @@
         if (imageTimeout) clearTimeout(imageTimeout);
         imageTimeout = setTimeout(convertInlineImages, 1000);
       }
+
 
       // extra text is for stuff like tutorials
       if (termExtraText[y])
@@ -480,84 +556,166 @@
     return str.substr(0,s+1);
   }
 
-  var handleReceivedCharacter = function (/*char*/ch) {
-    // SGA Version for issue #154
-    //console.log("IN = "+ch);
-    if (termControlChars.length==0) {
-      switch (ch) {
-        case  8 : {
-          if (termCursorX>0) termCursorX--;
-        } break;
-        case 10 : { // line feed
-          Espruino.callProcessor("terminalNewLine", termText[termCursorY]);
-          termCursorX = 0; termCursorY++;
-          while (termCursorY >= termText.length) termText.push("");
-        } break;
-        case 13 : { // carriage return
-          termCursorX = 0;
-        } break;
-        case 27 : {
-          termControlChars = [ 27 ];
-        } break;
-        case 19 : break; // XOFF
-        case 17 : break; // XON
-        case 0xC2 : break; // UTF8 for <255 - ignore this
-        default : {
-          // Else actually add character
-          if (termText[termCursorY]===undefined) termText[termCursorY]="";
-          termText[termCursorY] = trimRight(
-              Espruino.Core.Utils.getSubString(termText[termCursorY],0,termCursorX) +
-              String.fromCharCode(ch) +
-              Espruino.Core.Utils.getSubString(termText[termCursorY],termCursorX+1));
-          termCursorX++;
-          // check for the 'prompt', eg '>' or 'debug>'
-          // if we have it, send a 'terminalPrompt' message
-          if (ch == ">".charCodeAt(0)) {
-            var prompt = termText[termCursorY];
-            if (prompt==">" || prompt=="debug>")
-              Espruino.callProcessor("terminalPrompt", prompt);
-          }
-        }
-      }
-   } else if (termControlChars[0]==27) { // Esc
-     if (termControlChars[1]==91) { // Esc [
-       if (termControlChars[2]==63) {
-         if (termControlChars[3]==55) {
-           if (ch!=108)
-             console.log("Expected 27, 91, 63, 55, 108 - no line overflow sequence");
-           termControlChars = [];
-         } else {
-           if (ch==55) {
-             termControlChars = [27, 91, 63, 55];
-           } else termControlChars = [];
-         }
-       } else {
-         termControlChars = [];
-         switch (ch) {
-           case 63: termControlChars = [27, 91, 63]; break;
-           case 65: if (termCursorY > 0) termCursorY--; break; // up  FIXME should add extra lines in...
-           case 66: termCursorY++; while (termCursorY >= termText.length) termText.push(""); break;  // down FIXME should add extra lines in...
-           case 67: termCursorX++; break; // right
-           case 68: if (termCursorX > 0) termCursorX--; break; // left
-           case 74: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); // Delete to right + down
-                    termText = termText.slice(0,termCursorY+1);
-                    break;
-           case 75: termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); break; // Delete to right
-         }
-       }
-     } else {
-       switch (ch) {
-         case 91: {
-           termControlChars = [27, 91];
-         } break;
-         default: {
-           termControlChars = [];
-         }
-       }
-     }
-   } else termControlChars = [];
-};
+  // Add Character string  (str) to termText for output
+  var addCharacters = function (str){
+    if (termText[termCursorY]===undefined) termText[termCursorY]="";
+    termText[termCursorY] = trimRight(
+        Espruino.Core.Utils.getSubString(termText[termCursorY],0,termCursorX) +
+        str +
+        Espruino.Core.Utils.getSubString(termText[termCursorY],termCursorX+1));
+    termCursorX = termCursorX+str.length;
+    // check for the 'prompt', eg '>' or 'debug>'
+    // if we have it, send a 'terminalPrompt' message
+   // if (str == ">".charCodeAt(0)) {
+    if (str == ">" ) {
+      var prompt = termText[termCursorY];
+      if (prompt==">" || prompt=="debug>")
+        Espruino.callProcessor("terminalPrompt", prompt);
+    }
+  }
 
+  var handleReceivedCharacter = function (/*char*/ch) {
+    switch (termControlChars.length) {
+      case 0 : {
+        switch (ch) {
+          case  8 : // BS
+            if (termCursorX>0) termCursorX--;
+            break;
+          case 10 : // line feed
+            Espruino.callProcessor("terminalNewLine", termText[termCursorY]);
+            termCursorX = 0; termCursorY++;
+            while (termCursorY >= termText.length) termText.push("");
+            break;
+          case 13 : // carriage return
+            termCursorX = 0;
+            break;
+          case 27 : // Esc
+            termControlChars = String.fromCharCode(27);
+            break;
+          case 19 : break; // XOFF
+          case 17 : break; // XON
+          case 0xC2 : break; // UTF8 for <255 - ignore this
+          default : addCharacters(String.fromCharCode(ch));  // Else actually add character
+        }
+        break;
+      }
+      case 1 : 
+        if (termControlChars == '\x1B')  // Esc 
+          switch (ch) {
+            case 91: termControlChars += '['; break; // Esc [
+            default: termControlChars = '';
+        } else termControlChars = '';
+        break;
+      case 2 : 
+        if (termControlChars == '\x1B[') { // Esc [ 
+          switch (ch) {
+            case 63: termControlChars += '?'; break; // Esc [ ?
+            case 65: // up  
+              if (termCursorY > 0) termCursorY--; 
+              termControlChars = '';
+              break; // old FIXME should add extra lines in...
+            case 66: // down 
+              termCursorY++; 
+              while (termCursorY >= termText.length) termText.push(""); 
+              termControlChars = '';
+              break; // old FIXME should add extra lines in...
+            case 67: //right
+              termCursorX++;
+              termControlChars = ''; 
+              break; 
+            case 68: // left
+              if (termCursorX > 0) termCursorX--;
+              termControlChars = '';  
+              break; 
+            case 74: // Delete to right + down
+              termText[termCursorY] = termText[termCursorY].substr(0,termCursorX); 
+              termText = termText.slice(0,termCursorY+1);
+              termControlChars = ''; 
+              break;
+            case 75: // K Delete to right
+              termText[termCursorY] = termText[termCursorY].substr(0,termCursorX);
+              termControlChars = '';  
+              break;
+            default: 
+              termControlChars += String.fromCharCode(ch)
+              if (/\x1B\[[0-49]/.test(termControlChars))  break;  // setting display attribute - more to come
+              termControlChars = ''; 
+            }
+       } else termControlChars = '';
+       break;
+      case 3 :
+        termControlChars += String.fromCharCode(ch); 
+        if (/\x1B\[\?7/.test(termControlChars))  break;        // Esc [ ? 7  - line overflow sequence - more to come
+        if (/\x1B\[[34][0-79]/.test(termControlChars)) break;  // colour device attribute - more to come
+        if (/\x1B\[[2][2349]/.test(termControlChars)) break;   // device attribute - more to come
+
+        if (/\x1B\[0m/.test(termControlChars)) {  //reset all - add to term line attributes  
+          termAttribute[termCursorY] = !termAttribute[termCursorY] 
+            ? [].concat({seq:0,pos:termCursorX,type:0,value:'reset'}) 
+            : termAttribute[termCursorY].concat({seq:termAttribute[termCursorY].length,pos:termCursorX,type:0,value:'reset'})
+          termControlChars = ''; 
+          break;  
+        }
+        if (/\x1B\[[12]m/.test(termControlChars)) {  //set bold/faint text - add to term line attribute
+          let  weight = termControlChars.slice(2,3)==1? 'bolder': 'lighter';
+          termAttribute[termCursorY] = !termAttribute[termCursorY] 
+            ? [].concat({seq:0,pos:termCursorX,type:2,value:weight}) 
+            : termAttribute[termCursorY].concat({seq:termAttribute[termCursorY].length,pos:termCursorX,type:2,value:weight})
+          termControlChars = ''; 
+          break;  
+        }
+        if (/\x1B\[[349]m/.test(termControlChars)) {  //set italic/underline/line-thru - add to term line attributes 
+          let attribType = termControlChars.slice(2,3)=='9'? 5: +termControlChars.slice(2,3);
+          termAttribute[termCursorY] = !termAttribute[termCursorY] 
+            ? [].concat({seq:0,pos:termCursorX,type:attribType,value:'on'}) 
+            : termAttribute[termCursorY].concat({seq:termAttribute[termCursorY].length,pos:termCursorX,type:attribType,value:'on'})
+          termControlChars = ''; 
+          break;  
+        }
+        termControlChars = '';  
+        break;  
+      case 4 :
+        termControlChars += String.fromCharCode(ch);  
+        if (/\x1B\[\?7/.test(termControlChars)) { // Esc [ ? 7  
+          if (ch!=108) {                          // Esc [ ? 7 l
+            console.log("Expected 27, 91, 63, 55, 108 - no line overflow sequence");
+          }
+          termControlChars = '';  // got Esc [ ? 7 l  or not - reset term control chars 
+          break;
+        }
+        if (/\x1B\[[3][0-7]m/.test(termControlChars)) {  //set foreground colour - add to term line attributes
+          termAttribute[termCursorY] = !termAttribute[termCursorY]      
+            ? [].concat( {seq:0,pos:termCursorX,type:1,value:colorMap[termControlChars.slice(3,4)]})
+            : termAttribute[termCursorY].concat( {seq:termAttribute[termCursorY].length,pos:termCursorX,type:1,value:colorMap[termControlChars.slice(3,4)]})
+          termControlChars = '';
+          break;
+        }
+        if (/\x1B\[[4][0-7]m/.test(termControlChars)) {  //set background colour - add to term line attributes
+          termAttribute[termCursorY] = !termAttribute[termCursorY] 
+            ? [].concat( {seq:0,pos:termCursorX,type:6,value:colorMap[termControlChars.slice(3,4)]}) 
+            : termAttribute[termCursorY].concat( {seq:termAttribute[termCursorY].length,pos:termCursorX,type:6,value:colorMap[termControlChars.slice(3,4)]})
+          termControlChars = '';
+          break;
+        }
+        if (/\x1B\[2[2349]m/.test(termControlChars)) {  //turn off fontWeight(bold,faint)/italic/underline/line-thru - add to term line attributes
+          let attribType = termControlChars.slice(3,4)=='9'? 5: +termControlChars.slice(3,4);
+          termAttribute[termCursorY] = !termAttribute[termCursorY] 
+            ? [].concat( {seq:0,pos:termCursorX,type:attribType,value:'off'}) 
+            : termAttribute[termCursorY].concat( {seq:termAttribute[termCursorY].length,pos:termCursorX,type:attribType,value:'off'})
+          termControlChars = '';
+          break;
+        }
+        if (/\x1B\[[34]9m/.test(termControlChars)) {  //turn off foreground/background colour - add to term line attributes
+          let attribType = termControlChars.slice(2,3)=='3'? 1: 6;
+          termAttribute[termCursorY] = !termAttribute[termCursorY]      
+            ? [].concat( {seq:0,pos:termCursorX,type:attribType,value:'off'})
+            : termAttribute[termCursorY].concat( {seq:termAttribute[termCursorY].length,pos:termCursorX,type:attribType,value:'off'})
+          termControlChars = '';
+          break;
+        }
+      default: termControlChars = '';
+    }
+  }
 
 // ----------------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------------
