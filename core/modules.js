@@ -185,7 +185,7 @@
       Promise.all(newPromises).then(function(){
         // add the module to end of our array
         if (Espruino.Config.MODULE_AS_FUNCTION)
-          loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + ",function(){" + module.code + "});");
+          loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + ",function(){" + module.code + "\n});");
         else
           loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + "," + JSON.stringify(module.code) + ");");
         // We're done
