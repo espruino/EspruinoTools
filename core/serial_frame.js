@@ -9,12 +9,12 @@ Use embed.js on the client side to link this in.
 
 (function() {
   if (typeof navigator == "undefined" || typeof window == "undefined") {
-    console.log("serial_frame: Not running in a browser");
+    logger.debug("serial_frame: Not running in a browser");
     return;
   }
   if (typeof window.parent == undefined ||
       window.parent === window) {
-    console.log("serial_frame: Not running inside an iframe");
+    logger.debug("serial_frame: Not running inside an iframe");
     return;
   }
 
@@ -50,10 +50,10 @@ Use embed.js on the client side to link this in.
       } break;
       case "connect":
         if (Espruino.Core.Serial.isConnected())
-          console.error("serial_frame: already connected");
+          logger.debug("serial_frame: already connected");
 
         Espruino.Core.MenuPortSelector.connectToPort(event.data, function() {
-          console.log("serial_frame: connected");
+          logger.debug("serial_frame: connected");
         });
         break;
       case "connected": if (callbacks.connected) {
@@ -70,7 +70,7 @@ Use embed.js on the client side to link this in.
       } break;
       case "receive": if (callbacks.receive) {
         if (typeof event.data!="string")
-          console.error("serial_frame: receive event expecting data string");
+          logger.warn("serial_frame: receive event expecting data string");
         callbacks.receive(Espruino.Core.Utils.stringToArrayBuffer(event.data));
       } break;
       case "setMaxWriteLength": {
@@ -78,7 +78,7 @@ Use embed.js on the client side to link this in.
         device.maxWriteLength = parseInt(event.data);
       } break;
       default:
-        console.error("Unknown event type ",event.type);
+        logger.error("Unknown event type ",event.type);
         break;
     }
   });
@@ -105,11 +105,11 @@ Use embed.js on the client side to link this in.
         callbacks.ports = undefined;
         callback([], false/*instantPorts*/);
         ERROR = "getPorts timeout, disabling";
-        console.error("serial_frame: "+ERROR);
+        logger.error("serial_frame: "+ERROR);
       },100);
       callbacks.ports = function(d) {
         if (!timeout) {
-          console.error("serial_frame: ports received after timeout");
+          logger.error("serial_frame: ports received after timeout");
           return;
         }
         clearTimeout(timeout);

@@ -27,7 +27,7 @@
           };
       
       var url = "https://raw.githubusercontent.com/"+git.owner+"/"+git.repo+"/"+git.branch+"/"+git.path;
-      console.log("Found GitHub", JSON.stringify(git));
+      logger.debug("Found GitHub", JSON.stringify(git));
       callback({url: url});
     } else
       callback(data); // no match - continue as normal

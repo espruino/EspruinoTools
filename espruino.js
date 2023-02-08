@@ -45,12 +45,12 @@ var Espruino;
     Espruino.Core.Config.loadConfiguration(function() {
       // Initialise all modules
       function initModule(modName, mod) {
-        console.log("Initialising "+modName);
+        logger.debug("Initialising "+modName);
         if (mod.init !== undefined) {
           try {
             mod.init();
           } catch (e) {
-            console.warn("Module initialisation failed for "+modName, e);
+            logger.warn("Module initialisation failed for "+modName, e);
           }
         }
       }

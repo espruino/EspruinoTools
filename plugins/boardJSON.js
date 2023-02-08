@@ -32,9 +32,9 @@
   }
   
   function loadJSON(env, jsonPath, callback) {    
-    console.log("Loading "+jsonPath);
+    logger.debug("Loading "+jsonPath);
     Espruino.Core.Utils.getJSONURL(jsonPath, function(data){
-      console.log("Board JSON loaded");
+      logger.debug("Board JSON loaded");
       for (var key in data)
         env[key] = data[key];
       Espruino.callProcessor("boardJSONLoaded", env, callback);          

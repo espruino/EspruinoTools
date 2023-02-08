@@ -17,14 +17,14 @@
   var utf8lib;
   if ("undefined"==typeof utf8) {
     if ("undefined"!=typeof require) {
-      console.log("Loading UTF8 with require");
+      logger.debug("Loading UTF8 with require");
       utf8lib = require('utf8');
     } else {
-      console.log("WARNING: Loading placeholder UTF8");
+      logger.warn("WARNING: Loading placeholder UTF8");
       utf8lib = { encode : function(c){return c} };
     }
   } else {
-    console.log("UTF8 Library loaded successfully");
+    logger.debug("UTF8 Library loaded successfully");
     utf8lib = utf8;
   }
 

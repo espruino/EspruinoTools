@@ -10,10 +10,10 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
 
   if (/*window.location.origin=="https://www.espruino.com" || */
       window.location.origin=="https://espruino.github.io") {
-    console.log("Running from github - WebSocket support disabled");
+    logger.debug("Running from github - WebSocket support disabled");
     return;
   }
-  console.log("WebSocket relay support enabled - running in web browser");
+  logger.debug("WebSocket relay support enabled - running in web browser");
 
   var WS_ENABLED = true;
   var ws;
@@ -26,7 +26,7 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
       if (!WS_ENABLED) return callback([], true/*instantPorts*/);
       Espruino.Core.Utils.getJSONURL("/serial/ports", function(ports) {
         if (ports===undefined) {
-          console.log("/serial/ports doesn't exist - disabling WebSocket support");
+          logger.error("/serial/ports doesn't exist - disabling WebSocket support");
           WS_ENABLED = false;
           callback([]);
           return;

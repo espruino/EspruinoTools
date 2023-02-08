@@ -4,7 +4,7 @@ Gordon Williams (gw@pur3.co.uk)
 (function() {
 
   if (typeof window == "undefined" || typeof WebSocket == undefined) return;
-  console.log("WebSocket localhost support (EspruinoHost) enabled - running in web browser");
+  logger.debug("WebSocket localhost support (EspruinoHost) enabled - running in web browser");
 
   var WS_ENABLED = true;
   var ws;
@@ -19,7 +19,7 @@ Gordon Williams (gw@pur3.co.uk)
 
   function ensureConnection(callback) {
     if (wsConnecting) {
-      console.log("Waiting for Websocket connection - queueing");
+      logger.debug("Waiting for Websocket connection - queueing");
       wsConnectCallbacks.push(callback);
       return;
     }
@@ -48,7 +48,7 @@ Gordon Williams (gw@pur3.co.uk)
   }
 
   function wsMessage(event) {
-    console.log("Got "+event.data);
+    logger.debug("Got "+event.data);
     try {
       var j = JSON.parse(event.data);
       if (j.type=="list") {
@@ -81,19 +81,19 @@ Gordon Williams (gw@pur3.co.uk)
         }
       } else if (j.type=="write") {
         dataWrittenCallbacks.forEach(function(cb) {
-          console.log("Calling data written cb");
+          logger.debug("Calling data written cb");
           cb();
         });
         dataWrittenCallbacks = [];
       }
     } catch (e) {
-      console.log("Error processing JSON response: "+event.data);
+      logger.error("Error processing JSON response: "+event.data);
     }
   }
 
   function wsClosed(event) {
     ws = undefined;
-    console.log("WebSocket closed");
+    logger.debug("WebSocket closed");
     disconnectCallback();
     disconnectCallback = undefined;
   }
@@ -103,7 +103,7 @@ Gordon Williams (gw@pur3.co.uk)
     ensureConnection(function(err) {
       if (err) {
         WS_ENABLED = false;
-        console.log("Couldn't connect to "+Espruino.Config.WEBSOCKET_URL+" - disabling websockets for this session");
+        logger.error("Couldn't connect to "+Espruino.Config.WEBSOCKET_URL+" - disabling websockets for this session");
         return callback([], false/*instantPorts*/);
       } else {
         listCallbacks.push(callback);
@@ -115,7 +115,7 @@ Gordon Williams (gw@pur3.co.uk)
   var openSerial=function(serialPort, _connectCallback, _receiveCallback, _disconnectCallback) {
     var device = listOfDevices.find(dev=>dev.path==serialPort);
     if (!device) {
-      console.err("Tried to connect to "+serialPort+" but it didn't exist!");
+      logger.err("Tried to connect to "+serialPort+" but it didn't exist!");
       return openCallback(); // open failed
     }
 
@@ -145,7 +145,7 @@ Gordon Williams (gw@pur3.co.uk)
   var writeSerial = function(data, callback) {
     if (!ws) return callback();
     dataWrittenCallbacks.push(callback);
-    console.log(JSON.stringify({"type":"write", data:data}));
+    logger.debug(JSON.stringify({"type":"write", data:data}));
     ws.send(JSON.stringify({"type":"write", data:data}));
   };
 

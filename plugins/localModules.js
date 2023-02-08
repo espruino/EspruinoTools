@@ -40,14 +40,14 @@
          *
          */
         function loadJSFile(x) {
-            console.log("Loading local module "+ x +" for " + data.moduleName);
+            logger.debug("Loading local module "+ x +" for " + data.moduleName);
             data.moduleCode = fs.readFileSync(x).toString();
             return true;
         }
 
         function loadJSONFile(x) {
-            console.log("Loading local module "+ x +" for " + data.moduleName);
-            console.log('module.exports=' + JSON.stringify(JSON.parse(fs.readFileSync(x).toString())) + ';');
+            logger.debug("Loading local module "+ x +" for " + data.moduleName);
+            logger.debug('module.exports=' + JSON.stringify(JSON.parse(fs.readFileSync(x).toString())) + ';');
             data.moduleCode = 'module.exports=' + JSON.stringify(JSON.parse(fs.readFileSync(x).toString())) + ';';
             return true;
         }

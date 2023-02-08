@@ -123,7 +123,7 @@
     var fullModuleName = data.moduleName;
 
     // try and load the module the old way...
-    console.log("loadModule("+fullModuleName+")");
+    logger.debug("loadModule("+fullModuleName+")");
 
     var urls = []; // Array of where to look for this module
     var modName; // Simple name of the module
@@ -167,16 +167,16 @@
   function moduleLoaded(resolve, requires, modName, data, loadedModuleData, alreadyMinified){
     // Check for any modules used from this module that we don't already have
     var newRequires = getModulesRequired(data);
-    console.log(" - "+modName+" requires "+JSON.stringify(newRequires));
+    logger.debug(" - "+modName+" requires "+JSON.stringify(newRequires));
     // if we need new modules, set them to load and get their promises
     var newPromises = [];
     for (var i in newRequires) {
       if (requires.indexOf(newRequires[i])<0) {
-        console.log("   Queueing "+newRequires[i]);
+        logger.debug("   Queueing "+newRequires[i]);
         requires.push(newRequires[i]);
         newPromises.push(loadModule(requires, newRequires[i], loadedModuleData));
       } else {
-        console.log("   Already loading "+newRequires[i]);
+        logger.debug("   Already loading "+newRequires[i]);
       }
     }
 

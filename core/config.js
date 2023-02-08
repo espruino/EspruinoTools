@@ -38,17 +38,17 @@
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.sync.get( "CONFIGS", function (data) {
         var value = data["CONFIGS"];
-        console.log("GET chrome.storage.sync = "+JSON.stringify(value));
+        logger.debug("GET chrome.storage.sync = "+JSON.stringify(value));
         callback(value);
       });
     } else if (typeof window !== 'undefined' && window.localStorage) {
       var data = {};
       var value = window.localStorage.getItem("CONFIG");
-      console.log("GET window.localStorage = "+JSON.stringify(value));
+      logger.debug("GET window.localStorage = "+JSON.stringify(value));
       try {
         data = JSON.parse(value);
       } catch (e) {
-        console.log("Invalid config data");
+        logger.error("Invalid config data");
       }
       callback(data);
     } else if (typeof document != "undefined") {
@@ -61,7 +61,7 @@
           var json = atob(cookie);
           data = JSON.parse(json);
         } catch (e) {
-          console.log("Got ", e, " while reading info");
+          logger.error("Got ", e, " while reading info");
         }
       }
       callback(data);
@@ -72,10 +72,10 @@
 
   function _set(data) {
     if (typeof chrome !== 'undefined' && chrome.storage) {
-      console.log("SET chrome.storage.sync = "+JSON.stringify(data,null,2));
+      logger.debug("SET chrome.storage.sync = "+JSON.stringify(data,null,2));
       chrome.storage.sync.set({ CONFIGS : data });
     } else if (typeof window !== 'undefined' && window.localStorage) {
-      console.log("SET window.localStorage = "+JSON.stringify(data,null,2));
+      logger.debug("SET window.localStorage = "+JSON.stringify(data,null,2));
       window.localStorage.setItem("CONFIG",JSON.stringify(data));
     } else if (typeof document != "undefined") {
       document.cookie = "CONFIG="+btoa(JSON.stringify(data));
@@ -88,7 +88,7 @@
         if (key=="set") continue;
         Espruino.Config[key] = value[key];
         if (Espruino.Core.Config.data[key] !== undefined &&
-            Espruino.Core.Config.data[key].onChange !== undefined)
+          Espruino.Core.Config.data[key].onChange !== undefined)
           Espruino.Core.Config.data[key].onChange(value[key]);
       }
       if (callback!==undefined)
@@ -146,7 +146,7 @@
           found = true;
 
       if (!found) {
-        console.warn("Section named "+c.section+" was not added with Config.addSection");
+        logger.warn("Section named "+c.section+" was not added with Config.addSection");
         sections[c.section] = {
             name : c.section,
             sortOrder : 0

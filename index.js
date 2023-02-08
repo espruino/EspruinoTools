@@ -2,10 +2,17 @@ require('es6-shim');
 /* Entrypoint for node module. Not used for Web IDE */
 var fs = require("fs");
 
+var espruinoInitialised = false;
+var logger;
+var defaultOptions = {
+  logLevel: 3
+};
+var storedOptions = Object.assign({}, defaultOptions);
+
 /* load all files in EspruinoTools... we do this so we can still
 use these files normally in the Web IDE */
 function loadJS(filePath) {
-  console.log("Found "+filePath);
+  logger.debug("Found "+filePath);
   var contents = fs.readFileSync(filePath, {encoding:"utf8"});
   var realExports = exports;
   exports = undefined;
@@ -46,11 +53,60 @@ var jqShim = {
 };
 // ---------------
 
-var espruinoInitialised = false;
+function createLogger(logLevel) {
+  var getFunc = function getFunc(type, method) {
+    var shouldLog = function() {
+      if (!logLevel && logLevel !== 0) {
+        logLevel = defaultOptions.logLevel;
+      }
+      if (logLevel >= 0 && type === 'error') return true;
+      if (logLevel >= 1 && type === 'log') return true;
+      if (logLevel >= 2 && type === 'warn') return true;
+      if (logLevel >= 3 && type === 'debug') return true;
+      return false;
+    };
+    return function () {
+      if (shouldLog()) {
+        console[method || type].apply(console, arguments);
+      }
+    };
+  };
+  return {
+    error: getFunc('error'),
+    log: getFunc('log'),
+    warn: getFunc('warn'),
+    debug: getFunc('debug', 'log')
+  };
+};
 
-function init(callback) {
+function handleInitArguments(arg1, arg2) {
+  var callback;
+  var opts;
+  if (typeof arg1 === 'function') {
+    callback = arg1;
+  } else if (typeof arg2 === 'function') {
+    callback = arg2;
+  }
+  if (typeof arg1 === 'object') {
+    opts = arg1;
+  } else if (espruinoInitialised) {
+    opts = storedOptions;
+  }
+  storedOptions = Object.assign({}, defaultOptions, storedOptions, opts);
+  return {
+    callback: callback,
+    options: storedOptions
+  };
+};
+
+function init(options, callback) {
+  var handled = handleInitArguments(options, callback);
+  options = handled.options;
+  callback = handled.callback;
+  logger = logger || createLogger(options.logLevel);
+
   if (espruinoInitialised) {
-    console.log("Already initialised.");
+    logger.debug("Already initialised.");
     return callback();
   }
   espruinoInitialised = true;
@@ -69,7 +125,7 @@ function init(callback) {
     global.acorn = require("acorn");
     acorn.walk = require("acorn/util/walk"); // FIXME - Package subpath './util/walk' is not defined by "exports" in latest 
   } catch(e) {
-    console.log("Acorn library not found - you'll need it for compiled code");
+    logger.warn("Acorn library not found - you'll need it for compiled code");
   }
 
   // Load each JS file...
@@ -85,13 +141,13 @@ function init(callback) {
 
   // Bodge up notifications
   Espruino.Core.Notifications = {
-    success : function(e) { console.log(e); },
-    error : function(e) { console.error(e); },
-    warning : function(e) { console.warn(e); },
-    info : function(e) { console.log(e); },
+    success : function(e) { logger.debug(e); },
+    error : function(e) { logger.error(e); },
+    warning : function(e) { logger.warn(e); },
+    info : function(e) { logger.debug(e); },
   };
   Espruino.Core.Status = {
-    setStatus : function(e,len) { console.log(e); },
+    setStatus : function(e,len) { logger.debug(e); },
     hasProgress : function() { return false; },
     incrementProgress : function(amt) {}
   };
@@ -125,7 +181,7 @@ function sendCode(port, code, callback) {
      });
     Espruino.Core.Serial.open(port, function(status) {
       if (status === undefined) {
-        console.error("Unable to connect!");
+        logger.error("Unable to connect!");
         return callback();
       }
       Espruino.callProcessor("transformForEspruino", code, function(code) {
@@ -149,7 +205,7 @@ exports.expr = function(port, expr, callback) {
     Espruino.Core.Serial.startListening(function(data) { });
     Espruino.Core.Serial.open(port, function(status) {
       if (status === undefined) {
-        console.error("Unable to connect!");
+        logger.error("Unable to connect!");
         return callback();
       }
       Espruino.Core.Utils.executeExpression(expr, function(result) {
@@ -171,7 +227,7 @@ exports.statement = function(port, expr, callback) {
     Espruino.Core.Serial.startListening(function(data) { });
     Espruino.Core.Serial.open(port, function(status) {
       if (status === undefined) {
-        console.error("Unable to connect!");
+        logger.error("Unable to connect!");
         return callback();
       }
       Espruino.Core.Utils.executeStatement(expr, function(result) {
@@ -199,13 +255,13 @@ exports.flash = function(port, filename, flashOffset, callback) {
     Espruino.Core.Serial.startListening(function(data) { });
     Espruino.Core.Serial.open(port, function(status) {
       if (status === undefined) {
-        console.error("Unable to connect!");
+        logger.error("Unable to connect!");
         return callback();
       }
       var bin = fs.readFileSync(filename, {encoding:"binary"});
       Espruino.Core.Flasher.flashBinaryToDevice(bin, flashOffset, function(err) {
-        console.log(err ? "Error!" : "Success!");
-        setTimeout(function() {
+        logger[err ? 'error' : 'log'](err ? "Error!" : "Success!");
+        setTimeout(function () {
           Espruino.Core.Serial.close();
         }, 500);
       });

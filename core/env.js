@@ -57,7 +57,7 @@
         try {
           json = JSON.parse(result);
         } catch (e) {
-          console.log("JSON parse failed - " + e + " in " + JSON.stringify(result));
+          logger.error("JSON parse failed - " + e + " in " + JSON.stringify(result));
         }
       }
       if (Object.keys(json).length==0) {

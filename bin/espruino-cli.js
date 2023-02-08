@@ -47,6 +47,12 @@ function getHelp() {
    "                               (bluetooth is not currently supported).",
    "                               Optionally skip N first bytes of the bin file.",
    "",
+   "  --loglevel 0             : Set loglevel (0-3). Default is 3",
+   "                               0 = Log errors",
+   "                               1 = Log errors and non-debug messages",
+   "                               2 = Log errors, non-debug messages and warnings",
+   "                               3 = Log errors, non-debug messages, warnings and debug messages",
+   "",
    "If no file, command, or firmware update is specified, this will act",
    "as a terminal for communicating directly with Espruino. Press Ctrl-C",
    "twice to exit.",
@@ -167,6 +173,9 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="--sleep") {
      i++; args.sleepAfterUpload = parseFloat(next);
      if (!isNextValidNumber(next)) throw new Error("Expecting a number argument to --sleep");
+   } else if (arg=="--loglevel") {
+     i++; args.logLevel = Number(next);
+     if (!isNextValidNumber(next)) throw new Error("Expecting a number argument (0-3) to --loglevel");
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -848,4 +857,6 @@ function main() {
 }
 
 // Start up
-require('../index.js').init(main);
+require('../index.js').init(args.logLevel !== undefined ? {
+  logLevel: args.logLevel
+} : undefined, main);

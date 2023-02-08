@@ -48,12 +48,12 @@
     });
     // If we're ok and have the getDevices extension, use it to remember previously paired devices
     if (getStatus(true)===true && navigator.serial.getPorts) {
-      console.log("Serial> serial.getPorts exists - grab known devices");
+      logger.debug("Serial> serial.getPorts exists - grab known devices");
       navigator.serial.getPorts().then(devices=>{
         pairedDevices = devices;
       }, err=>{
         getPortsErrorMessage = err.toString();
-        console.log("Serial> "+err.toString());
+        logger.error("Serial> "+err.toString());
       });
     }
   }
@@ -91,10 +91,10 @@
     // Check for pre-paired devices
     serialPort = pairedDevices.find(dev=>getSerialDeviceInfo(dev).path == path);
     if (serialPort) {
-      console.log("Serial> Pre-paired Web Serial device already found");
+      logger.debug("Serial> Pre-paired Web Serial device already found");
       promise = Promise.resolve(serialPort);
     } else {
-      console.log("Serial> Starting device chooser");
+      logger.debug("Serial> Starting device chooser");
       promise = navigator.serial.requestPort({});
     }
     promise.then(function(port) {
@@ -124,7 +124,7 @@
 
       openCallback({ portName : getSerialDeviceInfo(serialPort).path });
     }).catch(function(error) {
-      console.log('Serial> ERROR: ' + error);
+      logger.error('Serial> ERROR: ' + error);
       disconnectCallback();
     });
   }
@@ -148,7 +148,7 @@
     writer.write(Espruino.Core.Utils.stringToArrayBuffer(data)).then(function() {
       callback();
     }).catch(function(error) {
-      console.log('Serial> SEND ERROR: ' + error);
+      logger.error('Serial> SEND ERROR: ' + error);
       closeSerial();
     });
     writer.releaseLock();

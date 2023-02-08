@@ -362,7 +362,7 @@
     });
     // process assembly to grab labels
     var labels = assemble_internal(asmLines, function() {}, undefined);
-    console.log("Assembler Labels:",labels);
+    logger.debug("Assembler Labels:",labels);
     // process again to actually get an output
     assemble_internal(asmLines, wordCallback, labels);
   }
@@ -390,7 +390,7 @@
     try {
       assemble(asmLines, function(word) { machineCode.push("0x"+word.toString(16)); });
     } catch (err) {
-      console.log("Assembler failed: "+err+description);
+      logger.error("Assembler failed: "+err+description);
       Espruino.Core.Notifications.error("Assembler failed: "+err+description);
       return undefined;
     }

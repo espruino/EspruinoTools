@@ -74,7 +74,7 @@
     if ((typeof esprima == "undefined") ||
         (typeof esmangle == "undefined") ||
         (typeof escodegen == "undefined")) {
-      console.warn("esprima/esmangle/escodegen not defined - not minifying")
+      logger.warn("esprima/esmangle/escodegen not defined - not minifying")
       return callback(code);
     }
 
@@ -106,7 +106,7 @@
         callback(code);
     } catch (e) {
       Espruino.Core.Notifications.error(e.toString()+description);
-      console.error(e.stack);
+      logger.error(e.stack);
       callback(code);
     } finally { }
   }
@@ -131,7 +131,7 @@
     for (var i in minifyCache) {
       var item = minifyCache[i];
       if (item.code==code && item.level==minificationLevel) {
-        console.log("Found code in minification cache - using that"+description);
+        logger.debug("Found code in minification cache - using that"+description);
         // move to front of cache
         minifyCache.splice(i,1); // remove old
         minifyCache.push(item); // add at front

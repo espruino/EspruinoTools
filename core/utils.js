@@ -236,7 +236,7 @@
   function getEspruinoPrompt(callback) {
     if (Espruino.Core.Terminal!==undefined &&
         Espruino.Core.Terminal.getTerminalLine()==">") {
-      console.log("Found a prompt... great!");
+      logger.debug("Found a prompt... great!");
       return callback();
     }
 
@@ -248,13 +248,13 @@
       }
       if (receivedData[receivedData.length-1] == ">") {
         if (receivedData.substr(-6)=="debug>") {
-          console.log("Got debug> - sending Ctrl-C to break out and we'll be good");
+          logger.debug("Got debug> - sending Ctrl-C to break out and we'll be good");
           Espruino.Core.Serial.write('\x03');
         } else {
           if (receivedData == "\r\n=undefined\r\n>")
             receivedData=""; // this was just what we expected - so ignore it
 
-          console.log("Received a prompt after sending newline... good!");
+          logger.debug("Received a prompt after sending newline... good!");
           clearTimeout(timeout);
           nextStep();
         }
@@ -263,13 +263,13 @@
     // timeout in case something goes wrong...
     var hadToBreak = false;
     var timeout = setTimeout(function() {
-      console.log("Got "+JSON.stringify(receivedData));
+      logger.error("Got "+JSON.stringify(receivedData));
       // if we haven't had the prompt displayed for us, Ctrl-C to break out of what we had
-      console.log("No Prompt found, got "+JSON.stringify(receivedData[receivedData.length-1])+" - issuing Ctrl-C to try and break out");
+      logger.error("No Prompt found, got "+JSON.stringify(receivedData[receivedData.length-1])+" - issuing Ctrl-C to try and break out");
       Espruino.Core.Serial.write('\x03');
       hadToBreak = true;
       timeout = setTimeout(function() {
-        console.log("Still no prompt - issuing another Ctrl-C");
+        logger.error("Still no prompt - issuing another Ctrl-C");
         Espruino.Core.Serial.write('\x03');
         nextStep();
       },500);
@@ -324,7 +324,7 @@
         if(startProcess >= 0 && endProcess > 0){
           // All good - get the data!
           var result = receivedData.substring(startProcess + 4,endProcess);
-          console.log("Got "+JSON.stringify(receivedData));
+          logger.debug("Got "+JSON.stringify(receivedData));
           // strip out the text we found
           receivedData = receivedData.substr(0,startProcess) + receivedData.substr(endProcess+4);
           // Now stop time timeout
@@ -375,7 +375,7 @@
               // No data yet...
               // OR we keep getting data for > options.maxTimeout seconds
               clearInterval(timeout);
-              console.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
+              logger.warn("No result found for "+JSON.stringify(expressionToExecute)+" - just got "+JSON.stringify(receivedData));
               nextStep(undefined);
             }
           }, pollInterval);
@@ -388,7 +388,7 @@
         getProcessInfo(expressionToExecute, callback);
       });
     } else {
-      console.error("executeExpression called when not connected!");
+      logger.error("executeExpression called when not connected!");
       callback(undefined);
     }
   };
@@ -447,12 +447,12 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
             if (xhr.status === 200) {
               callback(xhr.response.toString());
             } else {
-              console.error("getURL("+JSON.stringify(url)+") error : HTTP "+xhr.status);
+              logger.error("getURL("+JSON.stringify(url)+") error : HTTP "+xhr.status);
               callback(undefined);
             }
           });
           xhr.addEventListener("error", function (e) {
-            console.error("getURL("+JSON.stringify(url)+") error "+e);
+            logger.error("getURL("+JSON.stringify(url)+") error "+e);
             callback(undefined);
           });
           xhr.open("GET", url, true);
@@ -470,7 +470,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
             require(m).get(http_options, function(res) {
               if (res.statusCode != 200) {
-                console.log("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
+                logger.debug("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
                 return callback(undefined);
               }
               var data = "";
@@ -479,13 +479,13 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
                 callback(data);
               });
             }).on('error', function(err) {
-              console.error("getURL("+JSON.stringify(url)+") error : "+err);
+              logger.error("getURL("+JSON.stringify(url)+") error : "+err);
               callback(undefined);
             });
           } else {
             require("fs").readFile(resultUrl, function(err, d) {
               if (err) {
-                console.error(err);
+                logger.error(err);
                 callback(undefined);
               } else
                 callback(d.toString());
@@ -498,7 +498,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /// Gets a URL as a Binary file, returning callback(err, ArrayBuffer)
   var getBinaryURL = function(url, callback) {
-    console.log("Downloading "+url);
+    logger.debug("Downloading "+url);
     Espruino.Core.Status.setStatus("Downloading binary...");
     var xhr = new XMLHttpRequest();
     xhr.responseType = "arraybuffer";
@@ -522,7 +522,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     getURL(url, function(d) {
       if (!d) return callback(d);
       var j;
-      try { j=JSON.parse(d); } catch (e) { console.error("Unable to parse JSON",d); }
+      try { j=JSON.parse(d); } catch (e) { logger.error("Unable to parse JSON",d); }
       callback(j);
     });
   }
@@ -629,14 +629,14 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
           // when truncation has finished, write
           writer.onwriteend = function(e) {
             writer.onwriteend = function(e) {
-              console.log('FileWriter: complete');
+              logger.debug('FileWriter: complete');
               if (callback) callback(writableFileEntry.name);
             };
-            console.log('FileWriter: writing');
+            logger.debug('FileWriter: writing');
             writer.write(fileBlob);
           };
           // truncate
-          console.log('FileWriter: truncating');
+          logger.debug('FileWriter: truncating');
           writer.truncate(fileBlob.size);
         }, errorHandler);
       });
@@ -702,7 +702,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     for (var i=0; i<str.length; i++) {
       var ch = str.charCodeAt(i);
       if (ch>=256) {
-        console.warn("stringToArrayBuffer got non-8 bit character - code "+ch);
+        logger.warn("stringToArrayBuffer got non-8 bit character - code "+ch);
         ch = "?".charCodeAt(0);
       }
       buf[i] = ch;

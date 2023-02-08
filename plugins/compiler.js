@@ -147,7 +147,7 @@
       });
 
     } catch (err) {
-      console.log(err);
+      logger.error(err);
       Espruino.Core.Notifications.error("Error parsing JavaScript"+description+", but uploading anyway.<br/>"+err.toString());
     }
     if (tasks==0)

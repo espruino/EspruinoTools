@@ -2,17 +2,17 @@
   if (typeof require === 'undefined') return;
   var isWindows = /^win/.test(process.platform);
   if (!isWindows) {
-    console.log("Not on Windows, Winnus not needed");
+    logger.debug("Not on Windows, Winnus not needed");
     return;
   }
   var winnus = undefined;
   try {
     winnus = require('winnus');
   } catch (e) {
-    console.log("'winnus' module not found, no Windows Bluetooth Low Energy", e);
+    logger.debug("'winnus' module not found, no Windows Bluetooth Low Energy", e);
     return;
   }
-  console.log("Disable Web Bluetooth as we have Winnus instead");
+  logger.debug("Disable Web Bluetooth as we have Winnus instead");
   Espruino.Core.Serial.NO_WEB_BLUETOOTH = true;
 
   var txDataQueue = undefined;
@@ -30,7 +30,7 @@
         devices.push({ description : dev.name, path: dev.address, type : "bluetooth" });
       });
     } catch (e) {
-      console.log(e);
+      logger.error(e);
     }
     callback(devices, false/*instantPorts*/);
   };
@@ -64,7 +64,7 @@
     try {
       winnus.disconnect();
     } catch (e) {
-      console.log("WINNUS ERROR:"+e.toString());
+      logger.error("WINNUS ERROR:"+e.toString());
     }
     if (onDisconnect) {
       onDisconnect();
@@ -94,7 +94,7 @@
         txDataQueue = txDataQueue.substr(CHUNKSIZE);
       }
       txInProgress = true;
-      console.log("BT> Sending " + JSON.stringify(chunk));
+      logger.debug("BT> Sending " + JSON.stringify(chunk));
       try {
         winnus.write(chunk);
         setTimeout(function() {
@@ -103,7 +103,7 @@
             writeChunk();
         }, 20);
       } catch (e) {
-        console.log("BT> ERROR " + e);
+        logger.error("BT> ERROR " + e);
         txDataQueue = undefined;
       }
     }

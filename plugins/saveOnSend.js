@@ -71,7 +71,7 @@
     }
 
     //
-    console.log("Uploading "+code.length+" bytes to flash");
+    logger.debug("Uploading "+code.length+" bytes to flash");
     if (!hasStorage) { // old style
       if (isStorageUpload) {
         Espruino.Core.Notifications.error("You have pre-1v96 firmware - unable to upload to Storage");

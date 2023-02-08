@@ -81,10 +81,10 @@
       inputNode = context.createScriptProcessor(4096, 1/*in*/, 1/*out*/);
       window.dontGarbageCollectMePlease = inputNode;
       inputNode.onaudioprocess = audioProcessor;
-      console.log("serial_audio: Audio Sample rate : "+context.sampleRate);
+      logger.debug("serial_audio: Audio Sample rate : "+context.sampleRate);
 
       bitTime = context.sampleRate / BAUD; // intentionally a float
-      console.log("serial_audio: Audio Serial Baud", BAUD, "Bit time", bitTime);
+      logger.debug("serial_audio: Audio Serial Baud", BAUD, "Bit time", bitTime);
     }
 
     navigator.getUserMedia({
@@ -101,7 +101,7 @@
         connected = true;
         openCallback("Hello");
       }, function(e) {
-        console.log('serial_audio: getUserMedia error', e);
+        logger.error('serial_audio: getUserMedia error', e);
         openCallback(undefined);
     });
   };

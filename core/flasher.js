@@ -33,18 +33,18 @@
       callback("Can't find STM32 bootloader. Make sure the chip is reset into bootloader mode by holding down BTN1 while pressing RST");
     }, (timeout==undefined)?10000:timeout);
     var iPoll = setInterval(function() {
-      console.log("Sending... 0x7F");
+      logger.debug("Sending... 0x7F");
       Espruino.Core.Serial.write("\x7f", false);
     }, 70);
     dataReceived = function (c) {
-      console.log("got "+c);
+      logger.debug("got "+c);
       if (c==ACK || c==NACK) {
         clearTimeout(iTimeout);
         clearInterval(iPoll);
         setStatus("Initialised.");
         // wait for random extra data...
         dataReceived = function(c){
-          console.log("Already ACKed but got "+c);
+          logger.debug("Already ACKed but got "+c);
         };
         setTimeout(function() {
           dataReceived = undefined;
@@ -114,7 +114,7 @@
     // Extended erase
     sendCommand(0x44, function(err) {
       if (err) { callback(err); return; }
-      console.log("We may be some time...");
+      logger.debug("We may be some time...");
       sendData([0xFF,0xFF], function(err) {
         if (err) { callback(err); return; }
         callback(undefined);
@@ -123,25 +123,25 @@
   };
 
   var readData = function(callback, addr, readBytes) {
-    console.log("Reading "+readBytes+" bytes from 0x"+addr.toString(16)+"...");
+    logger.debug("Reading "+readBytes+" bytes from 0x"+addr.toString(16)+"...");
     // send read command
     sendCommand(0x11, function(err) {
       if (err) {
-        console.log("Error sending command ("+err+").");
+        logger.error("Error sending command ("+err+").");
         callback(err);
         return;
       }
       // send address
       sendData([(addr>>24)&0xFF,(addr>>16)&0xFF,(addr>>8)&0xFF,addr&0xFF], function(err) {
         if (err) {
-          console.log("Error sending address. ("+err+")");
+          logger.error("Error sending address. ("+err+")");
           callback(err);
           return;
         }
         // send amount of bytes we want
         sendData([readBytes-1], function(err) {
           if (err) {
-            console.log("Error while reading. ("+err+")");
+            logger.error("Error while reading. ("+err+")");
             callback(err);
             return;
           }
@@ -170,13 +170,13 @@
     readData(function(err, data) {
       if (err) return callback(err);
       var word = (data[3]<<24) | (data[2]<<16) | (data[1]<<8) | data[0];
-      console.log("RCC->CFGR = "+word);
+      logger.debug("RCC->CFGR = "+word);
       var newword = (word&0xFFFFF8FF) | 0x00000400;
       if (newword==word) {
-        console.log("RCC->CFGR is correct");
+        logger.debug("RCC->CFGR is correct");
         callback(undefined);
       } else {
-        console.log("Setting RCC->CFGR to "+newword);
+        logger.debug("Setting RCC->CFGR to "+newword);
         writeData(callback, RCC_CFGR, [newword&0xFF, (newword>>8)&0xFF, (newword>>16)&0xFF, (newword>>24)&0xFF]);
       }
     }, RCC_CFGR, 4);
@@ -184,11 +184,11 @@
 
   var writeData = function(callback, addr, data) {
     if (data.length>256) callback("Writing too much data");
-    console.log("Writing "+data.length+" bytes at 0x"+addr.toString(16)+"...");
+    logger.debug("Writing "+data.length+" bytes at 0x"+addr.toString(16)+"...");
     // send write command
     sendCommand(0x31, function(err) {
       if (err) {
-        console.log("Error sending command ("+err+"). retrying...");
+        logger.error("Error sending command ("+err+"). retrying...");
         initialiseChip(function (err) {
           if (err) callback(err);
           else writeData(callback, addr, data);
@@ -198,7 +198,7 @@
       // send address
       sendData([(addr>>24)&0xFF,(addr>>16)&0xFF,(addr>>8)&0xFF,addr&0xFF], function(err) {
         if (err) {
-          console.log("Error sending address ("+err+"). retrying...");
+          logger.error("Error sending address ("+err+"). retrying...");
           initialiseChip(function (err) {
             if (err) callback(err);
             else writeData(callback, addr, data);
@@ -212,7 +212,7 @@
         // send data
         sendData(sData, function(err) {
           if (err) {
-            console.log("Error while writing ("+err+"). retrying...");
+            logger.error("Error while writing ("+err+"). retrying...");
             initialiseChip(function (err) {
               if (err) callback(err);
               else writeData(callback, addr, data);
@@ -227,7 +227,7 @@
 
   var writeAllData = function(binary, flashOffset, callback) {
     var chunkSize = 256;
-    console.log("Writing "+binary.byteLength+" bytes");
+    logger.debug("Writing "+binary.byteLength+" bytes");
     Espruino.Core.Status.setStatus("Writing flash...",  binary.byteLength);
     var writer = function(offset) {
       if (offset>=binary.byteLength) {
@@ -250,7 +250,7 @@
   var readAllData = function(binaryLength, flashOffset, callback) {
     var data = new Uint8Array(flashOffset);
     var chunkSize = 256;
-    console.log("Reading "+binaryLength+" bytes");
+    logger.debug("Reading "+binaryLength+" bytes");
     Espruino.Core.Status.setStatus("Reading flash...",  binaryLength);
     var reader = function(offset) {
       if (offset>=binaryLength) {
@@ -302,7 +302,7 @@
       for (var i=0;i<bufView.length;i++) bytesReceived.push(bufView[i]);
       if (dataReceived!==undefined) {
         for (var i=0;i<bytesReceived.length;i++) {
-          if (dataReceived===undefined) console.log("OH NO!");
+          if (dataReceived===undefined) logger.error("OH NO!");
           dataReceived(bytesReceived[i]);
         }
         bytesReceived = [];
@@ -359,7 +359,7 @@
   function flashDevice(url, flashOffset, callback, statusCallback) {
     Espruino.Core.Utils.getBinaryURL(url, function (err, binary) {
       if (err) { callback(err); return; }
-      console.log("Downloaded "+binary.byteLength+" bytes");
+      logger.debug("Downloaded "+binary.byteLength+" bytes");
       flashBinaryToDevice(binary, flashOffset, callback, statusCallback);
     });
   };
@@ -374,7 +374,7 @@
       for (var i=0;i<bufView.length;i++) bytesReceived.push(bufView[i]);
       if (dataReceived!==undefined) {
         for (var i=0;i<bytesReceived.length;i++) {
-          if (dataReceived===undefined) console.log("OH NO!");
+          if (dataReceived===undefined) logger.error("OH NO!");
           dataReceived(bytesReceived[i]);
         }
         bytesReceived = [];
@@ -397,7 +397,7 @@
       if (err) return finish(err);
       var data = new Uint8Array([0x04,0x00,0xFA,0x05]);
       var addr = 0xE000ED0C;
-      console.log("Writing "+data.length+" bytes at 0x"+addr.toString(16)+"...");
+      logger.debug("Writing "+data.length+" bytes at 0x"+addr.toString(16)+"...");
       // send write command
       sendCommand(0x31, function(err) {
         if (err) return finish(err);
