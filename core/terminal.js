@@ -53,7 +53,7 @@
     var terminal = document.getElementById("terminal");
     var terminalfocus = document.getElementById("terminalfocus");
     if (terminal === null) {
-      console.log("Terminal: terminal element not found, aborting.");
+      logger.error("Terminal: terminal element not found, aborting.");
       delete Espruino.Core.Terminal;
       return;
     }
@@ -523,7 +523,7 @@
        if (termControlChars[2]==63) {
          if (termControlChars[3]==55) {
            if (ch!=108)
-             console.log("Expected 27, 91, 63, 55, 108 - no line overflow sequence");
+             logger.warn("Expected 27, 91, 63, 55, 108 - no line overflow sequence");
            termControlChars = [];
          } else {
            if (ch==55) {
@@ -697,7 +697,7 @@
     updateTerminal();
     if (options.buttonclick) {
       var btn = elements[line].find("button");
-      if (!btn.length) console.error("Espruino.Core.Terminal buttonclick set but no button");
+      if (!btn.length) logger.error("Espruino.Core.Terminal buttonclick set but no button");
       btn.on('click', options.buttonclick);
     }
   }

@@ -25,7 +25,7 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
   try {
     net = require("net");
   } catch (e) {
-    console.log("Require net failed - Node Socket disabled");
+    logger.error("Require net failed - Node Socket disabled");
     return;
   }
 
@@ -43,7 +43,7 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
 
   var openSerial = function (serialPort, openCallback, receiveCallback, disconnectCallback) {
     if (serialPort.substr(0, 6) != 'tcp://') {
-      console.error("Invalid connection " + JSON.stringify(serialPort));
+      logger.error("Invalid connection " + JSON.stringify(serialPort));
       return;
     }
     var host = serialPort.substr(6);
@@ -67,7 +67,7 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
       }
     });
     socket.on("error", function (info) {
-      console.error("RECEIVE ERROR:", JSON.stringify(info));
+      logger.error("RECEIVE ERROR:", JSON.stringify(info));
       // node will close the connection
     });
     socket.on("end", function () {

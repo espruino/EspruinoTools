@@ -18,7 +18,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
 
 (function() {
   if (typeof chrome === 'undefined' || chrome.sockets===undefined) {
-    console.log("No chrome.sockets - Chrome Socket disabled");
+    logger.debug("No chrome.sockets - Chrome Socket disabled");
     return;
   }
 
@@ -52,7 +52,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
 
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     if (serialPort.substr(0,8)!='TCP/IP: ') {
-      console.error("Invalid connection "+JSON.stringify(serialPort));
+      logger.error("Invalid connection "+JSON.stringify(serialPort));
       return;
     }
     var host = serialPort.substr(8);
@@ -70,7 +70,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
       chrome.sockets.tcp.connect(createInfo.socketId,
           host, port, function (result) {
         if (result < 0) {
-          console.log("Failed to open socket " + host+":"+port);
+          logger.error("Failed to open socket " + host+":"+port);
           openCallback(undefined);
         } else {
           connectionInfo = { socketId: createInfo.socketId };
@@ -106,7 +106,7 @@ Author: Patrick Van Oosterwijck (patrick@silicognition.com)
   chrome.sockets.tcp.onReceiveError.addListener(function(info) {
     if (info.socketId != connectionInfo.socketId)
       return;
-    console.error("RECEIVE ERROR:", JSON.stringify(info));
+    logger.error("RECEIVE ERROR:", JSON.stringify(info));
     connectionDisconnectCallback();
   });
 

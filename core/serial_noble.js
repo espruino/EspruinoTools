@@ -50,7 +50,7 @@
   function nobleExceptionHandler(err) {
     if (err.toString().includes("ENODEV")) {
       process.removeListener('uncaughtException', nobleExceptionHandler);
-      console.log("Noble: "+err.toString()+" - disabling.");
+      logger.error("Noble: "+err.toString()+" - disabling.");
       errored = true;
     } else throw err;
   }
@@ -64,7 +64,7 @@
         noble = require('@abandonware/noble');
       }
     } catch (e) {
-      console.log("Noble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
+      logger.error("Noble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
       // super nasty workaround for https://github.com/sandeepmistry/noble/issues/502
       process.removeAllListeners('exit');
       errored = true;
@@ -73,12 +73,12 @@
 
     noble.on('stateChange', function(state) {
       process.removeListener('uncaughtException', nobleExceptionHandler);
-      console.log("Noble: stateChange -> "+state);
+      logger.debug("Noble: stateChange -> "+state);
       if (state=="poweredOn") {
         if (Espruino.Config.WEB_BLUETOOTH) {
           // Everything has already initialised, so we must disable
           // web bluetooth this way instead
-          console.log("Noble: Disable Web Bluetooth as we have Noble instead");
+          logger.debug("Noble: Disable Web Bluetooth as we have Noble instead");
           Espruino.Config.WEB_BLUETOOTH = false;
         }
         initialised = true;
@@ -103,16 +103,16 @@
                            dev.advertisement.serviceUuids.indexOf(NORDIC_SERVICE)>=0;
       if (hasUartService ||
           Espruino.Core.Utils.isRecognisedBluetoothDevice(name)) {
-        console.log("Noble: Found UART device:", name, dev.address);
+        logger.debug("Noble: Found UART device:", name, dev.address);
         newDevices.push({ path: dev.address, description: name, type: "bluetooth", rssi: dev.rssi });
         btDevices[dev.address] = dev;
-      } else console.log("Noble: Found device:", name, dev.address);
+      } else logger.debug("Noble: Found device:", name, dev.address);
     });
 
     // if we didn't initialise for whatever reason, keep going anyway
     setTimeout(function() {
       if (initialised) return;
-      console.log("Noble: Didn't initialise in 10 seconds, disabling.");
+      logger.error("Noble: Didn't initialise in 10 seconds, disabling.");
       errored = true;
     }, 10000);
     return true;
@@ -123,24 +123,24 @@
       clearTimeout(scanStopTimeout);
       scanStopTimeout = undefined;
     } else {
-      console.log("Noble: Starting scan");
+      logger.debug("Noble: Starting scan");
       lastDevices = [];
       newDevices = [];
       noble.startScanning([], true);
     }
     scanStopTimeout = setTimeout(function () {
       scanStopTimeout = undefined;
-      console.log("Noble: Stopping scan");
+      logger.debug("Noble: Stopping scan");
       noble.stopScanning();
     }, 3000);
   }
 
   var getPorts = function (callback) {
     if (errored || !Espruino.Config.BLUETOOTH_LOW_ENERGY) {
-      console.log("Noble: getPorts - disabled");
+      logger.error("Noble: getPorts - disabled");
       callback([], true/*instantPorts*/);
     } else if (!initialised) {
-      console.log("Noble: getPorts - initialising...");
+      logger.debug("Noble: getPorts - initialising...");
       if (!noble)
         if (!startNoble())
           return callback([], true/*instantPorts*/);
@@ -175,13 +175,13 @@
     if (scanStopTimeout) {
       clearTimeout(scanStopTimeout);
       scanStopTimeout = undefined;
-      console.log("Noble: Stopping scan (openSerial)");
+      logger.debug("Noble: Stopping scan (openSerial)");
       noble.stopScanning();
     }
 
     txInProgress = false;
 
-    console.log("BT> Connecting");
+    logger.debug("BT> Connecting");
     btDevice.on('disconnect', function() {
       txCharacteristic = undefined;
       rxCharacteristic = undefined;
@@ -192,21 +192,21 @@
 
     btDevice.connect(function (error) {
       if (error) {
-        console.log("BT> ERROR Connecting");
+        logger.error("BT> ERROR Connecting");
         btDevice = undefined;
         return openCallback();
       }
-      console.log("BT> Connected");
+      logger.debug("BT> Connected");
 
       btDevice.discoverAllServicesAndCharacteristics(function(error, services, characteristics) {
         var btUARTService = findByUUID(services, NORDIC_SERVICE);
         txCharacteristic = findByUUID(characteristics, NORDIC_TX);
         rxCharacteristic = findByUUID(characteristics, NORDIC_RX);
         if (error || !btUARTService || !txCharacteristic || !rxCharacteristic) {
-          console.log("BT> ERROR getting services/characteristics");
-          console.log("Service "+btUARTService);
-          console.log("TX "+txCharacteristic);
-          console.log("RX "+rxCharacteristic);
+          logger.error("BT> ERROR getting services/characteristics");
+          logger.error("Service "+btUARTService);
+          logger.error("TX "+txCharacteristic);
+          logger.error("RX "+rxCharacteristic);
           btDevice.disconnect();
           txCharacteristic = undefined;
           rxCharacteristic = undefined;
@@ -235,15 +235,15 @@
     if (txCharacteristic === undefined) return;
 
     if (data.length>NORDIC_TX_MAX_LENGTH) {
-      console.error("BT> TX length >"+NORDIC_TX_MAX_LENGTH);
+      logger.error("BT> TX length >"+NORDIC_TX_MAX_LENGTH);
       return callback();
     }
     if (txInProgress) {
-      console.error("BT> already sending!");
+      logger.error("BT> already sending!");
       return callback();
     }
 
-    console.log("BT> send "+JSON.stringify(data));
+    logger.debug("BT> send "+JSON.stringify(data));
     txInProgress = true;
     try {
       txCharacteristic.write(Espruino.Core.Utils.stringToBuffer(data), false, function() {
@@ -251,7 +251,7 @@
         return callback();
       });
     } catch (e) {
-      console.log("BT> SEND ERROR " + e);
+      logger.error("BT> SEND ERROR " + e);
       closeSerial();
     }
   };

@@ -78,7 +78,7 @@ To add a new serial device, you must add an object to
 
     var devices = Espruino.Core.Serial.devices;
     for (var i=0;i<devices.length;i++) {
-      console.log("  - Initialising Serial "+devices[i].name);
+      logger.debug("  - Initialising Serial "+devices[i].name);
       if (devices[i].init)
         devices[i].init();
     }
@@ -161,7 +161,7 @@ To add a new serial device, you must add an object to
         serialPort = serialPort.toLowerCase();
       } else {
         if (attempts>0) {
-          console.log("Port "+JSON.stringify(serialPort)+" not found - checking ports again ("+attempts+" attempts left)");
+          logger.warn("Port "+JSON.stringify(serialPort)+" not found - checking ports again ("+attempts+" attempts left)");
           setTimeout(function() {
             getPorts(function() {
               openSerialInternal(serialPort, connectCallback, disconnectCallback, attempts-1);
@@ -169,7 +169,7 @@ To add a new serial device, you must add an object to
           }, 500);
           return;
         } else {
-          console.error("Port "+JSON.stringify(serialPort)+" not found");
+          logger.error("Port "+JSON.stringify(serialPort)+" not found");
           return connectCallback(undefined);
         }
       }
@@ -186,13 +186,13 @@ To add a new serial device, you must add an object to
     currentDevice.open(serialPort, function(cInfo) {  // CONNECT
       if (!cInfo) {
 //        Espruino.Core.Notifications.error("Unable to connect");
-        console.error("Unable to open device (connectionInfo="+cInfo+")");
+        logger.error("Unable to open device (connectionInfo="+cInfo+")");
         connectCallback(undefined);
         connectCallback = undefined;
       } else {
         connectionInfo = cInfo;
         connectedPort = serialPort;
-        console.log("Connected", cInfo);
+        logger.debug("Connected", cInfo);
         if (connectionInfo.portName)
           portInfo.portName = connectionInfo.portName;
         Espruino.callProcessor("connected", portInfo, function() {
@@ -201,12 +201,12 @@ To add a new serial device, you must add an object to
         });
       }
     }, function(data) { // RECEIEVE DATA
-      if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers");
+      if (!(data instanceof ArrayBuffer)) logger.warn("Serial port implementation is not returning ArrayBuffers");
       if (Espruino.Config.SERIAL_FLOW_CONTROL) {
         var u = new Uint8Array(data);
         for (var i=0;i<u.length;i++) {
           if (u[i]==17) { // XON
-            console.log("XON received => resume upload");
+            logger.debug("XON received => resume upload");
             flowControlXOFF = false;
             if (flowControlTimeout) {
               clearTimeout(flowControlTimeout);
@@ -214,12 +214,12 @@ To add a new serial device, you must add an object to
             }
           }
           if (u[i]==19) { // XOFF
-            console.log("XOFF received => pause upload");
+            logger.debug("XOFF received => pause upload");
             flowControlXOFF = true;
             if (flowControlTimeout)
               clearTimeout(flowControlTimeout);
             flowControlTimeout = setTimeout(function() {
-              console.log("XOFF timeout => resume upload anyway");
+              logger.debug("XOFF timeout => resume upload anyway");
               flowControlXOFF = false;
               flowControlTimeout = undefined;
             }, FLOW_CONTROL_RESUME_TIMEOUT);
@@ -260,7 +260,7 @@ To add a new serial device, you must add an object to
     for (var i=0; i<str.length; i++) {
       var ch = str.charCodeAt(i);
       if (ch>=256) {
-        console.warn("Attempted to send non-8 bit character - code "+ch);
+        logger.warn("Attempted to send non-8 bit character - code "+ch);
         ch = "?".charCodeAt(0);
       }
       bufView[i] = ch;
@@ -273,7 +273,7 @@ To add a new serial device, you must add an object to
       currentDevice.close();
       currentDevice = undefined;
     } else
-      console.error("Close called, but serial port not open");
+      logger.error("Close called, but serial port not open");
   };
 
   var isConnected = function() {
@@ -327,7 +327,7 @@ To add a new serial device, you must add an object to
       writeData[0].showStatus &= writeData[0].data.length>writeData[0].blockSize;
       if (writeData[0].showStatus) {
         Espruino.Core.Status.setStatus("Sending...", writeData[0].data.length);
-        console.log("---> "+JSON.stringify(writeData[0].data));
+        logger.debug("---> "+JSON.stringify(writeData[0].data));
       }
     }
 
@@ -362,7 +362,7 @@ To add a new serial device, you must add an object to
       if (split.match) writeData[0].nextSplit = split;
       split = { start:0, end:writeData[0].blockSize, delay:0 };
     }
-    if (split.match) console.log("Splitting for "+split.reason+", delay "+split.delay);
+    if (split.match) logger.debug("Splitting for "+split.reason+", delay "+split.delay);
     // Only send some of the data
     if (writeData[0].data.length>split.end) {
       if (slowWrite && split.delay==0) split.delay=50;
@@ -424,10 +424,10 @@ To add a new serial device, you must add an object to
     "isSlowWrite": function() { return slowWrite; },
     "setSlowWrite": function(isOn, force) {
       if ((!force) && Espruino.Config.SERIAL_THROTTLE_SEND) {
-        console.log("ForceThrottle option is set - set Slow Write = true");
+        logger.debug("ForceThrottle option is set - set Slow Write = true");
         isOn = true;
       } else
-        console.log("Set Slow Write = "+isOn);
+        logger.debug("Set Slow Write = "+isOn);
       slowWrite = isOn;
     },
     "setBinary": function(isOn) {

@@ -78,7 +78,7 @@
     });
     // If we're ok and have the getDevices extension, use it to remember previously paired devices
     if (getStatus(true)===true && navigator.bluetooth.getDevices) {
-      console.log("BT> bluetooth.getDevices exists - grab known devices");
+      logger.debug("BT> bluetooth.getDevices exists - grab known devices");
       navigator.bluetooth.getDevices().then(devices=>{
         pairedDevices = devices;
       });
@@ -118,7 +118,7 @@
     // Check for pre-paired devices
     btDevice = pairedDevices.find(dev=>dev.name == serialPort);
     if (btDevice) {
-      console.log("BT> Pre-paired Web Bluetooth device already found");
+      logger.debug("BT> Pre-paired Web Bluetooth device already found");
       promise = Promise.resolve(btDevice);
     } else {
       var filters = [];
@@ -126,7 +126,7 @@
         filters.push({ namePrefix: namePrefix });
       });
       filters.push({ services: [ NORDIC_SERVICE ] });
-      console.log("BT> Starting device chooser");
+      logger.debug("BT> Starting device chooser");
       promise = navigator.bluetooth.requestDevice({
           filters: filters,
           optionalServices: [ NORDIC_SERVICE ]});
@@ -134,35 +134,35 @@
     promise.then(function(device) {
       btDevice = device;
       Espruino.Core.Status.setStatus("Connecting to "+btDevice.name);
-      console.log('BT>  Device Name:       ' + btDevice.name);
-      console.log('BT>  Device ID:         ' + btDevice.id);
+      logger.debug('BT>  Device Name:       ' + btDevice.name);
+      logger.debug('BT>  Device ID:         ' + btDevice.id);
       // Was deprecated: Should use getPrimaryServices for this in future
       //console.log('BT>  Device UUIDs:      ' + device.uuids.join('\n' + ' '.repeat(21)));
       btDevice.addEventListener('gattserverdisconnected', function() {
-        console.log("BT> Disconnected (gattserverdisconnected)");
+        logger.debug("BT> Disconnected (gattserverdisconnected)");
         closeSerial();
       }, {once:true});
       return btDevice.gatt.connect();
     }).then(function(server) {
       Espruino.Core.Status.setStatus("Connected to BLE");
-      console.log("BT> Connected");
+      logger.debug("BT> Connected");
       btServer = server;
       return server.getPrimaryService(NORDIC_SERVICE);
     }).then(function(service) {
       Espruino.Core.Status.setStatus("Configuring BLE...");
-      console.log("BT> Got service");
+      logger.debug("BT> Got service");
       btService = service;
       return btService.getCharacteristic(NORDIC_RX);
     }).then(function (characteristic) {
       Espruino.Core.Status.setStatus("Configuring BLE....");
       rxCharacteristic = characteristic;
       setMaxPacketLength(NORDIC_DEFAULT_TX_LENGTH); // set default packet length
-      console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
+      logger.debug("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
         // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.
         var value = event.target.value.buffer;
         if (value.byteLength > maxPacketLength) {
-          console.log("BT> Received packet of length "+value.byteLength+" - assuming increased MTU");
+          logger.debug("BT> Received packet of length "+value.byteLength+" - assuming increased MTU");
           setMaxPacketLength(value.byteLength);
         }
         //console.log("BT> RX:"+JSON.stringify(Espruino.Core.Utils.arrayBufferToString(value)));
@@ -175,7 +175,7 @@
     }).then(function (characteristic) {
       Espruino.Core.Status.setStatus("Configuring BLE.....");
       txCharacteristic = characteristic;
-      console.log("BT> TX characteristic:"+JSON.stringify(txCharacteristic));
+      logger.debug("BT> TX characteristic:"+JSON.stringify(txCharacteristic));
     }).then(function() {
       Espruino.Core.Status.setStatus("Configuring BLE.....");
       txInProgress = false;
@@ -187,7 +187,7 @@
         openCallback({ portName : btDevice.name });
       }, 500);
     }).catch(function(error) {
-      console.log('BT> ERROR: ' + error);
+      logger.error('BT> ERROR: ' + error);
       closeSerial({error:error.toString()});
     });
   }
@@ -211,11 +211,11 @@
     if (!txCharacteristic) return;
 
     if (data.length>maxPacketLength) {
-      console.error("BT> TX length >"+maxPacketLength);
+      logger.error("BT> TX length >"+maxPacketLength);
       return callback();
     }
     if (txInProgress) {
-      console.error("BT> already sending!");
+      logger.error("BT> already sending!");
       return callback();
     }
 
@@ -224,7 +224,7 @@
       txInProgress = false;
       callback();
     }).catch(function(error) {
-     console.log('BT> SEND ERROR: ' + error);
+     logger.error('BT> SEND ERROR: ' + error);
      closeSerial();
     });
   }

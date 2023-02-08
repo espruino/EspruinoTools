@@ -20,12 +20,12 @@ Author: Gordon Williams (gw@pur3.co.uk)
 
 (function() {
   if (typeof chrome === 'undefined' || chrome.serial===undefined) {
-    console.log("No chrome.serial - Chrome Serial disabled");
+    logger.debug("No chrome.serial - Chrome Serial disabled");
     return;
   }
   if (chrome.serial.getDevices===undefined) {
     // wrong chrome version
-    console.log("Chrome does NOT have post-M33 serial API");
+    logger.debug("Chrome does NOT have post-M33 serial API");
     return;
   }
 
@@ -61,12 +61,12 @@ Author: Gordon Williams (gw@pur3.co.uk)
     chrome.serial.connect(serialPort, {bitrate: parseInt(Espruino.Config.BAUD_RATE)},
       function(cInfo) {
         if (!cInfo) {
-          console.log("Unable to open device (connectionInfo="+cInfo+")");
+          logger.error("Unable to open device (connectionInfo="+cInfo+")");
           openCallback(undefined);
         } else {
           connectionInfo = cInfo;
           connectedPort = serialPort;
-          console.log(cInfo);
+          logger.debug(cInfo);
           openCallback(cInfo);
         }
     });
@@ -91,7 +91,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
   });
 
   chrome.serial.onReceiveError.addListener(function(errorInfo) {
-    console.error("RECEIVE ERROR:", JSON.stringify(errorInfo));
+    logger.error("RECEIVE ERROR:", JSON.stringify(errorInfo));
     closeSerial();
   });
 

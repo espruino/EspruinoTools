@@ -4,7 +4,7 @@ Gordon Williams (gw@pur3.co.uk)
 (function() {
   // Are we on nw.js with chrome.serial? No need for serialport then!
   if (typeof chrome !== 'undefined' && chrome.serial) {
-    console.log("We have chrome.serial - not using 'serialport' module");
+    logger.debug("We have chrome.serial - not using 'serialport' module");
     return;
   }
   if (typeof require === 'undefined') return;
@@ -12,13 +12,13 @@ Gordon Williams (gw@pur3.co.uk)
   try {
     require.resolve('serialport');    
   } catch (e) {
-    console.log("No 'serialport' module found");
+    logger.error("No 'serialport' module found");
     return;
   }
   try {
     serialport = require('serialport').SerialPort;
   } catch (e) {
-    console.log("Error initialising 'serialport':" + e.toString());
+    logger.error("Error initialising 'serialport':" + e.toString());
     return;
   }
 
@@ -63,7 +63,7 @@ Gordon Williams (gw@pur3.co.uk)
           }), true/*instantPorts*/
       );
     }).catch(function(err) {
-      console.log("serialport error: "+err.toString());
+      logger.error("serialport error: "+err.toString());
       return callback([], true/*instantPorts*/);
     });
   };

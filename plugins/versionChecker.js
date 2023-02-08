@@ -58,7 +58,7 @@
 
       if (vCurrent > 1.43 &&
           (env.CONSOLE=="USB"||env.CONSOLE=="Bluetooth"||env.CONSOLE=="Telnet")) {
-        console.log("Firmware >1.43 supports faster writes over USB");
+        logger.debug("Firmware >1.43 supports faster writes over USB");
         Espruino.Core.Serial.setSlowWrite(false);
       } else {
         Espruino.Core.Serial.setSlowWrite(true);
@@ -69,14 +69,14 @@
         var tAvailable = env.info.binary_version;
         var vAvailable = Espruino.Core.Utils.versionToFloat(tAvailable);
 
-        console.log("FIRMWARE: Current "+tCurrent+", Available "+tAvailable);
+        logger.debug("FIRMWARE: Current "+tCurrent+", Available "+tAvailable);
 
         if (vAvailable > vCurrent &&
           (env.BOARD=="ESPRUINOBOARD" ||
            env.BOARD.substr(0,4)=="PICO" ||
            env.BOARD=="ESPRUINOWIFI" ||
            env.BOARD=="PUCKJS")) {
-          console.log("New Firmware "+tAvailable+" available");
+          logger.debug("New Firmware "+tAvailable+" available");
           Espruino.Core.Notifications.info("New Firmware available ("+vCurrent+" installed, "+tAvailable+" available)");
 
           if (Espruino.Core.App) Espruino.Core.App.addAlertIcon({

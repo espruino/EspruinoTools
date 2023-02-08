@@ -6980,7 +6980,7 @@ exports.deprecate = function(fn, msg) {
       } else if (process.traceDeprecation) {
         console.trace(msg);
       } else {
-        console.error(msg);
+        logger.error(msg);
       }
       warned = true;
     }
@@ -7002,7 +7002,7 @@ exports.debuglog = function(set) {
       var pid = process.pid;
       debugs[set] = function() {
         var msg = exports.format.apply(exports, arguments);
-        console.error('%s %d: %s', set, pid, msg);
+        logger.error('%s %d: %s', set, pid, msg);
       };
     } else {
       debugs[set] = function() {};
@@ -7446,9 +7446,9 @@ function timestamp() {
 }
 
 
-// log is just a thin wrapper to console.log that prepends a timestamp
+// log is just a thin wrapper to logger.debug that prepends a timestamp
 exports.log = function() {
-  console.log('%s - %s', timestamp(), exports.format.apply(exports, arguments));
+  logger.debug('%s - %s', timestamp(), exports.format.apply(exports, arguments));
 };
 
 

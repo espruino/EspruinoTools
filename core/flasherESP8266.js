@@ -48,10 +48,10 @@
       var l = uartLine.split("\n");
         while(l.length>1) {
           var a = l.shift();
-          console.log(">>>",a);
+          logger.debug(">>>",a);
           try {
           if (packetHandler) packetHandler(Espruino.Core.Utils.parseJSONish(a));
-          } catch(e) { console.log("Unable to decode"); }
+          } catch(e) { logger.error("Unable to decode"); }
         }
         uartLine = l[0];
     });
@@ -74,11 +74,11 @@
     then(() => cmdFlash(options)).
     then(() => unsetupEspruino(options)).
     then(function() {
-      console.log("Complete!");
+      logger.debug("Complete!");
       finish();
       if (options.cbDone) options.cbDone();
     }).catch(function(error) {
-      console.log("Error!", error);
+      logger.log("Error!", error);
       finish();
       if (options.cbDone) options.cbDone(error);
     });
@@ -117,7 +117,7 @@ function setupEspruino(options) {
   return new Promise((resolve,reject)=>{
     Espruino.Core.Serial.write('\x03\x10reset()\n', false, function() {
       setTimeout(function() {
-          console.log("Start Wifi, add handler");
+          logger.debug("Start Wifi, add handler");
           Espruino.Core.Serial.write(`\x10${options.serialDevice}.setup(115200, { rx: ${options.serialRx}, tx : ${options.serialTx} });
 \x10var packetHandler, packetData="", OUT=eval(process.env.CONSOLE);
 \x10${options.serialDevice}.on('data', function(d) {
@@ -144,7 +144,7 @@ function setupEspruino(options) {
 \x10${options.chBoot?`digitalWrite(${options.chBoot}, 0);`:`` /* into of boot mode */}
 \x10${options.chPD?`digitalWrite(${options.chPD}, 1);`:`` /* turn on wifi */}
 `, false, function() {
-            console.log("Handler added");
+            logger.debug("Handler added");
             resolve();
           });
         }, 1000);
@@ -164,7 +164,7 @@ function unsetupEspruino(options) {
 }
 
 function cmdSync(options) {
-  console.log("Syncing...");
+  logger.debug("Syncing...");
   return new Promise((resolve,reject)=>{
     var success = false;
     var interval;
@@ -175,7 +175,7 @@ function cmdSync(options) {
           interval = undefined;
         }
         packetHandler = undefined;
-        console.log("Sync complete!");
+        logger.debug("Sync complete!");
         setTimeout(function() {
           // allow time for other responses
           resolve();
@@ -202,7 +202,7 @@ function cmdSync(options) {
 function cmdFlash(options) {
   var binary = new Uint8Array(options.binary);
   var blockCount = Math.floor((binary.length + (BLOCK_SIZE-1)) / BLOCK_SIZE);
-  console.log(`Start Flashing, ${blockCount} blocks of ${BLOCK_SIZE} bytes`);
+  logger.debug(`Start Flashing, ${blockCount} blocks of ${BLOCK_SIZE} bytes`);
   var d = new Uint32Array([
     blockCount*BLOCK_SIZE, // erase size
     blockCount, // # packets
@@ -211,7 +211,7 @@ function cmdFlash(options) {
   ]);
   var idx = 0;
   return sendCmd(options, 2 /* FLASH_BEGIN */, new Uint8Array(d.buffer)).then(function flash() {
-    console.log("Block "+idx);
+    logger.debug("Block "+idx);
     if (options.cbStatus) options.cbStatus(`Writing Block ${idx} / ${blockCount}`, idx / blockCount);
     if (idx>=blockCount) return true;
     d = new Uint8Array(16 + BLOCK_SIZE);

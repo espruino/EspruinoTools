@@ -12,7 +12,7 @@
 "use strict";
 (function(){
   if (typeof acorn == "undefined") {
-    console.log("pretokenise: needs acorn, disabling.");
+    logger.debug("pretokenise: needs acorn, disabling.");
     return;
   }
 
