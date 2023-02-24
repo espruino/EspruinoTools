@@ -101,7 +101,14 @@
       Espruino.Core.Status.setStatus("Connecting to serial port");
       serialPort = port;
       var br = parseInt(Espruino.Config.BAUD_RATE);
-      return port.open({ baudrate: br/*old*/, baudRate: br/*new*/ });
+      return port.open({ 
+        baudrate: br/*old*/, 
+        baudRate: br/*new*/,
+        dataBits: 8, databits: 8,
+        stopBits: 1, stopbits: 8,
+        parity: "none",
+        flowControl: "none",
+        rtscts: false });
     }).then(function () {
       function readLoop() {
         serialPortReader = serialPort.readable.getReader();
