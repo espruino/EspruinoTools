@@ -30,7 +30,7 @@
   },
   "optionalDependencies": {
     "@abandonware/noble": "^1.9.2-14",
-    "serialport": "^10.4.0",
+    "serialport": "^10.5.0",
     "websocket": "^1.0.34",
     "winnus": ""
   },
