@@ -182,19 +182,24 @@
             nextCh();
             var escape = '\\'+ch;
             var escapeExtra = 0;
-            if (ch=="x") escapeExtra=2;
-            if (ch=="u") escapeExtra=4;
-            // TODO: octal parsing? \123
-            while (escapeExtra--) {
-              nextCh();
-              escape += ch;
+            if (ch=="x") {
+              nextCh();escape += ch;
+              nextCh();escape += ch;
+              value += String.fromCharCode(parseInt(escape.substr(2), 16));
+            } else if (ch=="u") {
+              nextCh();escape += ch;
+              nextCh();escape += ch;
+              nextCh();escape += ch;
+              nextCh();escape += ch;
+              value += String.fromCharCode(parseInt(escape.substr(2), 16));
+            } else {
+              try {
+                value += JSON.parse('"'+escape+'"');
+              } catch (e) {
+                value += escape;
+              }
             }
             s += escape;
-            try {
-              value += JSON.parse('"'+escape+'"');
-            } catch (e) {
-              value += escape;
-            }
           } else {
             s+=ch;
             value += ch;
@@ -538,7 +543,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return window.location.protocol=="https:";
   }
 
-  
+
   /* Open a file load dialog.
   options = {
    id :  ID is to ensure that subsequent calls with  the same ID remember the last used directory.
@@ -562,7 +567,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       } else
         result = e.target.result;
       fileLoader.callback(result, files[i].type, files[i].name);
-      
+
 
       // If there's a file left to load
       if (i < files.length - 1 && options.multi) {
@@ -600,9 +605,9 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       fileLoader.addEventListener('change', function(e) {
         if (!fileLoader.callback) return;
 
-        var files = e.target.files;  
+        var files = e.target.files;
         setupReader(files,0,options,fileLoader);
-        
+
       }, false);
       document.body.appendChild(fileLoader);
     }
