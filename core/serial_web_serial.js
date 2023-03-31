@@ -122,8 +122,15 @@
           } else {
             readLoop();
           }
+        }).catch(function() {           
+          serialPortReader.releaseLock(); 
+          console.log("Serial> serialPortReader cancelled");
         });
       }
+      serialPort.addEventListener("disconnect", (event) => {
+        console.log("Serial> Port disconnected");
+        disconnectCallback();
+      });
       readLoop();
       Espruino.Core.Status.setStatus("Serial connected. Receiving data...");
       if (!pairedDevices.includes(serialPort))
