@@ -119,6 +119,22 @@ On linux, you'll need to run as superuser to access Bluetooth Low Energy. To avo
 sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
 ```
 
+Web IDE Relay
+-------------
+
+It is now possible to use the CLI to connect to an Espruino device that is connected on a different computer (eg an Android phone) using the Web IDE relay.
+
+* Go to https://www.espruino.com/ide/relay on the other computer
+* Click the connect icon in the top left
+* Choose a device
+* Take a note of the relay key that is displayed on the device
+* Enter the following on your PC, replacing `ABCDEFGH` with your relay key:
+
+```
+# connect via a remote device, watch myprogram.js and re-upload it if it changes
+espruino --config RELAY_KEY=ABCDEFGH --watch myprogram.js
+```
+
 Not Connecting
 --------------
 

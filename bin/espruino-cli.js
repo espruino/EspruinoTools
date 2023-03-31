@@ -104,7 +104,7 @@ for (var i=2;i<process.argv.length;i++) {
    else if (arg=="-n" || arg=="--nosend") args.nosend = true;
    else if (arg=="--no-ble") args.noBle = true;
    else if (arg=="--list") args.showDevices = true;
-   else if (arg=="--listconfigs") args.showConfigs = true;
+   else if (arg=="--listconfigs" || arg=="--list-configs") args.showConfigs = true;
    else if (arg=="-p" || arg=="--port") {
      args.ports.push({type:"path",name:next});
      var j = (++i) + 1;
@@ -744,7 +744,7 @@ function getPortPath(port, callback) {
     var timeout = 5;
     Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
       //log(JSON.stringify(ports,null,2));
-      var found = ports.find(function(p) { return p.description && p.description.toLowerCase().indexOf(searchString)>=0; });
+      var found = ports.find(function(p) { return (p.description && p.description.toLowerCase().indexOf(searchString)>=0) || p.autoconnect; });
       if (found) {
         log("Found "+JSON.stringify(found.description)+" ("+JSON.stringify(found.path)+")");
         callback(found.path);

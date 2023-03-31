@@ -5,15 +5,33 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
 `espruino-server`.
 */
 (function() {
+  var autoconnect = false;
+  // Support for websockets on Node.js...
+  if (typeof WebSocket == "undefined" || typeof require!=="undefined") {
+    try {
+      WebSocket = require("ws").WebSocket;
+    } catch (e) {
+      console.log("'ws' module not installed");
+    }
+    // The Espruino cert can't be verified (I think because we're using port 8443?)
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
+    autoconnect = true; // when using the CLI and a relay key is set, autoconnect
+  }
+  // ... but if we don't have them there's nothing we can do...
+  if (typeof WebSocket == "undefined") return;
+  
+  // default host...
+  var host = "www.espruino.com";
+  if (typeof window != "undefined") {
+    host = window.location.host;
+  }
 
-  if (typeof window == "undefined" || typeof WebSocket == undefined) return;
-
-  if (/*window.location.origin=="https://www.espruino.com" || */
-      window.location.origin=="https://espruino.github.io") {
-    console.log("Running from github - WebSocket support disabled");
+  if (/*host=="www.espruino.com" || */
+      host=="espruino.github.io") {
+    console.log("Running from GitHub - WebSocket support disabled");
     return;
   }
-  console.log("WebSocket relay support enabled - running in web browser");
+  console.log("WebSocket relay support enabled");
 
   var WS_ENABLED = true;
   var ws;
@@ -21,7 +39,9 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
 
   var getPorts=function(callback) {
     if (Espruino.Config.RELAY_KEY) {
-      callback([{path:'Web IDE Relay', description:'BLE connection via a phone', type : "bluetooth"}], true/*instantPorts*/);
+      var p = {path:'Web IDE Relay', description:'BLE connection via a phone', type : "bluetooth"};
+      if (autoconnect) p.autoconnect = true;
+      callback([p], true/*instantPorts*/);
     } else {
       if (!WS_ENABLED) return callback([], true/*instantPorts*/);
       Espruino.Core.Utils.getJSONURL("/serial/ports", function(ports) {
@@ -39,13 +59,14 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
 
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
     if (Espruino.Config.RELAY_KEY) {
-      ws = new WebSocket("wss://" + window.location.host + ":8443/", "espruino");
+      ws = new WebSocket("wss://" + host + ":8443/", "espruino");
     } else {
-      ws = new WebSocket("ws://" + window.location.host + "/" + serialPort, "serial");
+      ws = new WebSocket("ws://" + host + "/" + serialPort, "serial");
     }
     dataWrittenCallbacks = [];
-    ws.onerror = function(event) {
-      connectCallback(undefined);
+    ws.onerror = function(e) {
+      console.log("WebSocket error ",e.message);
+      if (disconnectCallback) disconnectCallback(undefined);
       ws = undefined;
     };
     ws.onopen = function() {
@@ -93,7 +114,7 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
     "write": writeSerial,
     "close": closeSerial,
   });
-  if (window.location.host.substr(-16) == "www.espruino.com") {
+  if (host.substr(-16) == "www.espruino.com") {
     Espruino.Core.SerialWebSocketRelay = {
       "init": function() {
         Espruino.Core.Config.add("RELAY_KEY", {

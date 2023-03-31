@@ -1,6 +1,6 @@
 {
   "name": "espruino",
-  "version": "0.1.45",
+  "version": "0.1.46",
   "description": "Command Line Interface and library for Communications with Espruino JavaScript Microcontrollers",
   "main": "index.js",
   "files": [
@@ -25,7 +25,8 @@
     "acorn": ">=8.5.0",
     "es6-shim": "",
     "request": "^2.74.0",
-    "utf8": "^3.0.0"
+    "utf8": "^3.0.0",
+    "ws": "^8.13.0"
   },
   "optionalDependencies": {
     "@abandonware/noble": "^1.9.2-14",
