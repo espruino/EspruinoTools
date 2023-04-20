@@ -22,6 +22,7 @@ var Espruino;
    *
    *   jsCodeChanged        - called when the code in the editor changes with {code}
    *   sending              - sending code to Espruino (no data)
+   *   sendModeChanged      - called when the send mode (RAM/Flash/Storage) changes
    *   transformForEspruino - transform code ready to be sent to Espruino
    *   transformModuleForEspruino({code,name})
    *           - transform module code before it's sent to Espruino with Modules.addCached (we only do this if we don't think it's been minified before)
