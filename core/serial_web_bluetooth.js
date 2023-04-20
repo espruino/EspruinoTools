@@ -10,8 +10,7 @@
   }
 
   function getStatus(ignoreSettings) {
-    /* If BLE is handled some other way (eg winnus), then it
-    can be disabled here */
+    /* If BLE is handled some other way (eg noble), then it can be disabled here */
     if (Espruino.Core.Serial.NO_WEB_BLUETOOTH) {
       OK = false;
       return {warning:`Disabled by another Serial service in Web IDE (Serial.NO_WEB_BLUETOOTH)`};

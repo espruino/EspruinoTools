@@ -32,8 +32,7 @@
     "noble-winrt": "^0.1.1",
     "@abandonware/noble": "^1.9.2-14",
     "serialport": "^10.5.0",
-    "websocket": "^1.0.34",
-    "winnus": ""
+    "websocket": "^1.0.34"
   },
   "keywords": [
     "espruino",
