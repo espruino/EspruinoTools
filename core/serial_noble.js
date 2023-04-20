@@ -19,8 +19,9 @@
 
   function findByUUID(list, uuid) {
     for (var i=0;i<list.length;i++)
-      if (list[i].uuid==uuid) return list[i];
-    return undefined;
+      if (list[i].uuid.replace(/-/g,"")==uuid) return list[i];
+    // normal noble returns UUIDs without dashes, but noble-winrt returns them with dashes in!
+     return undefined;
   }
 
   // map of bluetooth devices found by getPorts
@@ -59,9 +60,13 @@
     try {
       process.on('uncaughtException', nobleExceptionHandler);
       try {
-        noble = require('noble');
+        noble = require('noble-winrt'); // for windows 10+ compat. noble-uwp should work too
       } catch (e) {
-        noble = require('@abandonware/noble');
+        try {
+          noble = require('@abandonware/noble'); // this would be our preference on other platforms 
+        } catch (e) {
+          noble = require('noble'); // else try the standard noble
+        }
       }
     } catch (e) {
       console.log("Noble: module couldn't be loaded, no node.js Bluetooth Low Energy\n", e);
