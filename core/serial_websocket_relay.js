@@ -33,7 +33,6 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
   }
   console.log("WebSocket relay support enabled");
 
-  var WS_ENABLED = true;
   var ws;
   var dataWrittenCallbacks = [];
 
@@ -43,26 +42,12 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
       if (autoconnect) p.autoconnect = true;
       callback([p], true/*instantPorts*/);
     } else {
-      if (!WS_ENABLED) return callback([], true/*instantPorts*/);
-      Espruino.Core.Utils.getJSONURL("/serial/ports", function(ports) {
-        if (ports===undefined) {
-          console.log("/serial/ports doesn't exist - disabling WebSocket support");
-          WS_ENABLED = false;
-          callback([]);
-          return;
-        }
-        if (!Array.isArray(ports)) callback([], true/*instantPorts*/);
-        else callback(ports, true/*instantPorts*/);
-      });
+      return callback([], true/*instantPorts*/);
     }
   };
 
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
-    if (Espruino.Config.RELAY_KEY) {
-      ws = new WebSocket("wss://" + host + ":8443/", "espruino");
-    } else {
-      ws = new WebSocket("ws://" + host + "/" + serialPort, "serial");
-    }
+    ws = new WebSocket("wss://" + host + ":8443/", "espruino");
     dataWrittenCallbacks = [];
     ws.onerror = function(e) {
       console.log("WebSocket error ",e.message);
