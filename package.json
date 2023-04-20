@@ -1,6 +1,6 @@
 {
   "name": "espruino",
-  "version": "0.1.46",
+  "version": "0.1.47",
   "description": "Command Line Interface and library for Communications with Espruino JavaScript Microcontrollers",
   "main": "index.js",
   "files": [
@@ -22,15 +22,14 @@
     "url": "git+https://github.com/espruino/EspruinoTools.git"
   },
   "dependencies": {
-    "acorn": ">=8.5.0",
-    "es6-shim": "",
-    "request": "^2.74.0",
+    "acorn": "^8.8.2",
+    "es6-shim": "^0.35.8",
     "utf8": "^3.0.0",
     "ws": "^8.13.0"
   },
   "optionalDependencies": {
-    "noble-winrt": "^0.1.1",
     "@abandonware/noble": "^1.9.2-14",
+    "noble-winrt": "^0.1.1",
     "serialport": "^10.5.0",
     "websocket": "^1.0.34"
   },
