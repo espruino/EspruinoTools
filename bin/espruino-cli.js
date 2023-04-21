@@ -655,7 +655,11 @@ function terminal(devicePath, exitCallback) {
   var hadCtrlC = false;
   var hadCR = false;
   var ideServer = undefined;
-  process.stdin.setRawMode(true);
+  // Set raw mode to allow Ctrl-C/etc, but Git Bash for Windows doesn't have support (#161)
+  if (process.stdin.setRawMode)
+    process.stdin.setRawMode(true);
+  else
+    log("No process.stdin.setRawMode() - Ctrl-C/etc won't function correctly");
   Espruino.Core.Serial.startListening(function(data) {
     data = new Uint8Array(data);
     var dataStr = String.fromCharCode.apply(null, data);
