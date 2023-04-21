@@ -660,15 +660,28 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   };
 
   /** Bluetooth device names that we KNOW run Espruino */
-  function recognisedBluetoothDevices() {
-    return [
+  var recongisedDevices = [
        "Puck.js", "Pixl.js", "MDBT42Q", "Espruino", "Badge", "Thingy", "RuuviTag", "iTracker", "Smartibot", "Bangle.js", "Micro:bit"
-    ];
+  ];
+
+  function recognisedBluetoothDevices() {
+    return recongisedDevices;
+  }
+
+  function addRecognisedDeviceName(name){
+    if (name) recongisedDevices.push(name);
+  }
+
+  var recognisedDeviceAdresses = [];
+
+  function addRecognisedDeviceAddress(address){
+    if (address) recognisedDeviceAdresses.push(address);
   }
 
   /** If we can't find service info, add devices
-  based only on their name */
-  function isRecognisedBluetoothDevice(name) {
+  based only on their name/address */
+  function isRecognisedBluetoothDevice(name, address) {
+    if (address && recognisedDeviceAdresses.includes(address)) return true;
     if (!name) return false;
     var devs = recognisedBluetoothDevices();
     for (var i=0;i<devs.length;i++)
@@ -861,6 +874,8 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       fileOpenDialog : fileOpenDialog,
       fileSaveDialog : fileSaveDialog,
       recognisedBluetoothDevices : recognisedBluetoothDevices,
+      addRecognisedDeviceName : addRecognisedDeviceName,
+      addRecognisedDeviceAddress : addRecognisedDeviceAddress,
       isRecognisedBluetoothDevice : isRecognisedBluetoothDevice,
       getVersion : getVersion,
       getVersionInfo : getVersionInfo,

@@ -238,6 +238,15 @@ function setupConfig(Espruino, callback) {
       return p.name.trim();
     }
    )
+   let macregex = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
+   // add requested ports as recognised BLE names or addresses
+   args.ports.forEach(function(p){
+    if (macregex.test(p.name))
+      Espruino.Core.Utils.addRecognisedDeviceAddress(p.name);
+    else
+      Espruino.Core.Utils.addRecognisedDeviceName(p.name);
+    }
+   )
  }
  if (args.showConfigs) {
    Espruino.Core.Config.getSections().forEach(function(section) {
