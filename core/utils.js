@@ -672,16 +672,16 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     if (name) recongisedDevices.push(name);
   }
 
-  var recognisedDeviceAdresses = [];
+  var recognisedDeviceAddresses = [];
 
   function addRecognisedDeviceAddress(address){
-    if (address) recognisedDeviceAdresses.push(address);
+    if (address) recognisedDeviceAddresses.push(address);
   }
 
   /** If we can't find service info, add devices
   based only on their name/address */
   function isRecognisedBluetoothDevice(name, address) {
-    if (address && recognisedDeviceAdresses.includes(address)) return true;
+    if (address && recognisedDeviceAddresses.includes(address)) return true;
     if (!name) return false;
     var devs = recognisedBluetoothDevices();
     for (var i=0;i<devs.length;i++)

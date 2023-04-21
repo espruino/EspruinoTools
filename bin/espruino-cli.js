@@ -238,7 +238,7 @@ function setupConfig(Espruino, callback) {
       return p.name.trim();
     }
    )
-   let macregex = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
+   const macregex = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
    // add requested ports as recognised BLE names or addresses
    args.ports.forEach(function(p){
     if (macregex.test(p.name))
