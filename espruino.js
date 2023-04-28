@@ -39,6 +39,7 @@ var Espruino;
    *   debugMode            - called with true or false when debug mode is entered or left
    *   editorHover          - called with { node : htmlNode, showTooltip : function(htmlNode) } when something is hovered over
    *   notification         - called with { mdg, type:"success","error"/"warning"/"info" }
+   *   webcam               - called when webcam is visible or not {  visible : true , stream: MediaStream }  
    **/
   var processors = {};
 

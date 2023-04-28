@@ -49,11 +49,13 @@ options = {
   onPeerID : function(id) // we have a peer ID now
   onConnected : function // a peer has connected
   onGetPorts : function(cb)      // BRIDGE: get port list
+  onVideoStream : function(stream) // CLIENT: We have a video stream - display it!
   onPortConnect : function(port, cb) // BRIDGE: start connecting
   onPortDisconnect : function(cb)  // BRIDGE: close active connection
   onPortWrite   : function(data, cb) // BRIDGE: send data
   onPortReceived   : function(data) // CLIENT: Got data from device
   onPortDisconnected : function()   // CLIENT: Port disconnected
+  connectVideo : function(stream)   // BRIDGE: Start a video connection with the given medias stream
 } 
 
 Return options with extras added:
@@ -117,6 +119,15 @@ function webrtcInit(options) {
       console.log(err);
       options.onStatus("ERROR: "+err);
   });
+  peer.on('call', function(call) {    
+    if (options.onVideoStream) {
+      call.on('stream', function(stream) {
+        // `stream` is the MediaStream of the remote peer.
+        options.onVideoStream(stream);
+      });
+      call.answer(/*mediaStream*/); // answer - not sending a stream back...
+    }
+  });
 
   peer.on('connection', function (c) {
     console.log("[WebRTC] Incoming connection");
@@ -167,6 +178,13 @@ function webrtcInit(options) {
         callbackAddWithTimeout("write", cb, 2000);
         conn.send({t:"write", data:data});      
       },
+      connectVideo : function (stream) {
+        if (!options.connectToPeerID) {
+          console.log("webrtc.connectVideo no peer id");
+          return;
+        }
+        peer.call(options.connectToPeerID, stream);
+      }
     });
   } else {
     Object.assign(options, { // ============== CLIENT

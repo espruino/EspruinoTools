@@ -89,6 +89,10 @@ var webrtc; // Our WebRTC connection
         }, 200);
         //
       },
+      onVideoStream : function(stream) {
+        Espruino.Config.set("SHOW_WEBCAM_ICON", 1); // force webcam icon
+        Espruino.Plugins.Webcam.displayMediaStream(stream);
+      },
       onConnected : function() {
         if (popup) {
           popup.close(); // popup.onClose will call openCallback(undefined);
