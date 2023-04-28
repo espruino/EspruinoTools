@@ -655,11 +655,6 @@ function terminal(devicePath, exitCallback) {
   var hadCtrlC = false;
   var hadCR = false;
   var ideServer = undefined;
-  // Set raw mode to allow Ctrl-C/etc, but Git Bash for Windows doesn't have support (#161)
-  if (process.stdin.setRawMode)
-    process.stdin.setRawMode(true);
-  else
-    log("No process.stdin.setRawMode() - Ctrl-C/etc won't function correctly");
   Espruino.Core.Serial.startListening(function(data) {
     data = new Uint8Array(data);
     var dataStr = String.fromCharCode.apply(null, data);
@@ -686,6 +681,11 @@ function terminal(devicePath, exitCallback) {
       return exitCallback();
     }
     if (!args.quiet) log("Connected");
+    // Set raw mode to allow Ctrl-C/etc, but Git Bash for Windows doesn't have support (#161)
+    if (process.stdin.setRawMode)
+      process.stdin.setRawMode(true);
+    else
+      log("No process.stdin.setRawMode() - Ctrl-C/etc won't function correctly");
     process.stdin.on('data', function(chunk) {
       if (chunk !== null) {
         chunk = chunk.toString();
