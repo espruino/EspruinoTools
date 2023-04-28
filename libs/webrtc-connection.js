@@ -5,8 +5,8 @@ This needs:
 
 EspruinoWebIDE/js/libs/peerjs.min.js
 
-* The 'Bridge' connects direct to Bluetooth/Bangle.js - it is the Server
-* The Web IDE is a client
+* The 'Bridge' connects direct to Bluetooth/Bangle.js - it is the Client
+* The Web IDE is a server
 
 Protocol:
 
@@ -28,6 +28,9 @@ Packets Sent:
 TODO:
 
 * Add icon for Webcam display - when enabled it should allow forwarding over the peer connection
+* The IDE is currently the server because it needs to send an ID to the bridge via QR Code/Link 
+  - this isn't great especially for CLI apps, and really the bridge should be the server
+  - maybe we actually allow the bridge to connect to the IDE and then tell it where to connect to??
 
 */
 
