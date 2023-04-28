@@ -20,7 +20,8 @@ var Espruino;
    *
    * Common processors are:
    *
-   *   jsCodeChanged        - called when the code in the editor changes with {code}
+   *   jsCodeChanged        - called when the code in JS editor changes with {code, editor}
+   *   xmlCodeChanged       - called when the code in the blockly editor changes with {code}
    *   sending              - sending code to Espruino (no data)
    *   sendModeChanged      - called when the send mode (RAM/Flash/Storage) changes
    *   transformForEspruino - transform code ready to be sent to Espruino
