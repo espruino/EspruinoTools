@@ -35,6 +35,7 @@ TODO:
 * The Client (IDE) side needs to be able to remember the Bridge's ID and autoconnect
 * We need to have repeated retries for the connection
 * Clicking top-left in the bridge to pair should automatically disconnect
+* When first connecting (eg localStorage/IDE config empty) it may not work correctly? After a refresh it does
 
 */
 
