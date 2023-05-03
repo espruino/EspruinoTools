@@ -18,8 +18,8 @@
       section : "Communications",
       name : "Throttle Send",
       description : "Throttle code when sending to Espruino? If you are experiencing lost characters when sending code from the Code Editor pane, this may help.",
-      type : "boolean",
-      defaultValue : false,
+      type : {0:"Auto",1:"Always",2:"Never"},
+      defaultValue : 0,
       onChange : function() {
         checkEnv(Espruino.Core.Env.getData());
       }
@@ -60,7 +60,8 @@
           (env.CONSOLE=="USB"||env.CONSOLE=="Bluetooth"||env.CONSOLE=="Telnet")) {
         console.log("Firmware >1.43 supports faster writes over USB");
         Espruino.Core.Serial.setSlowWrite(false);
-      } else {
+      } else if (vCurrent >= 2.18 && env.BOARD=="ESP32" && env.CONSOLE=="Serial1") {
+        console.log("Firmware >=2.18 on ESP32 supports flow control");
         Espruino.Core.Serial.setSlowWrite(true);
       }
 
@@ -75,7 +76,11 @@
           (env.BOARD=="ESPRUINOBOARD" ||
            env.BOARD.substr(0,4)=="PICO" ||
            env.BOARD=="ESPRUINOWIFI" ||
-           env.BOARD=="PUCKJS")) {
+           env.BOARD=="PUCKJS" ||
+           env.BOARD=="PIXLJS" ||
+           env.BOARD=="MDBT42Q" ||
+           env.BOARD=="BANGLEJS" ||
+           env.BOARD=="BANGLEJS2")) {
           console.log("New Firmware "+tAvailable+" available");
           Espruino.Core.Notifications.info("New Firmware available ("+vCurrent+" installed, "+tAvailable+" available)");
 

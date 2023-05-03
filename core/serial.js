@@ -423,11 +423,19 @@ To add a new serial device, you must add an object to
     "close": closeSerial,
     "isSlowWrite": function() { return slowWrite; },
     "setSlowWrite": function(isOn, force) {
-      if ((!force) && Espruino.Config.SERIAL_THROTTLE_SEND) {
-        console.log("ForceThrottle option is set - set Slow Write = true");
+      var SERIAL_THROTTLE_SEND = 0|Espruino.Config.SERIAL_THROTTLE_SEND;
+      var reason = "";
+      if (force) {
+        reason = "(forced)";
+      } else if (SERIAL_THROTTLE_SEND==1) {
+        reason = "('Throttle Send'='Always')";
         isOn = true;
+      } else  if (SERIAL_THROTTLE_SEND==2) {
+        reason = "('Throttle Send'='Never')";
+        isOn = false;
       } else
-        console.log("Set Slow Write = "+isOn);
+        reason =  "('Throttle Send'='Auto')";
+      console.log(`Set Slow Write = ${isOn} ${reason}`);
       slowWrite = isOn;
     },
     "setBinary": function(isOn) {
