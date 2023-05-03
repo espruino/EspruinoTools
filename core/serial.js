@@ -31,7 +31,7 @@ To add a new serial device, you must add an object to
 (function() {
   // If XOFF flow control is received, this is how long we wait
   // before resuming anyway
-  const FLOW_CONTROL_RESUME_TIMEOUT = 20000; // 20 sec
+  const FLOW_CONTROL_RESUME_TIMEOUT = 2000; // 2 sec
 
   // List of ports and the devices they map to
   var portToDevice = undefined;
@@ -219,7 +219,7 @@ To add a new serial device, you must add an object to
             if (flowControlTimeout)
               clearTimeout(flowControlTimeout);
             flowControlTimeout = setTimeout(function() {
-              console.log("XOFF timeout => resume upload anyway");
+              console.log(`XOFF timeout (${FLOW_CONTROL_RESUME_TIMEOUT}s) => resume upload anyway`);
               flowControlXOFF = false;
               flowControlTimeout = undefined;
             }, FLOW_CONTROL_RESUME_TIMEOUT);
