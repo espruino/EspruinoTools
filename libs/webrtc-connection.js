@@ -185,7 +185,7 @@ function webrtcInit(options) {
 
   Object.assign(options, { // ============== COMMON
     connect : function(id) {
-      console.log("[webRTC] Connecting...");
+      console.log("[WebRTC] Connecting...");
       var conn = peer.connect(id, {
           reliable: true
       });
@@ -225,7 +225,7 @@ function webrtcInit(options) {
       },
       connectVideo : function (stream) {
         if (!webrtc.connections.length) {
-          console.log("webrtc.connectVideo no active connections");
+          console.log("[WebRTC].connectVideo no active connections");
           return;
         }
         webrtc.connections.forEach(c => {
@@ -233,7 +233,7 @@ function webrtcInit(options) {
         });
       },
       connectSendPeerId : function(id) {
-        console.log("[webRTC] ServerId: Connecting to "+id+" send our ID...");
+        console.log("[WebRTC] ServerId: Connecting to "+id+" send our ID...");
         var conn = peer.connect(id, {
             reliable: true
         });
@@ -250,7 +250,7 @@ function webrtcInit(options) {
   } else {
     Object.assign(options, { // ============== CLIENT
       getPorts : function(cb) { // CLIENT
-        callbackAddWithTimeout("getPorts", cb, 2000);
+        callbackAddWithTimeout("getPorts", cb, 1000);
         if (options.connection)
           options.connection.send({t:"getPorts"});      
       },
@@ -275,14 +275,22 @@ function webrtcInit(options) {
   // ---------------------------------
 
   function callbackAddWithTimeout(id, cb, timeout) {
-    callbacks[id] = cb;
-    // TODO: timeout?
+    var o = { cb : cb };
+    o.timeout = setTimeout(function() {
+      console.log("[WebRTC] Timeout for "+id);
+      o.timeout = undefined;
+      if (o.cb) o.cb();
+      o.cb = undefined;
+    }, timeout);
+    callbacks[id] = o;
   }
   function callbackCall(id, data) {
-    if (callbacks[id])
-      callbacks[id](data);
+    if (callbacks[id].cb)
+      callbacks[id].cb(data);
+    callbacks[id].cb = undefined;
+    if (callbacks[id].timeout)
+      clearTimeout(callbacks[id].timeout);
     callbacks[id] = undefined;
-    // TODO: timeout?
   }
   
   
@@ -299,7 +307,7 @@ function webrtcInit(options) {
       webrtcDataHandler(conn, data, options);      
     });
     conn.on('close', function () {
-      console.log("Connection closed");
+      console.log("[WebRTC] Connection closed");
       options.connection = undefined;
       var idx = options.connections.indexOf(conn);
       if (idx>=0)
@@ -308,7 +316,7 @@ function webrtcInit(options) {
   }
   
   function webrtcDataHandler(conn, data, options) {
-    console.log("[webrtc] data " + JSON.stringify(data));
+    console.log("[WebRTC] data " + JSON.stringify(data));
     if ("object" != typeof data) return;
     if (options.bridge) switch (data.t) { // ================= BRIDGE
       case "getPorts" : // BRIDGE
