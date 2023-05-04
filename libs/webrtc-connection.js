@@ -282,9 +282,7 @@ function webrtcInit(options) {
     options.connections.push(conn);
     conn.on('open', function () {
       console.log("[WebRTC] Connected to: " + conn.peer);
-        //conn.send(command);
-      /*if (options.bridge)
-        {t:"serverId",id:"..."}*/
+      if (options.onConnected) options.onConnected(conn.peer);
     });
     // Handle incoming data (messages only since this is the signal sender)
     conn.on('data', function (data) {

@@ -9,6 +9,7 @@ libs/webrtc-connection.js
 EspruinoWebIDE/js/libs/qrcode.min.js
 
 */
+// TODO: make this private
 var webrtc; // Our WebRTC connection
 
 (function() {
@@ -29,7 +30,7 @@ var webrtc; // Our WebRTC connection
   var popup; // popup window from showPairingPopup that goes away when the Bridge connects
 
   function print(txt) {
-    Espruino.Core.Terminal.outputDataHandler(txt);
+    Espruino.Core.Terminal.outputDataHandler(txt+"\n");
   }
 
   webrtc = webrtcInit({
@@ -46,7 +47,7 @@ var webrtc; // Our WebRTC connection
       Espruino.Plugins.Webcam.displayMediaStream(stream);
     },
     onConnected : function() {
-      // peer connected, remove the popupa and show the port selector
+      // peer connected, remove the popup and show the port selector
       if (popup) {
         popup.close(); // popup.onClose will call openCallback(undefined);
         popup = undefined;
@@ -56,18 +57,19 @@ var webrtc; // Our WebRTC connection
       }, 100); // now open the port selector again and we should hopefully see some stuff!
     },
     onPortReceived : function(data) {
-      serialReceiveCallback(Espruino.Core.Utils.stringToArrayBuffer(data));
+      if (serialReceiveCallback)
+        serialReceiveCallback(Espruino.Core.Utils.stringToArrayBuffer(data));
     },
     onPortDisconnected : function() {
-      serialDisconnectCallback();
+      if (serialDisconnectCallback) serialDisconnectCallback();
     }
     });  
 
   var getPorts=function(callback) {
-    if (webrtc.connections.length) {
+    if (webrtc && webrtc.connections.length) {
       // If we have a connection, great - use it to get ports
       webrtc.getPorts(callback);
-    } else if (webrtc.peerId) {
+    } else if (webrtc && webrtc.peerId) {
       // If no connection, pop up an option to enable it which we will handle in openSerial
       callback([{path:'Remote Connection', description:'Connect via another device', type : "bluetooth"}], true/*instantPorts*/);
     } else
