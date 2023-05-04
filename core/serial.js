@@ -189,6 +189,7 @@ To add a new serial device, you must add an object to
         console.error("Unable to open device (connectionInfo="+cInfo+")");
         connectCallback(undefined);
         connectCallback = undefined;
+        currentDevice = undefined;
       } else {
         connectionInfo = cInfo;
         connectedPort = serialPort;

@@ -197,25 +197,31 @@ function webrtcInit(options) {
     Object.assign(options, { // ============== BRIDGE
       getPorts : function(cb) { // CLIENT
         callbackAddWithTimeout("getPorts", cb, 2000);
-        options.connection.send({t:"getPorts"});      
+        if (options.connection)
+          options.connection.send({t:"getPorts"});      
       },
       portConnect : function(port, cb) { // CLIENT
         callbackAddWithTimeout("connect", cb, 2000);
-        options.connection.send({t:"connect", port:port});      
+        if (options.connection)
+          options.connection.send({t:"connect", port:port});      
       },
       portDisconnect : function(cb) { // CLIENT
         callbackAddWithTimeout("disconnect", cb, 2000);
-        options.connection.send({t:"disconnect"});      
+        if (options.connection)
+          options.connection.send({t:"disconnect"});      
       },
       onPortDisconnected : function() { 
-        options.connection.send({t:"disconnected"});   
+        if (options.connection)
+          options.connection.send({t:"disconnected"});   
       },
       onPortReceived : function(data) { 
-        options.connection.send({t:"received", data});   
+        if (options.connection)
+          options.connection.send({t:"received", data});   
       },
       portWrite : function(data, cb) { // CLIENT
         callbackAddWithTimeout("write", cb, 2000);
-        options.connection.send({t:"write", data:data});      
+        if (options.connection)
+          options.connection.send({t:"write", data:data});      
       },
       connectVideo : function (stream) {
         if (!webrtc.connections.length) {
@@ -245,19 +251,23 @@ function webrtcInit(options) {
     Object.assign(options, { // ============== CLIENT
       getPorts : function(cb) { // CLIENT
         callbackAddWithTimeout("getPorts", cb, 2000);
-        options.connection.send({t:"getPorts"});      
+        if (options.connection)
+          options.connection.send({t:"getPorts"});      
       },
       portConnect : function(port, cb) { // CLIENT
         callbackAddWithTimeout("connect", cb, 2000);
-        options.connection.send({t:"connect", port:port});      
+        if (options.connection)
+          options.connection.send({t:"connect", port:port});      
       },
       portDisconnect : function(cb) { // CLIENT
         callbackAddWithTimeout("disconnect", cb, 2000);
-        options.connection.send({t:"disconnect"});      
+        if (options.connection)
+          options.connection.send({t:"disconnect"});      
       },
       portWrite : function(data, cb) { // CLIENT
         callbackAddWithTimeout("write", cb, 2000);
-        options.connection.send({t:"write", data:data});      
+        if (options.connection)
+          options.connection.send({t:"write", data:data});      
       },
     });
   }

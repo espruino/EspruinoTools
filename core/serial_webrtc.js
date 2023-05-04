@@ -37,9 +37,8 @@ EspruinoWebIDE/js/libs/qrcode.min.js
     onStatus : function(s) {
       print(s);
     },
-    onPeerID : function(s) {
-      
-      //
+    onPeerID : function(id) {      
+      // we have our Peer ID
     },
     onVideoStream : function(stream) {
       if (stream) Espruino.Config.set("SHOW_WEBCAM_ICON", 1); // force webcam icon
