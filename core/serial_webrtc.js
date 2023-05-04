@@ -9,10 +9,9 @@ libs/webrtc-connection.js
 EspruinoWebIDE/js/libs/qrcode.min.js
 
 */
-// TODO: make this private
-var webrtc; // Our WebRTC connection
-
 (function() {
+
+  var webrtc; // Our WebRTC connection
 
   if (typeof Peer == "undefined") {
     console.log("Peer.js not loaded - Remote Connection disabled");
@@ -135,11 +134,10 @@ Please scan the QR code below with your phone or copy/paste the URL to start a c
       webrtc.portWrite(data, callback);
     },
     "close": function(callback) {
-      if (!webrtc) return callback();
-      if (webrtc) {
+      if (webrtc)
         webrtc.portDisconnect(callback);
-        webrtc = undefined;
-      }
+      else
+        return callback();
     },
   });
 })();
