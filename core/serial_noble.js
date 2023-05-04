@@ -107,7 +107,7 @@
       var hasUartService = dev.advertisement.serviceUuids &&
                            dev.advertisement.serviceUuids.indexOf(NORDIC_SERVICE)>=0;
       if (hasUartService ||
-          Espruino.Core.Utils.isRecognisedBluetoothDevice(name)) {
+          Espruino.Core.Utils.isRecognisedBluetoothDevice(name, dev.address)) {
         console.log("Noble: Found UART device:", name, dev.address);
         newDevices.push({ path: dev.address, description: name, type: "bluetooth", rssi: dev.rssi });
         btDevices[dev.address] = dev;
