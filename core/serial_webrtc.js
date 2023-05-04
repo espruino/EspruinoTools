@@ -84,8 +84,8 @@ Do we want a way to cancel the remote connection once it is set up?
     qrDiv.innerHTML = "";
     var qrcode = new QRCode(qrDiv, {
       text: url,
-      colorDark : "#ffffff",
-      colorLight : "#000000",
+      colorDark : "#000000",
+      colorLight : "#ffffff",
       correctLevel : QRCode.CorrectLevel.H
     });
     setTimeout(function() {
