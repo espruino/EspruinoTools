@@ -8,6 +8,10 @@ Needs:
 libs/webrtc-connection.js
 EspruinoWebIDE/js/libs/qrcode.min.js
 
+TODO:
+
+Do we want a way to cancel the remote connection once it is set up?
+
 */
 (function() {
 
@@ -28,14 +32,11 @@ EspruinoWebIDE/js/libs/qrcode.min.js
   var serialDisconnectCallback;
   var popup; // popup window from showPairingPopup that goes away when the Bridge connects
 
-  function print(txt) {
-    Espruino.Core.Terminal.outputDataHandler(txt+"\n");
-  }
-
   webrtc = webrtcInit({
     bridge:false, 
     onStatus : function(s) {
-      print(s);
+      console.log("[WebRTC Status] "+s);
+      // we were using Espruino.Core.Terminal.outputDataHandler(s+"\n");
     },
     onPeerID : function(id) {      
       // we have our Peer ID
@@ -67,15 +68,12 @@ EspruinoWebIDE/js/libs/qrcode.min.js
     if (webrtc && webrtc.connections.length) {
       // If we have a connection, great - use it to get ports
       webrtc.getPorts(callback);
-    } else if (webrtc && webrtc.peerId) {
-      // If no connection, pop up an option to enable it which we will handle in openSerial
-      callback([{path:'Remote Connection', description:'Connect via another device', type : "bluetooth"}], true/*instantPorts*/);
     } else
       callback([]); // peer connection failed - ignore this
   };
 
   function showPairingPopup() {
-    var url = window.location.href+"remote?id="+webrtc.peerId;
+    var url = window.location.origin + window.location.pathname + "remote?id=" + webrtc.peerId;
     var qrDiv = document.getElementById("serial_peer_qrcode");
     if (qrDiv==null) {
       qrDiv = document.createElement("div");
@@ -108,14 +106,6 @@ Please scan the QR code below with your phone or copy/paste the URL to start a c
   }
 
   var openSerial=function(serialPort, openCallback, receiveCallback, disconnectCallback) {
-    if (!webrtc.connections.length) { // we're not connected
-      openCallback(undefined); // cancel the connection
-      // Create a popup with the QR code
-      if (webrtc.peerId)
-        showPairingPopup();
-      return;
-    }
-    // All ok - forward our connection!
     webrtc.portConnect(serialPort, function() {
       serialReceiveCallback = receiveCallback;
       serialDisconnectCallback = disconnectCallback;
@@ -124,6 +114,9 @@ Please scan the QR code below with your phone or copy/paste the URL to start a c
   };
 
   // ----------------------------------------------------------
+  Espruino.Core.RemoteConnection = {
+    showPairingPopup : showPairingPopup
+  };
   Espruino.Core.Serial.devices.push({
     "name" : "Remote Connection",
     "getPorts": getPorts,
