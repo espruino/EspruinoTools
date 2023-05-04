@@ -39,9 +39,6 @@ TODO:
 
 */
 
-var peer;
-var callbacks = {};
-
 /* Create a connection:
 options = {
   bridge : bool 
@@ -79,6 +76,9 @@ Return options with extras added:
 }
 */
 function webrtcInit(options) {
+  var peer; // peer.js connection
+  var callbacks = {}; // list of callbacks
+
   options = options||{};
 
   options.peerId = null;
@@ -101,10 +101,10 @@ function webrtcInit(options) {
         peer.id = options.peerId;
     } else {
       options.peerId = peer.id;
-        if (!options.bridge &&
-          "undefined"!=typeof window &&
-          window.localStorage &&
-          window.localStorage.setItem("WEBRTC_PEER_ID", peer.id));
+      if (!options.bridge &&
+        "undefined"!=typeof window &&
+        window.localStorage &&
+        window.localStorage.setItem("WEBRTC_PEER_ID", peer.id));
     }
     options.peerId = peer.id;
 
