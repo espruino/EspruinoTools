@@ -26,6 +26,16 @@ Do we want a way to cancel the remote connection once it is set up?
   var serialDisconnectCallback;
   var popup; // popup window from showPairingPopup that goes away when the Bridge connects
 
+  function init() {
+    Espruino.Core.Config.add("WEBRTC_BRIDGE_ID", {
+      section : "Communications",
+      name : "Remote Connection Bridge Peer ID",
+      descriptionHTML : 'The Bridge\'s Peer ID from  <a href="https://www.espruino.com/ide/remote" target="_blank">espruino.com/ide/remote</a> on another device, or Gadgetbridge. You\'ll then be able to use the Web IDE to communicate with a device via the Bridge. Leave blank to disable.',
+      type : "string",
+      defaultValue : ""
+    });
+  }
+
   function initWebRTC(callback) {
     webrtc = webrtcInit({
       bridge:false, 
@@ -88,8 +98,14 @@ Do we want a way to cancel the remote connection once it is set up?
       webrtc.getPorts(ports => {
         callback(ports, false/*not immediate*/)
       });
-    } else
-      callback([]); // peer connection failed - ignore this
+    } else {
+      if (!webrtc && Espruino.Config.WEBRTC_BRIDGE_ID)
+        initWebRTC(function() {
+          callback([], false);
+        });
+      else
+       callback([]); // peer connection failed - ignore this
+    }
   };
 
   // called once we're sure we have a peer ID
@@ -142,6 +158,7 @@ Please scan the QR code below with your phone or copy/paste the URL to start a c
 
   // ----------------------------------------------------------
   Espruino.Core.RemoteConnection = {
+    init : init,
     showPairingPopup : showPairingPopup,
     initWebRTC : function(callback) {
       if (!webrtc) initWebRTC(callback);

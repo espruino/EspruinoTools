@@ -283,13 +283,8 @@ function setupConfig(Espruino, callback) {
  if (args.remotePeerID) { // Remote connection enabled
    if (!Espruino.Core.RemoteConnection)
      throw new Error("WebRTC not loaded - run again with --verbose for more info");
-   Espruino.Config.set("WEBRTC_BRIDGE_ID", args.remotePeerID);
-   // ensure we start WebRTC and only call 'callback' when it's done
-   let oldCb = callback;
-   callback = function() {
-     Espruino.Core.RemoteConnection.initWebRTC(oldCb);
-   };
-} 
+   Espruino.Config.set("WEBRTC_BRIDGE_ID", args.remotePeerID);   
+ } 
  if (args.board) {
    log("Explicit board JSON supplied: "+JSON.stringify(args.board));
    var jsonLoaded = function(json) {
