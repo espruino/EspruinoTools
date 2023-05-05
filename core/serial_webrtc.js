@@ -39,7 +39,7 @@ Do we want a way to cancel the remote connection once it is set up?
   function initWebRTC(callback) {
     webrtc = webrtcInit({
       bridge:false, 
-      connectToPeerID : Espruino.Config.WEBRTC_BRIDGE_ID,
+      connectToPeerID : Espruino.Config.WEBRTC_BRIDGE_ID ? Espruino.Config.WEBRTC_BRIDGE_ID.trim() : undefined,
       onStatus : function(s) {
         console.log("[WebRTC Status] "+s);
         // we were using Espruino.Core.Terminal.outputDataHandler(s+"\n");

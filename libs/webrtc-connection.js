@@ -299,6 +299,7 @@ function webrtcInit(options) {
     callbacks[id] = o;
   }
   function callbackCall(id, data) {
+    if (!callbacks[id]) return; // no callback set
     if (callbacks[id].cb)
       callbacks[id].cb(data);
     callbacks[id].cb = undefined;
