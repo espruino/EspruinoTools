@@ -8,7 +8,7 @@ function getHelp() {
    "",
    "  -h,--help                : Show this message",
    "  -j [job.json]            : Load options from JSON job file - see configDefaults.json",
-   "                               Calling without a job filename creates a new job file ",
+   "                               Calling without a job filename creates a new job file",
    "                               named after the uploaded file",
    "  -v,--verbose             : Verbose",
    "  -q,--quiet               : Quiet - apart from Espruino output",
@@ -32,6 +32,7 @@ function getHelp() {
    "  -b baudRate              : Set the baud rate of the serial connection",
    "                               No effect when using USB, default: 9600",
    "  --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)",
+   "  --remote peer-id         : Enables WebRTC connections to a phone (copy the Peer ID from espruino.com/ide/remote)",
    "  --list                   : List all available devices and exit",
    "",
    "  --listconfigs            : Show all available config options and exit",
@@ -158,6 +159,9 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="--board") {
      i++; args.board = next;
      if (!isNextValid(next)) throw new Error("Expecting an argument to --board");
+   } else if (arg=="--remote") {
+     i++; args.remotePeerID = next;
+     if (!isNextValid(next)) throw new Error("Expecting an argument to --remote");
    } else if (arg=="--ide") {
      args.ideServer = 8080;
      if (isFinite(parseInt(next))) {
@@ -276,6 +280,16 @@ function setupConfig(Espruino, callback) {
    process.exit(1);
    //Espruino.Core.Config.getSection(sectionName);
  }
+ if (args.remotePeerID) { // Remote connection enabled
+   if (!Espruino.Core.RemoteConnection)
+     throw new Error("WebRTC not loaded - run again with --verbose for more info");
+   Espruino.Config.set("WEBRTC_BRIDGE_ID", args.remotePeerID);
+   // ensure we start WebRTC and only call 'callback' when it's done
+   let oldCb = callback;
+   callback = function() {
+     Espruino.Core.RemoteConnection.initWebRTC(oldCb);
+   };
+} 
  if (args.board) {
    log("Explicit board JSON supplied: "+JSON.stringify(args.board));
    var jsonLoaded = function(json) {
@@ -296,6 +310,7 @@ function setupConfig(Espruino, callback) {
      Espruino.Plugins.BoardJSON.loadJSON(env, Espruino.Config.BOARD_JSON_URL+"/"+env.BOARD+".json", jsonLoaded);
    }
  } else callback();
+
 }
 
 /* Write a file into a Uint8Array in the form that Espruino expects. Return the
@@ -757,7 +772,11 @@ function getPortPath(port, callback) {
     var timeout = 5;
     Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
       //log(JSON.stringify(ports,null,2));
-      var found = ports.find(function(p) { return (p.description && p.description.toLowerCase().indexOf(searchString)>=0) || p.autoconnect; });
+      var found = ports.find(function(p) { 
+        return (p.description && p.description.toLowerCase().indexOf(searchString)>=0) || 
+          (p.path && p.path.toLowerCase().indexOf(searchString)>=0) ||
+          p.autoconnect; 
+      });
       if (found) {
         log("Found "+JSON.stringify(found.description)+" ("+JSON.stringify(found.path)+")");
         callback(found.path);

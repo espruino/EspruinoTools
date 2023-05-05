@@ -12,7 +12,7 @@ Command-line
 When installed as a Node module with `npm install -g espruino` you get a command-line tool called `espruino`:
 
 ```
-Espruino Command-line Tool 0.1.20
+Espruino Command-line Tool 0.1.49
 -----------------------------------
 
 USAGE: espruino ...options... [file_to_upload.js]
@@ -43,6 +43,7 @@ USAGE: espruino ...options... [file_to_upload.js]
   -b baudRate              : Set the baud rate of the serial connection
                                No effect when using USB, default: 9600
   --no-ble                 : Disables Bluetooth Low Energy (using the 'noble' module)
+  --remote peer-id         : Enables WebRTC connections to a phone (copy the Peer ID from espruino.com/ide/remote)
   --list                   : List all available devices and exit
 
   --listconfigs            : Show all available config options and exit
@@ -109,6 +110,7 @@ espruino -e "digitalWrite(LED1,1);"
 
 Bluetooth
 ----------
+
 If the NPM module `noble` is installed, it'll be used to scan for Bluetooth LE UART devices like [Puck.js](http://puck-js.com). It's an optional dependency, so will be installed if possible - but if not you just won't get BLE support.
 
 If it is installed and you don't want it, you can use `./espruino --no-ble` to disable it for the one command, or can remove the module with `npm remove noble`.
@@ -119,7 +121,24 @@ On linux, you'll need to run as superuser to access Bluetooth Low Energy. To avo
 sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
 ```
 
-Web IDE Relay
+Web IDE Remote Connection
+--------------------------
+
+It is now possible to use the CLI to connect to an Espruino device that is connected on a different computer (eg an Android phone) using the Web IDE Remote Connection (which uses WebRTC).
+
+* Go to https://www.espruino.com/ide/remote on the other computer
+* Click the connect icon in the top left
+* Choose a device to connect to in order to 'pair' it
+* Take a note of the `Bridge Peer ID` that is displayed on the other computer
+* Enter the following on your PC, replacing `ABCDEFGH` with your Peer ID:
+
+```
+# connect via a remote device, watch myprogram.js and re-upload it if it changes
+espruino --remote ABCDEFGH --watch myprogram.js
+```
+
+
+Web IDE Relay (deprecated)
 -------------
 
 It is now possible to use the CLI to connect to an Espruino device that is connected on a different computer (eg an Android phone) using the Web IDE relay.

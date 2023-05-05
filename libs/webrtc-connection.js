@@ -30,6 +30,10 @@ Packets Sent:
 { t : "write", data : data }
 -> { t : "writeResponse" }
 
+"ping" 
+-> If bridge doesn't get a ping in WEBRTC_INACTIVITY_TIMEOUT it closes the connection
+   which we have to do because peer.js doesn't seem to tell us when a connection is closed
+
 TODO:
 
 * The Client (IDE) side needs to be able to remember the Bridge's ID and autoconnect
@@ -44,10 +48,12 @@ options = {
   bridge : bool 
      //  true = we're the one communicating with the Bangle
      //  false = we're communicating with the user
-  //connectToPeerID : string // if set, we connect to this peer as soon as we start
+  connectToPeerID : string // if set, we connect to this peer as soon as we start
   onStatus : function(msg) // show status message   
   onPeerID : function(id) // we have a peer ID now
-  onConnected : function // a peer has connected
+  onBridgePeerID : function(id) // CLIENT: the bridge connected to us and gave us its peer ID
+  onPeerConnected : function // a peer has connected
+  onPeerDisconnected : function // a peer has disconnected
   onGetPorts : function(cb)      // BRIDGE: get port list
   onVideoStream : function(stream) // CLIENT: We have a video stream - display it!
   onPortConnect : function(port, cb) // BRIDGE: start connecting
@@ -75,8 +81,27 @@ Return options with extras added:
   connection : undefined // the current open connection (since we are only supporting one connection right now)
 }
 */
+
+if (typeof Peer == "undefined") {
+  try {
+    if (typeof require != "undefined")
+      Peer = require("peerjs-on-node").Peer;
+    global.File = function() { }; // fix for `ReferenceError: File is not defined` in peerjs-on-node
+  } catch (e) {
+    console.log('webrtc-connection: require("peerjs-on-node") failed: ', e);
+  }
+}
+if (typeof Peer == "undefined") {
+  console.log("webrtc-connection: Peer.js not loaded - Remote Connection disabled");
+  throw false;
+}
+
+var peer; // peer.js connection
+
 function webrtcInit(options) {
-  var peer; // peer.js connection
+
+  const WEBRTC_INACTIVITY_TIMEOUT = 2000; // how long before we kill a socket if no acitivity (because close eventys not getting fired!)
+  
   var callbacks = {}; // list of callbacks
 
   options = options||{};
@@ -85,11 +110,12 @@ function webrtcInit(options) {
   options.connections = [];
   options.connection = undefined; // active connection
 
-  if (!options.bridge &&
-      "undefined"!=typeof window &&
+  var localStorageName = options.bridge ? "WEBRTC_BRIDGE_PEER_ID" : "WEBRTC_CLIENT_PEER_ID";
+
+  if ("undefined"!=typeof window &&
       window.localStorage &&
-      window.localStorage.getItem("WEBRTC_PEER_ID"))
-    options.peerId = window.localStorage.getItem("WEBRTC_PEER_ID");
+      window.localStorage.getItem(localStorageName))
+    options.peerId = window.localStorage.getItem(localStorageName);
 
   peer = new Peer(options.peerId, {
     debug: 2
@@ -101,16 +127,17 @@ function webrtcInit(options) {
         peer.id = options.peerId;
     } else {
       options.peerId = peer.id;
-      if (!options.bridge &&
-        "undefined"!=typeof window &&
+      if ("undefined"!=typeof window &&
         window.localStorage &&
-        window.localStorage.setItem("WEBRTC_PEER_ID", peer.id));
+        window.localStorage.setItem(localStorageName, peer.id));
     }
     options.peerId = peer.id;
 
     console.log('[WebRTC] Peer ID: ' + peer.id);
     if (options.onPeerID)
       options.onPeerID(peer.id);
+    if (options.connectToPeerID)
+      options.connect(options.connectToPeerID);
   });
   peer.on('disconnected', function () {
     options.onStatus("Connection lost. Reconnecting...");
@@ -157,7 +184,9 @@ function webrtcInit(options) {
         if ("object" == typeof data &&
             data.t=="serverId" &&
             data.id) {
-          console.log("[WebRTC] ServerId: Got server ID : "+data.id);       
+          console.log("[WebRTC] ServerId: Got server ID : "+data.id);    
+          if (options.onBridgePeerID)
+            options.onBridgePeerID(data.id);
           options.connect(data.id);
         } else 
           console.log("[WebRTC] ServerId: Unknown packet!",data);   
@@ -168,24 +197,15 @@ function webrtcInit(options) {
       return;
     }
     // We're a bridge - handle this connection!
-    // Allow only a single connection
-    if (options.connection && options.connection.open) {
-      conn.on('open', function() {
-        console.log("[WebRTC] Already connected to another client - disconnecting");
-        conn.send({t:"err",msg:"Already connected to another client"});
-        setTimeout(function() { conn.close(); }, 500);
-      });
-      return;
-    }
     console.log("[WebRTC] Connected to: " + conn.peer);
     options.onStatus("Connected to: " + conn.peer);
-    if (options.onConnected) options.onConnected();
+    if (options.onPeerConnected) options.onPeerConnected();
     webrtcAddHandlers(conn);
   });
 
   Object.assign(options, { // ============== COMMON
     connect : function(id) {
-      console.log("[WebRTC] Connecting...");
+      console.log("[WebRTC] Connecting to "+id+"...");
       var conn = peer.connect(id, {
           reliable: true
       });
@@ -193,35 +213,33 @@ function webrtcInit(options) {
     }
   });
 
+  function send(data) {
+    options.connections.forEach(conn => conn.send(data));
+  }
+
   if (options.bridge) {
     Object.assign(options, { // ============== BRIDGE
       getPorts : function(cb) { // CLIENT
         callbackAddWithTimeout("getPorts", cb, 2000);
-        if (options.connection)
-          options.connection.send({t:"getPorts"});      
+        send({t:"getPorts"});      
       },
       portConnect : function(port, cb) { // CLIENT
         callbackAddWithTimeout("connect", cb, 2000);
-        if (options.connection)
-          options.connection.send({t:"connect", port:port});      
+        send({t:"connect", port:port});      
       },
       portDisconnect : function(cb) { // CLIENT
         callbackAddWithTimeout("disconnect", cb, 2000);
-        if (options.connection)
-          options.connection.send({t:"disconnect"});      
+        send({t:"disconnect"});      
       },
       onPortDisconnected : function() { 
-        if (options.connection)
-          options.connection.send({t:"disconnected"});   
+        send({t:"disconnected"});   
       },
       onPortReceived : function(data) { 
-        if (options.connection)
-          options.connection.send({t:"received", data});   
+        send({t:"received", data});   
       },
       portWrite : function(data, cb) { // CLIENT
         callbackAddWithTimeout("write", cb, 2000);
-        if (options.connection)
-          options.connection.send({t:"write", data:data});      
+        send({t:"write", data:data});      
       },
       connectVideo : function (stream) {
         if (!webrtc.connections.length) {
@@ -251,23 +269,19 @@ function webrtcInit(options) {
     Object.assign(options, { // ============== CLIENT
       getPorts : function(cb) { // CLIENT
         callbackAddWithTimeout("getPorts", cb, 1000);
-        if (options.connection)
-          options.connection.send({t:"getPorts"});      
+        send({t:"getPorts"});      
       },
       portConnect : function(port, cb) { // CLIENT
         callbackAddWithTimeout("connect", cb, 2000);
-        if (options.connection)
-          options.connection.send({t:"connect", port:port});      
+        send({t:"connect", port:port});      
       },
       portDisconnect : function(cb) { // CLIENT
         callbackAddWithTimeout("disconnect", cb, 2000);
-        if (options.connection)
-          options.connection.send({t:"disconnect"});      
+        send({t:"disconnect"});      
       },
       portWrite : function(data, cb) { // CLIENT
         callbackAddWithTimeout("write", cb, 2000);
-        if (options.connection)
-          options.connection.send({t:"write", data:data});      
+        send({t:"write", data:data});      
       },
     });
   }
@@ -298,26 +312,50 @@ function webrtcInit(options) {
   function webrtcAddHandlers(conn) {
     options.connection = conn; 
     options.connections.push(conn);
+    function timeoutHandler() {
+      conn.inactivityTimeout = undefined;
+      console.log("[WebRTC] No activity on connection - closing "+conn.peer);
+      conn.close();
+    }
+    conn.inactivityTimeout = setTimeout(timeoutHandler, WEBRTC_INACTIVITY_TIMEOUT);
     conn.on('open', function () {
       console.log("[WebRTC] Connected to: " + conn.peer);
-      if (options.onConnected) options.onConnected(conn.peer);
+      if (options.onPeerConnected) options.onPeerConnected(conn.peer);
+      conn.keepAliveTimer = setInterval(function() {
+        conn.send("ping"); // don't send anything useful so we won't have to decode it in webrtcDataHandler
+      }, WEBRTC_INACTIVITY_TIMEOUT/2);
     });
     // Handle incoming data (messages only since this is the signal sender)
     conn.on('data', function (data) {
-      webrtcDataHandler(conn, data, options);      
+      webrtcDataHandler(conn, data, options);     
+      if (options.bridge) {
+        if (conn.inactivityTimeout) clearTimeout(conn.inactivityTimeout);
+        conn.inactivityTimeout = setTimeout(timeoutHandler, WEBRTC_INACTIVITY_TIMEOUT); 
+      }
     });
     conn.on('close', function () {
-      console.log("[WebRTC] Connection closed");
+      console.log("[WebRTC] Connection closed on " + conn.peer);
+      options.onStatus("Disconnected from: " + conn.peer);
       options.connection = undefined;
       var idx = options.connections.indexOf(conn);
       if (idx>=0)
         options.connections.splice(idx,1);
+      if (conn.keepAliveTimer) {
+        clearInterval(conn.keepAliveTimer);
+        conn.keepAliveTimer = undefined;
+      }
+      if (conn.inactivityTimeout) {
+        clearTimeout(conn.inactivityTimeout);
+        conn.inactivityTimeout = undefined;
+      }
+      if (options.onPeerDisconnected)
+        options.onPeerDisconnected(conn.peer);
     });  
   }
   
-  function webrtcDataHandler(conn, data, options) {
+  function webrtcDataHandler(conn, data, options) {    
+    if ("object" != typeof data) return; // ignore ping/etc
     console.log("[WebRTC] data " + JSON.stringify(data));
-    if ("object" != typeof data) return;
     if (options.bridge) switch (data.t) { // ================= BRIDGE
       case "getPorts" : // BRIDGE
         options.onGetPorts(ports => {        
@@ -371,4 +409,6 @@ function webrtcInit(options) {
   return options;
 }
 
-
+// Fix for running under Node.js
+if (typeof global != "undefined")
+  global.webrtcInit = webrtcInit;
