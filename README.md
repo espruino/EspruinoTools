@@ -12,7 +12,7 @@ Command-line
 When installed as a Node module with `npm install -g espruino` you get a command-line tool called `espruino`:
 
 ```
-Espruino Command-line Tool 0.1.49
+Espruino Command-line Tool 0.1.50
 -----------------------------------
 
 USAGE: espruino ...options... [file_to_upload.js]

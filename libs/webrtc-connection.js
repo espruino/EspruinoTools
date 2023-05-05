@@ -272,7 +272,7 @@ function webrtcInit(options) {
         send({t:"getPorts"});      
       },
       portConnect : function(port, cb) { // CLIENT
-        callbackAddWithTimeout("connect", cb, 2000);
+        callbackAddWithTimeout("connect", cb, 10000);
         send({t:"connect", port:port});      
       },
       portDisconnect : function(cb) { // CLIENT
@@ -328,10 +328,8 @@ function webrtcInit(options) {
     // Handle incoming data (messages only since this is the signal sender)
     conn.on('data', function (data) {
       webrtcDataHandler(conn, data, options);     
-      if (options.bridge) {
-        if (conn.inactivityTimeout) clearTimeout(conn.inactivityTimeout);
-        conn.inactivityTimeout = setTimeout(timeoutHandler, WEBRTC_INACTIVITY_TIMEOUT); 
-      }
+      if (conn.inactivityTimeout) clearTimeout(conn.inactivityTimeout);
+      conn.inactivityTimeout = setTimeout(timeoutHandler, WEBRTC_INACTIVITY_TIMEOUT); 
     });
     conn.on('close', function () {
       console.log("[WebRTC] Connection closed on " + conn.peer);

@@ -48,7 +48,8 @@ Do we want a way to cancel the remote connection once it is set up?
       onVideoStream : function(stream) {
         console.log("[WebRTC onVideoStream] "+(stream?"enabled":"disabled"));
         if (stream) Espruino.Config.set("SHOW_WEBCAM_ICON", 1); // force webcam icon
-        Espruino.Plugins.Webcam.displayMediaStream(stream);
+        if (Espruino.Plugins.Webcam)
+          Espruino.Plugins.Webcam.displayMediaStream(stream);
       },
       onPeerConnected : function() {
         if (Espruino.Config.WEBRTC_BRIDGE_ID && callback) {
@@ -68,7 +69,8 @@ Do we want a way to cancel the remote connection once it is set up?
       onPeerDisconnected : function() {
         // peer disconnected so show connection dropped
         if (serialDisconnectCallback) serialDisconnectCallback();
-        Espruino.Plugins.Webcam.displayMediaStream(undefined);
+        if (Espruino.Plugins.Webcam)
+          Espruino.Plugins.Webcam.displayMediaStream(undefined);
       },
       onPortReceived : function(data) {
         if (serialReceiveCallback)
