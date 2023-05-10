@@ -109,13 +109,16 @@
     var chNum="0123456789";
     var chAlphaNum = chAlpha+chNum;
     var chWhiteSpace=" \t\n\r";
-    var chQuotes = "\"'`";
     var ch;
     var idx = 0;
     var lineNumber = 1;
-    var nextCh = function() {
+    var nextCh = function() {      
       ch = str[idx++];
       if (ch=="\n") lineNumber++;
+    };
+    var backCh = function() {
+      idx--;
+      ch = str[idx-1];
     };
     nextCh();
     var isIn = function(s,c) { return s.indexOf(c)>=0; } ;
@@ -141,8 +144,9 @@
           }
           nextCh();
           return nextToken();
+        } else {
+          backCh(); // push the char back
         }
-        return {type:"CHAR", str:"/", value:"/", startIdx:idx-2, endIdx:idx-1, lineNumber:lineNumber};
       }
       var s = "";
       var type, value;
@@ -171,8 +175,8 @@
           s+=ch;
           nextCh();
         }
-      } else if (isIn(chQuotes,ch)) { // STRING
-        type = "STRING";
+      } else if (isIn("\"'`/",ch)) { // STRING or regex
+        type = "STRING"; // should we report this as REGEX?
         var q = ch;
         value = "";
         s+=ch;
