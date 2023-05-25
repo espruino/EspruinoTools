@@ -109,10 +109,16 @@
     var chNum="0123456789";
     var chAlphaNum = chAlpha+chNum;
     var chWhiteSpace=" \t\n\r";
+    // https://www-archive.mozilla.org/js/language/js20-2000-07/rationale/syntax.html#regular-expressions
+    var allowedRegExIDs = ["abstract","break","case","catch","class","const","continue","debugger","default",
+    "delete","do","else","enum","eval","export","extends","field","final","finally","for","function","goto",
+    "if","implements","import","in","instanceof","native","new","package","private","protected","public",
+    "return","static","switch","synchronized","throw","throws","transient","try","typeof","var","volatile","while","with"];
+    var allowedRegExChars = ['!','%','&','*','+','-','/','<','=','>','?','[','{','}','(',',',';',':']; // based on Espruino jslex.c (may not match spec 100%)
     var ch;
     var idx = 0;
     var lineNumber = 1;
-    var nextCh = function() {      
+    var nextCh = function() {
       ch = str[idx++];
       if (ch=="\n") lineNumber++;
     };
@@ -122,6 +128,7 @@
     };
     nextCh();
     var isIn = function(s,c) { return s.indexOf(c)>=0; } ;
+    var lastToken = {};
     var nextToken = function() {
       while (isIn(chWhiteSpace,ch)) {
         nextCh();
@@ -176,49 +183,59 @@
           nextCh();
         }
       } else if (isIn("\"'`/",ch)) { // STRING or regex
-        type = "STRING"; // should we report this as REGEX?
-        var q = ch;
-        value = "";
         s+=ch;
+        var q = ch;
         nextCh();
-        while (ch!==undefined && ch!=q) {
-          if (ch=="\\") { // handle escape characters
-            nextCh();
-            var escape = '\\'+ch;
-            var escapeExtra = 0;
-            if (ch=="x") {
-              nextCh();escape += ch;
-              nextCh();escape += ch;
-              value += String.fromCharCode(parseInt(escape.substr(2), 16));
-            } else if (ch=="u") {
-              nextCh();escape += ch;
-              nextCh();escape += ch;
-              nextCh();escape += ch;
-              nextCh();escape += ch;
-              value += String.fromCharCode(parseInt(escape.substr(2), 16));
-            } else {
-              try {
-                value += JSON.parse('"'+escape+'"');
-              } catch (e) {
-                value += escape;
+        // Handle case where '/' is just a divide character, not RegEx
+        if (s=='/' && (lastToken.type=="STRING" || lastToken.type=="NUMBER" ||
+                       (lastToken.type=="ID" && !allowedRegExIDs.includes(lastToken.str)) ||
+                       (lastToken.type=="CHAR" && allowedRegExChars.includes(lastToken.str))
+                      )) {
+          // https://www-archive.mozilla.org/js/language/js20-2000-07/rationale/syntax.html#regular-expressions
+          type = "CHAR";
+        } else {
+          type = "STRING"; // should we report this as REGEX?
+          value = "";
+
+          while (ch!==undefined && ch!=q) {
+            if (ch=="\\") { // handle escape characters
+              nextCh();
+              var escape = '\\'+ch;
+              var escapeExtra = 0;
+              if (ch=="x") {
+                nextCh();escape += ch;
+                nextCh();escape += ch;
+                value += String.fromCharCode(parseInt(escape.substr(2), 16));
+              } else if (ch=="u") {
+                nextCh();escape += ch;
+                nextCh();escape += ch;
+                nextCh();escape += ch;
+                nextCh();escape += ch;
+                value += String.fromCharCode(parseInt(escape.substr(2), 16));
+              } else {
+                try {
+                  value += JSON.parse('"'+escape+'"');
+                } catch (e) {
+                  value += escape;
+                }
               }
+              s += escape;
+            } else {
+              s+=ch;
+              value += ch;
             }
-            s += escape;
-          } else {
-            s+=ch;
-            value += ch;
-          }
+            nextCh();
+          };
+          if (ch!==undefined) s+=ch;
           nextCh();
-        };
-        if (ch!==undefined) s+=ch;
-        nextCh();
+        }
       } else {
         type = "CHAR";
         s+=ch;
         nextCh();
       }
       if (value===undefined) value=s;
-      return {type:type, str:s, value:value, startIdx:startIdx, endIdx:idx-1, lineNumber:lineNumber};
+      return lastToken={type:type, str:s, value:value, startIdx:startIdx, endIdx:idx-1, lineNumber:lineNumber};
     };
 
     return {
