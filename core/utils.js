@@ -189,7 +189,7 @@
         // Handle case where '/' is just a divide character, not RegEx
         if (s=='/' && (lastToken.type=="STRING" || lastToken.type=="NUMBER" ||
                        (lastToken.type=="ID" && !allowedRegExIDs.includes(lastToken.str)) ||
-                       (lastToken.type=="CHAR" && allowedRegExChars.includes(lastToken.str))
+                       (lastToken.type=="CHAR" && !allowedRegExChars.includes(lastToken.str))
                       )) {
           // https://www-archive.mozilla.org/js/language/js20-2000-07/rationale/syntax.html#regular-expressions
           type = "CHAR";
