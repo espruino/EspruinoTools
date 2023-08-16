@@ -22,6 +22,7 @@ Do we want a way to cancel the remote connection once it is set up?
   console.log("Remote Connection enabled");
 
   var webrtc; // Our WebRTC connection
+  var webrtcLoading = false;
   var serialReceiveCallback;
   var serialDisconnectCallback;
   var popup; // popup window from showPairingPopup that goes away when the Bridge connects
@@ -42,6 +43,11 @@ Do we want a way to cancel the remote connection once it is set up?
       connectToPeerID : Espruino.Config.WEBRTC_BRIDGE_ID ? Espruino.Config.WEBRTC_BRIDGE_ID.trim() : undefined,
       onStatus : function(s) {
         console.log("[WebRTC Status] "+s);
+        if (s.startsWith("ERROR"))
+          if (callback) { // callback even if no ID because there was an error
+            callback(undefined); 
+            callback = undefined;
+          }
         // we were using Espruino.Core.Terminal.outputDataHandler(s+"\n");
       },
       onPeerID : function(id) {      
@@ -64,6 +70,7 @@ Do we want a way to cancel the remote connection once it is set up?
       onPeerConnected : function() {
         if (Espruino.Config.WEBRTC_BRIDGE_ID && callback) {
           callback();
+          callback = undefined;
         }
         // peer connected, remove the popup and show the port selector
         if (popup) {
@@ -93,18 +100,22 @@ Do we want a way to cancel the remote connection once it is set up?
   }
 
   var getPorts=function(callback) {
-    if (webrtc && webrtc.connections.length) {
+    if (webrtcLoading) {
+      callback([], false);
+    } else if (webrtc && webrtc.connections.length) {
       // If we have a connection, great - use it to get ports
       webrtc.getPorts(ports => {
         callback(ports, false/*not immediate*/)
       });
+    } else if (!webrtc && Espruino.Config.WEBRTC_BRIDGE_ID) {
+      webrtcLoading = true;
+      initWebRTC(function(id) {
+        // could be success or error, it's fine
+        webrtcLoading = false;          
+      });
+      callback([], false);
     } else {
-      if (!webrtc && Espruino.Config.WEBRTC_BRIDGE_ID)
-        initWebRTC(function() {
-          callback([], false);
-        });
-      else
-       callback([]); // peer connection failed - ignore this
+      callback([]); // peer connection failed - ignore this
     }
   };
 
@@ -161,8 +172,13 @@ Please scan the QR code below with your phone or copy/paste the URL to start a c
     init : init,
     showPairingPopup : showPairingPopup,
     initWebRTC : function(callback) {
-      if (!webrtc) initWebRTC(callback);
-      else callback();
+      if (!webrtc) {
+        webrtcLoading = true;
+        initWebRTC(function(id) {
+          webrtcLoading = false;
+          if (callback) callback(id)
+        });
+      } else callback();
     }
   };
   Espruino.Core.Serial.devices.push({

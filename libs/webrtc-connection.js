@@ -120,6 +120,7 @@ function webrtcInit(options) {
   peer = new Peer(options.peerId, {
     debug: 2
   });
+  var conn;
   peer.on('open', function (id) {
     // Workaround for peer.reconnect deleting previous id
     if (peer.id === null) {
@@ -137,7 +138,7 @@ function webrtcInit(options) {
     if (options.onPeerID)
       options.onPeerID(peer.id);
     if (options.connectToPeerID)
-      options.connect(options.connectToPeerID);
+      conn = options.connect(options.connectToPeerID);
   });
   peer.on('disconnected', function () {
     options.onStatus("Connection lost. Reconnecting...");
@@ -149,13 +150,17 @@ function webrtcInit(options) {
     peer.reconnect();
   });
   peer.on('close', function() {
-    conn = null;
     options.onStatus("Connection destroyed. Please refresh");
     console.log('Connection destroyed');
   });
   peer.on('error', function (err) {
     console.log(err);
     options.onStatus("ERROR: "+err);
+    // remove this from our active connections list
+    if (conn) {
+      webrtcRemoveConnection(conn);
+      conn = undefined;
+    }
   });
   peer.on('call', function(call) {    
     if (options.onVideoStream) {
@@ -210,6 +215,7 @@ function webrtcInit(options) {
           reliable: true
       });
       webrtcAddHandlers(conn);
+      return conn;
     }
   });
 
@@ -308,7 +314,11 @@ function webrtcInit(options) {
     callbacks[id] = undefined;
   }
   
-  
+  function webrtcRemoveConnection(conn) {
+    var idx = options.connections.indexOf(conn);
+    if (idx>=0)
+      options.connections.splice(idx,1);
+  }
   
   function webrtcAddHandlers(conn) {
     options.connection = conn; 
@@ -336,9 +346,7 @@ function webrtcInit(options) {
       console.log("[WebRTC] Connection closed on " + conn.peer);
       options.onStatus("Disconnected from: " + conn.peer);
       options.connection = undefined;
-      var idx = options.connections.indexOf(conn);
-      if (idx>=0)
-        options.connections.splice(idx,1);
+      webrtcRemoveConnection(conn);
       if (conn.keepAliveTimer) {
         clearInterval(conn.keepAliveTimer);
         conn.keepAliveTimer = undefined;
