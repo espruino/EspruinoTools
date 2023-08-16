@@ -132,18 +132,20 @@
         if (board.EXPTR)
           compileData.exptr = JSON.stringify(board.EXPTR);
 
-        $.post(Espruino.Config.COMPILATION_URL, compileData, function(newCode) {
+        Espruino.Core.Utils.getURL(Espruino.Config.COMPILATION_URL, function(newCode) {
+          if (newCode===undefined) {
+            Espruino.Core.Notifications.error("Error contacting server. Unable to compile code"+description+" right now.");
+            taskCount--;
+            if (taskCount==0) callback(code);
+            return;
+          }
           if (newCode) {
             replaceNode(task.node, newCode);
           }
           taskCount--;
           if (taskCount==0)
             callback(code);
-        }).fail(function() {
-          Espruino.Core.Notifications.error("Error contacting server. Unable to compile code"+description+" right now.");
-          taskCount--;
-          if (taskCount==0) callback(code);
-        });
+        }, { method:"POST", data:compileData });
       });
 
     } catch (err) {

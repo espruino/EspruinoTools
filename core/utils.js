@@ -458,12 +458,19 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return parseFloat(version.trim().replace("v","."));
   };
 
-  /// Gets a URL, and returns callback(data) or callback(undefined) on error
-  function getURL(url, callback) {
-    Espruino.callProcessor("getURL", { url : url, data : undefined }, function(result) {
+  /// Gets a URL, and returns callback(data) or callback(undefined) on error. options={method:"GET/POST", data:{a:1,b:2}}
+  function getURL(url, callback, options) {
+    if (options===undefined) options={};
+    if (!options.method) options.method="GET";
+    Espruino.callProcessor("getURL", { url : url, data : undefined, method : options.method }, function(result) {
       if (result.data!==undefined) {
         callback(result.data);
       } else {
+        // encode data to send
+        var formData = null;
+        if (options.data)
+          formData = Object.keys(options.data).map(key=> encodeURIComponent(key)+"="+encodeURIComponent(options.data[key])).join("&");
+        // do the request
         var resultUrl = result.url ? result.url : url;
         if (typeof process === 'undefined') {
           // Web browser
@@ -481,20 +488,36 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
             console.error("getURL("+JSON.stringify(url)+") error "+e);
             callback(undefined);
           });
-          xhr.open("GET", url, true);
-          xhr.send(null);
+          xhr.open(options.method, url, true);
+          if (formData!==null)
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+          xhr.send(formData);
         } else {
           // Node.js
           if (resultUrl.substr(0,4)=="http") {
             var m = resultUrl[4]=="s"?"https":"http";
 
-            var http_options = Espruino.Config.MODULE_PROXY_ENABLED ? {
-              host: Espruino.Config.MODULE_PROXY_URL,
-              port: Espruino.Config.MODULE_PROXY_PORT,
-              path: resultUrl,
-            } : resultUrl;
-
-            require(m).get(http_options, function(res) {
+            var http_options;
+            if (Espruino.Config.MODULE_PROXY_ENABLED) {
+              http_options = {
+                host: Espruino.Config.MODULE_PROXY_URL,
+                port: Espruino.Config.MODULE_PROXY_PORT,
+                path: resultUrl,
+                method: options.method
+              };
+            } else {
+              var p = require('url').parse(resultUrl);
+              http_options = {
+                host: p.host,
+                port: p.port,
+                path: p.path,
+                method: options.method
+              };
+            }
+            if (formData!==null)
+              http_options.headers = { "Content-Type" : "application/x-www-form-urlencoded" };
+            console.log(http_options);
+            var req = require(m).request(http_options, function(res) {
               if (res.statusCode != 200) {
                 console.log("Espruino.Core.Utils.getURL: got HTTP status code "+res.statusCode+" for "+url);
                 return callback(undefined);
@@ -508,6 +531,9 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
               console.error("getURL("+JSON.stringify(url)+") error : "+err);
               callback(undefined);
             });
+            if (formData!==null) 
+              req.write(formData);
+            req.end();
           } else {
             require("fs").readFile(resultUrl, function(err, d) {
               if (err) {
