@@ -867,7 +867,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     var i = 0;
     // remove all characters that are not A-Z, a-z, 0-9, +, /, or =
     input = input.replace(/[^A-Za-z0-9\+\/\=]/g, '');
-    do {
+    while (i < input.length) {
       enc1 = keyStr.indexOf(input.charAt(i++));
       enc2 = keyStr.indexOf(input.charAt(i++));
       enc3 = keyStr.indexOf(input.charAt(i++));
@@ -885,7 +885,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       if (enc4 !== 64) {
         output = output + String.fromCharCode(chr3);
       }
-    } while (i < input.length);
+    }
     return output;
   }
 
