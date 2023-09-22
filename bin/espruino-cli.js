@@ -42,6 +42,7 @@ function getHelp() {
    "  --ohex out.hex           : Write the JS code to a hex file as if sent by E.setBootCode",
    "  --storage fn:data.bin    : Load 'data.bin' from disk and write it to Storage as 'fn'",
    "  --storage .boot0:-       : Store program code in the given Storage file (not .bootcde)",
+   "  --scan-timeout 3         : Max time to scan for BLE devices (default to 3 seconds)",
    "",
    "  -f firmware.bin[:N]      : Update Espruino's firmware to the given file",
    "                               Must be a USB Espruino in bootloader mode",
@@ -66,7 +67,8 @@ console.log = function() {
 var args = {
  ports: [], // ports to try and connect to
  config: {}, // Config defines to set when running Espruino tools
- storageContents : {} // Storage files to save when using ohex
+ storageContents : {}, // Storage files to save when using ohex
+ scanTimeout : 3 // Default value
 };
 
 var isNextValidNumber = function(next) {
@@ -171,6 +173,9 @@ for (var i=2;i<process.argv.length;i++) {
    } else if (arg=="--sleep") {
      i++; args.sleepAfterUpload = parseFloat(next);
      if (!isNextValidNumber(next)) throw new Error("Expecting a number argument to --sleep");
+   } else if (arg=="--scan-timeout") {
+     i++; args.scanTimeout = parseInt(next);
+     if (!isNextValid(next) || isNaN(args.scanTimeout)) throw new Error("Expecting a numeric argument to --scan-timeout");
    } else throw new Error("Unknown Argument '"+arg+"', try --help");
  } else {
    if ("file" in args)
@@ -764,7 +769,7 @@ function getPortPath(port, callback) {
   else if (port.type=="name") {
     log("Searching for device named "+JSON.stringify(port.name));
     var searchString = port.name.toLowerCase();
-    var timeout = 5;
+    var timeout = args.scanTimeout * 2;
     Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
       //log(JSON.stringify(ports,null,2));
       var found = ports.find(function(p) { 
@@ -828,7 +833,7 @@ function main() {
       sendCode(tasksComplete);
     } else if (args.ports.length == 0 || args.showDevices) {
       console.log("Searching for serial ports...");
-      var timeout = 5;
+      var timeout = args.scanTimeout * 2;
       var allPorts = [];
       var outputHeader = false;
       Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
