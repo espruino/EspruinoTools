@@ -18,7 +18,7 @@
       name : "Module URL",
       description : "Where to search online for modules when `require()` is used. Can supply more than one URL, separated by '|'",
       type : "string",
-      defaultValue : "https://www.espruino.com/modules"
+      defaultValue : "https://www.espruino.com/modules|https://banglejs.com/apps/modules"
     });
     Espruino.Core.Config.add("MODULE_EXTENSIONS", {
       section : "Communications",
