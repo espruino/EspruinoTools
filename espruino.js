@@ -13,7 +13,7 @@
 
 var Espruino;
 
-(function() {
+(function () {
 
   /** List of processors. These are functions that are called one
    * after the other with the data received from the last one.
@@ -39,33 +39,31 @@ var Espruino;
    *   debugMode            - called with true or false when debug mode is entered or left
    *   editorHover          - called with { node : htmlNode, showTooltip : function(htmlNode) } when something is hovered over
    *   notification         - called with { mdg, type:"success","error"/"warning"/"info" }
-   *   webcam               - called when webcam is visible or not {  visible : true , stream: MediaStream }  
+   *   webcam               - called when webcam is visible or not {  visible : true , stream: MediaStream }
    **/
   var processors = {};
 
   function init() {
 
-    Espruino.Core.Config.loadConfiguration(function() {
+    Espruino.Core.Config.loadConfiguration(function () {
       // Initialise all modules
       function initModule(modName, mod) {
-        console.log("Initialising "+modName);
+        console.log("Initialising " + modName);
         if (mod.init !== undefined) {
           try {
             mod.init();
           } catch (e) {
-            console.warn("Module initialisation failed for "+modName, e);
+            console.warn("Module initialisation failed for " + modName, e);
           }
         }
       }
 
-      var module;
-
       function initModules(moduleList) {
-        var moduleNames = Object.keys(moduleList).sort(function(a,b) {
-          return (0|moduleList[a].sortOrder) - (0|moduleList[b].sortOrder);
+        var moduleNames = Object.keys(moduleList).sort(function (a, b) {
+          return (0 | moduleList[a].sortOrder) - (0 | moduleList[b].sortOrder);
         });
         //console.log(moduleNames);
-        moduleNames.forEach(function(module) {
+        moduleNames.forEach(function (module) {
           initModule(module, moduleList[module]);
         });
       }
@@ -73,9 +71,9 @@ var Espruino;
       initModules(Espruino.Core);
       initModules(Espruino.Plugins);
 
-      callProcessor("initialised", undefined, function() {
+      callProcessor("initialised", undefined, function () {
         // We need the delay because of background.js's url_handler...
-        setTimeout(function() {
+        setTimeout(function () {
           Espruino.initialised = true;
         }, 1000);
       });
@@ -83,48 +81,58 @@ var Espruino;
   }
 
   // Automatically start up when all is loaded
-  if (typeof document!=="undefined")
+  if (typeof document !== "undefined")
     document.addEventListener("DOMContentLoaded", init);
 
   /** Add a processor function of type function(data,callback) */
   function addProcessor(eventType, processor) {
-    if (processors[eventType]===undefined)
+    if (processors[eventType] === undefined)
       processors[eventType] = [];
     processors[eventType].push(processor);
+  }
+
+  function addAsyncProcessor(eventType, processor) {
+    addProcessor(eventType, (data, callback) => Promise.resolve(data).then(processor).then(callback));
   }
 
   /** Call a processor function */
   function callProcessor(eventType, data, callback) {
     var p = processors[eventType];
     // no processors
-    if (p===undefined || p.length==0) {
-      if (callback!==undefined) callback(data);
+    if (p === undefined || p.length == 0) {
+      if (callback !== undefined) callback(data);
       return;
     }
     // now go through all processors
     var n = 0;
     var cbCalled = false;
-    var cb = function(inData) {
-      if (cbCalled) throw new Error("Internal error in "+eventType+" processor. Callback is called TWICE.");
+    var cb = function (inData) {
+      if (cbCalled) throw new Error("Internal error in " + eventType + " processor. Callback is called TWICE.");
       cbCalled = true;
       if (n < p.length) {
         cbCalled = false;
         p[n++](inData, cb);
       } else {
-        if (callback!==undefined) callback(inData);
+        if (callback !== undefined) callback(inData);
       }
     };
     cb(data);
   }
 
+  function awaitProcessor(eventType, data) {
+    return new Promise(resolve => callProcessor(eventType, data, resolve));
+  }
+
   // -----------------------------------
   Espruino = {
-    Core : { },
-    Plugins : { },
-    addProcessor : addProcessor,
-    callProcessor : callProcessor,
-    initialised : false,
-    init : init, // just in case we need to initialise this by hand
+    Core: {},
+    Plugins: {},
+    addProcessor,
+    addAsyncProcessor,
+    callProcessor,
+    awaitProcessor,
+    initialised: false,
+    init, // just in case we need to initialise this by hand
   };
 
   return Espruino;
