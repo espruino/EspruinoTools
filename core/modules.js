@@ -60,9 +60,7 @@
     });
 
     // When code is sent to Espruino, search it for modules and add extra code required to load them
-    Espruino.addProcessor("transformForEspruino", function(code, callback) {
-      loadModules(code, callback);
-    });
+    Espruino.addAsyncProcessor("transformForEspruino", loadModules);
 
     // Append the 'getModule' processor as the last (plugins get initialized after Espruino.Core modules)
     Espruino.Plugins.CoreModules = {
@@ -164,78 +162,67 @@
 
   /** Called from loadModule when a module is loaded. Parse it for other modules it might use
    *  and resolve dfd after all submodules have been loaded */
-  function moduleLoaded(resolve, requires, modName, data, loadedModuleData, alreadyMinified){
+  async function moduleLoaded(requires, modName, code, loadedModuleData, alreadyMinified){
     // Check for any modules used from this module that we don't already have
-    var newRequires = getModulesRequired(data);
+    var newRequires = getModulesRequired(code);
     console.log(" - "+modName+" requires "+JSON.stringify(newRequires));
     // if we need new modules, set them to load and get their promises
     var newPromises = [];
-    for (var i in newRequires) {
-      if (requires.indexOf(newRequires[i])<0) {
-        console.log("   Queueing "+newRequires[i]);
-        requires.push(newRequires[i]);
-        newPromises.push(loadModule(requires, newRequires[i], loadedModuleData));
+    for (var newRequire of newRequires) {
+      if (requires.indexOf(newRequire)<0) {
+        console.log("   Queueing "+newRequire);
+        requires.push(newRequire);
+        newPromises.push(loadModule(requires, newRequire, loadedModuleData));
       } else {
-        console.log("   Already loading "+newRequires[i]);
+        console.log("   Already loading "+newRequire);
       }
     }
 
-    var loadProcessedModule = function (module) {
-      // if we needed to load something, wait until it's loaded before resolving this
-      Promise.all(newPromises).then(function(){
-        // add the module to end of our array
-        if (Espruino.Config.MODULE_AS_FUNCTION)
-          loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + ",function(){" + module.code + "\n});");
-        else
-          loadedModuleData.push("Modules.addCached(" + JSON.stringify(module.name) + "," + JSON.stringify(module.code) + ");");
-        // We're done
-        resolve();
-      });
-    }
-    if (alreadyMinified)
-      loadProcessedModule({code:data,name:modName});
+    if (!alreadyMinified)
+      code = await Espruino.awaitProcessor("transformModuleForEspruino", { code, name: modName }).then(obj => obj.code);
+    
+    // if we needed to load something, wait until it's loaded before resolving this
+    await Promise.all(newPromises);
+      
+    // add the module to end of our array
+    if (Espruino.Config.MODULE_AS_FUNCTION)
+      loadedModuleData.push("Modules.addCached(" + JSON.stringify(modName) + ",function(){" + code + "\n});");
     else
-      Espruino.callProcessor("transformModuleForEspruino", {code:data,name:modName}, loadProcessedModule);
+      loadedModuleData.push("Modules.addCached(" + JSON.stringify(modName) + "," + JSON.stringify(code) + ");");
   }
 
   /** Given a module name (which could be a URL), try and find it. Return
    * a deferred thingybob which signals when we're done. */
-  function loadModule(requires, fullModuleName, loadedModuleData) {
-    return new Promise(function(resolve, reject) {
+  async function loadModule(requires, fullModuleName, loadedModuleData) {
       // First off, try and find this module using callProcessor
-      Espruino.callProcessor("getModule",
-        { moduleName:fullModuleName, moduleCode:undefined, isMinified:false },
-        function(data) {
-          if (data.moduleCode===undefined) {
-            Espruino.Core.Notifications.warning("Module "+fullModuleName+" not found");
-            return resolve();
-          }
+    const data = await Espruino.awaitProcessor("getModule", { moduleName:fullModuleName, moduleCode:undefined, isMinified:false });
 
-          // great! it found something. Use it.
-          moduleLoaded(resolve, requires, fullModuleName, data.moduleCode, loadedModuleData, data.isMinified);
-        });
-    });
+    if (data.moduleCode===undefined) {
+      Espruino.Core.Notifications.warning("Module "+fullModuleName+" not found");
+    } else {
+      // great! it found something. Use it.
+      await moduleLoaded(requires, fullModuleName, data.moduleCode, loadedModuleData, data.isMinified);
+    }
   }
 
   /** Finds instances of 'require' and then ensures that
    those modules are loaded into the module cache beforehand
    (by inserting the relevant 'addCached' commands into 'code' */
-  function loadModules(code, callback){
+  async function loadModules(code){
     var loadedModuleData = [];
     var requires = getModulesRequired(code);
-    if (requires.length == 0) {
+    if (requires.length === 0) {
       // no modules needed - just return
-      callback(code);
+      return code;
     } else {
       Espruino.Core.Status.setStatus("Loading modules");
       // Kick off the module loading (each returns a promise)
-      var promises = requires.map(function (moduleName) {
-        return loadModule(requires, moduleName, loadedModuleData);
-      });
+      var promises = requires.map((moduleName) => loadModule(requires, moduleName, loadedModuleData));
+      
       // When all promises are complete
-      Promise.all(promises).then(function(){
-        callback(loadedModuleData.join("\n") + "\n" + code);
-      });
+      await Promise.all(promises);
+      
+      return loadedModuleData.join("\n") + "\n" + code;
     }
   };
 
