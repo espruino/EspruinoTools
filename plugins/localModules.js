@@ -29,12 +29,13 @@
       name : "Path to modules",
       description : "The filesystem path to use when looking for modules. When calling require('./foo.js') it will load the file at MODULES_CWD+'./foo.js'.",
       type : "string",
-      defaultValue : process.cwd()
+      defaultValue : ""
     });
 
     Espruino.addProcessor("getModule", function (data, callback) {
       var espruino_modules = Espruino.Config.MODULES_DIR_NAME;
       var cwd = Espruino.Config.MODULES_CWD;
+      if (!cwd) cwd = process.cwd();
 
         /**
          * Implements the require.resolve() rules as per node
