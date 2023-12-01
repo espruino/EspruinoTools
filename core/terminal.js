@@ -17,6 +17,9 @@
      !process.versions.electron)
     return; // don't load this in std NodeJS
 
+  // Don't load if there is no document to attach the terminal to
+  if(typeof document === "undefined") return;
+
   var onInputData = function(d){}; // the handler for character data from user
 
   /* we don't update the terminal as soon as new data arrives as that might block
