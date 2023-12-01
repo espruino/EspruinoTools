@@ -17,16 +17,25 @@
   var path = require('path');
 
   function init() {
-    Espruino.addProcessor("getModule", function (data, callback) {      
+    Espruino.Core.Config.add("MODULES_DIR_NAME", {
+      section : "Communications",
+      name : "Espruino modules folder name",
+      description : "Name of the folder containing espruino modules.",
+      type : "string",
+      defaultValue : "modules"
+    });
+    Espruino.Core.Config.add("MODULES_CWD", {
+      section : "Communications",
+      name : "Path to modules",
+      description : "The filesystem path to use when looking for modules. When calling require('./foo.js') it will load the file at MODULES_CWD+'./foo.js'.",
+      type : "string",
+      defaultValue : ""
+    });
 
-      /** This is the original code **/
-      //if (fs.existsSync("modules/"+data.moduleName)) {
-      //  console.log("Loading local module "+"modules/"+data.moduleName);
-      //  data.moduleCode = fs.readFileSync("modules/"+data.moduleName).toString();
-      //} else if (fs.existsSync(data.moduleName)) {
-      //  console.log("Loading local module "+data.moduleName);
-      //  data.moduleCode = fs.readFileSync(data.moduleName).toString();
-      //}
+    Espruino.addProcessor("getModule", function (data, callback) {
+      var espruino_modules = Espruino.Config.MODULES_DIR_NAME;
+      var cwd = Espruino.Config.MODULES_CWD;
+      if (!cwd) cwd = process.cwd();
 
         /**
          * Implements the require.resolve() rules as per node
@@ -82,21 +91,29 @@
             return false;
         }
 
+        function loadModule(x){
+            return loadAsFile(x) || loadAsDirectory(x);
+        }
+
         function loadEspModules(x, start) {
-            /** currently don't follow paths up to root, only look in cwd() for modules **/
-            var y = 'modules'; //todo: make this a user-definable parameter &/or change to 'espruino_modules'
-            loadAsFile(path.join(y,x)) || loadAsDirectory(path.join(y,x));
+          var current;
+          do {
+            current = start;
+            if (loadModule(path.join(current,espruino_modules,x))) return true;
+            start = path.resolve(current, '..');
+          } while (current !== start);
+
+          return false;
         }
 
         /**
          * todo: could look at boardJSON.info.builtin_modules and handle nicely but not necessary to have work
          */
-        var y = process.cwd();
         var x = data.moduleName;
-        if(x.indexOf('./')==0 || x.indexOf('/')==0 || x.indexOf('../')==0) {
-            loadAsFile(path.join(y,x)) || loadAsDirectory(path.join(y,x));
+        if (x.indexOf('./')==0 || x.indexOf('/')==0 || x.indexOf('../')==0) {
+            loadModule(path.join(cwd,x));
         } else {
-            loadEspModules(x, y);
+            loadEspModules(x,cwd);
         }
 
       callback(data);
