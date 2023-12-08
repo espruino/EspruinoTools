@@ -176,7 +176,7 @@ To add a new serial device, you must add an object to
     }
 
     var portInfo = { port:serialPort };
-    connectionInfo = undefined;
+    var connectionInfo = undefined;
     flowControlXOFF = false;
     if (flowControlTimeout) {
       clearTimeout(flowControlTimeout);
@@ -192,7 +192,6 @@ To add a new serial device, you must add an object to
         currentDevice = undefined;
       } else {
         connectionInfo = cInfo;
-        connectedPort = serialPort;
         console.log("Connected", cInfo);
         if (connectionInfo.portName)
           portInfo.portName = connectionInfo.portName;
