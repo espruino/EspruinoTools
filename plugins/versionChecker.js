@@ -78,6 +78,7 @@
            env.BOARD=="ESPRUINOWIFI" ||
            env.BOARD=="PUCKJS" ||
            env.BOARD=="PIXLJS" ||
+           env.BOARD=="JOLTJS" ||
            env.BOARD=="MDBT42Q" ||
            env.BOARD=="BANGLEJS" ||
            env.BOARD=="BANGLEJS2")) {
@@ -88,7 +89,10 @@
             id:'update',
             title: 'New Firmware '+ tAvailable +' available. Click to update.',
             click: function(){
-              Espruino.Core.MenuSettings.show("Flasher");
+              if (env.BOARD=="BANGLEJS2")
+                window.open("https://banglejs.com/apps/?id=fwupdate");
+              else
+                Espruino.Core.MenuSettings.show("Flasher");
             }
           });
         }
