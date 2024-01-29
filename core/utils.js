@@ -531,7 +531,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
               console.error("getURL("+JSON.stringify(url)+") error : "+err);
               callback(undefined);
             });
-            if (formData!==null) 
+            if (formData!==null)
               req.write(formData);
             req.end();
           } else {
@@ -816,6 +816,39 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return JSON.parse(final);
   };
 
+  /* Escape a string (like JSON.stringify) so that Espruino can understand it,
+  however use \0,\1,\x,etc escapes whenever possible to make the String as small
+  as it can be. On Espruino with UTF8 support, not using \u.... also allows it
+  to use non-UTF8 Strings which are more efficient. */
+  function toJSONishString(txt) {
+    let js = "\"";
+    for (let i=0;i<txt.length;i++) {
+      let ch = txt.charCodeAt(i);
+      let nextCh = (i+1<txt.length ? txt.charCodeAt(i+1) : 0); // 0..255
+      if (ch<8) {
+          // if the next character is a digit, it'd be interpreted
+          // as a 2 digit octal character, so we can't use `\0` to escape it
+          if (nextCh>='0' && nextCh<='7') js += "\\x0"+ch;
+          else js += "\\"+ch;
+      } else if (ch==8) js += "\\b";
+      else if (ch==9) js += "\\t";
+      else if (ch==10) js += "\\n";
+      else if (ch==11) js += "\\v";
+      else if (ch==12) js += "\\f";
+      else if (ch==34) js += "\\\""; // quote
+      else if (ch==92) js += "\\\\"; // slash
+      else if (ch<32 || ch==127 || ch==173 ||
+               ((ch>=0xC2) && (ch<=0xF4))) // unicode start char range
+          js += "\\x"+ ((ch & 255) | 256).toString(16).substring(1);
+      else if (ch>255)
+          js += "\\u"+ ((ch & 65535) | 65536).toString(16).substring(1);
+      else js += txt[i];
+    }
+    js += "\"";
+    //let b64 = "atob("+JSON.stringify(Espruino.Core.Utils.btoa(txt))+")";
+    return js;
+  }
+
   // Does the given string contain only ASCII characters?
   function isASCII(str) {
     for (var i=0;i<str.length;i++) {
@@ -931,6 +964,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       dataViewToArrayBuffer : dataViewToArrayBuffer,
       arrayBufferToString : arrayBufferToString,
       parseJSONish : parseJSONish,
+      toJSONishString : toJSONishString,
       isASCII : isASCII,
       btoa : btoa,
       atob : atob

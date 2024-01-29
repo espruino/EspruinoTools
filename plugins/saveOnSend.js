@@ -93,12 +93,13 @@
         var CHUNKSIZE = 1024;
         var newCode = [];
         var len = code.length;
-        newCode.push('require("Storage").write("'+filename+'",'+JSON.stringify(code.substr(0,CHUNKSIZE))+',0,'+len+');');
+        var asJS = Espruino.Core.Utils.toJSONishString;
+        newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(0,CHUNKSIZE))+',0,'+len+');');
         for (var i=CHUNKSIZE;i<len;i+=CHUNKSIZE)
-          newCode.push('require("Storage").write("'+filename+'",'+JSON.stringify(code.substr(i,CHUNKSIZE))+','+i+');');
+          newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(i,CHUNKSIZE))+','+i+');');
         code = newCode.join("\n");
         if (Espruino.Config.LOAD_STORAGE_FILE==2 && isStorageUpload)
-          code += "\nload("+JSON.stringify(filename)+")\n";
+          code += "\nload("+asJS(filename)+")\n";
         else if (Espruino.Config.LOAD_STORAGE_FILE!=0)
           code += "\nload()\n";
       }
