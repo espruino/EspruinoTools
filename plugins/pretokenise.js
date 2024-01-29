@@ -110,15 +110,26 @@
 /*LEX_R_OF    :   */  "of"
 ];
 
+  const LEX_RAW_STRING8 = 0xD1;
+  const LEX_RAW_STRING16 = 0xD2;
 
   function pretokenise(code, callback) {
+    var pretokeniseStrings = false; // only works on 2v20.48 and later
+    var boardData = Espruino.Core.Env.getBoardData();
+    if (boardData && boardData.VERSION) {
+      var v = parseFloat(boardData.VERSION.replace("v","0"));
+      if (v >= 2020.48)
+        pretokeniseStrings = true;
+    }
+
     var lex = (function() {
       var t = acorn.tokenizer(code);
       return { next : function() {
         var tk = t.getToken();
         if (tk.type.label=="eof") return undefined;
         var tp = "?";
-        if (tk.type.label=="template" || tk.type.label=="string") tp="STRING";
+        if (tk.type.label=="template") tp="TEMPLATEDSTRING";
+        if (tk.type.label=="string") tp="STRING";
         if (tk.type.label=="num") tp="NUMBER";
         if (tk.type.keyword || tk.type.label=="name") tp="ID";
         if (tp=="?" && tk.start+1==tk.end) tp="CHAR";
@@ -126,6 +137,7 @@
           startIdx : tk.start,
           endIdx : tk.end,
           str : code.substring(tk.start, tk.end),
+          value : tk.value,
           type : tp
         };
       }};
@@ -151,7 +163,23 @@
         resultCode += "\n";
       if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;
       // if we have a token for something, use that - else use the string
-      if (tokenId) {
+      if (pretokeniseStrings && tok.type == "STRING") {
+        let str = tok.value;  // get string value
+        lastIdx = tok.endIdx; // get next token
+        lastTok = tok;
+        tok = lex.next();
+        let hadAtoB = resultCode.endsWith("atob(") && tok.str==")"; // were we surrounded by 'atob'?
+        if (hadAtoB) {
+          str = Espruino.Core.Utils.atob(str);
+          resultCode = resultCode.substring(0, resultCode.length-5); // remove 'atob('
+        }
+        let length = str.length;
+        if (length<256)
+          resultCode += String.fromCharCode(LEX_RAW_STRING8, length) + str;
+        else if (length<65536)
+          resultCode += String.fromCharCode(LEX_RAW_STRING16, length&255, (length>>8)&255)+str;
+        if (!hadAtoB) continue; // if not atob, we already got the last token ready
+      } else if (tokenId) {
         //console.log(JSON.stringify(tok.str)+" => "+tokenId);
         resultCode += String.fromCharCode(tokenId);
         tok.type = "TOKENISED";
