@@ -58,6 +58,8 @@
     var isFlashUpload = Espruino.Config.SAVE_ON_SEND == 1 || isFlashPersistent || isStorageUpload;
     if (!isFlashUpload) return callback(code);
 
+    var asJS = Espruino.Core.Utils.toJSONishString;
+
     // Check environment vars
     var hasStorage = false;
     var ENV = Espruino.Core.Env.getData();
@@ -78,7 +80,7 @@
         code = "";
       } else {
         Espruino.Core.Notifications.error("You have pre-1v96 firmware. Upload size is limited by available RAM");
-        code = "E.setBootCode("+JSON.stringify(code)+(isFlashPersistent?",true":"")+");load()\n";
+        code = "E.setBootCode("+asJS(code)+(isFlashPersistent?",true":"")+");load()\n";
       }
     } else { // new style
       var filename;
@@ -93,7 +95,6 @@
         var CHUNKSIZE = 1024;
         var newCode = [];
         var len = code.length;
-        var asJS = Espruino.Core.Utils.toJSONishString;
         newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(0,CHUNKSIZE))+',0,'+len+');');
         for (var i=CHUNKSIZE;i<len;i+=CHUNKSIZE)
           newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(i,CHUNKSIZE))+','+i+');');
