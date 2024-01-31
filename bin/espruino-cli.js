@@ -211,6 +211,8 @@ function setupConfig(Espruino, callback) {
  }
  if (args.setTime)
    Espruino.Config.SET_TIME_ON_WRITE = true;
+ else
+   Espruino.Config.SET_TIME_ON_WRITE = false;
  if (args.watchFile && !args.file)
    throw new Error("--watch specified, with no file to watch!");
  if (args.updateFirmware && (args.file || args.expr))
