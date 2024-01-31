@@ -28,6 +28,10 @@
     // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
       if (!Espruino.Config.PRETOKENISE) return callback(code);
+      if (Espruino.Config.SAVE_ON_SEND == 0) {
+        console.log("pretokenise> Can't pretokenise code sent to REPL (RAM)");
+        return callback(code);
+      }
       pretokenise(code, callback);
     });
    // When code is sent to Espruino, search it for modules and add extra code required to load them

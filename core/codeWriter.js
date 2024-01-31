@@ -49,8 +49,8 @@
       // If we're supposed to reset Espruino before sending...
       if (Espruino.Config.RESET_BEFORE_SEND) {
         // reset Espruino
-        code = "\x10reset();\n"+code;        
-      }      
+        code = "\x10reset();\n"+code;
+      }
 
       //console.log("Sending... "+data);
       Espruino.Core.Serial.write(code, true, function() {
@@ -92,7 +92,7 @@
     for (var i=0;i<code.length;i++) {
       var ch = code.charCodeAt(i);
       if ((ch<32 || ch>255) && ch!=9/*Tab*/ && ch!=10/*LF*/ && ch!=13/*CR*/) {
-        console.warn("Funky character code "+ch+" at position "+i+". Replacing with ?");
+        console.warn("codewriter> Unexpected character code "+ch+" at position "+i+". Replacing with ?");
         code = code.substr(0,i)+"?"+code.substr(i+1);
       }
     }
@@ -144,7 +144,7 @@
     while (tok!==undefined) {
       var previousString = code.substring(lastIdx, tok.startIdx);
       var tokenString = code.substring(tok.startIdx, tok.endIdx);
-      //console.log("prev "+JSON.stringify(previousString)+"   next "+tokenString);
+      //console.log("codewriter> prev "+JSON.stringify(previousString)+"   next "+tokenString);
 
       /* Inserting Alt-Enter newline, which adds newline without trying
       to execute */
@@ -161,7 +161,7 @@
           tok.str=="catch" || // catch on newline - part of try..catch
           lastTok.str=="catch"
         ) {
-        //console.log("Possible"+JSON.stringify(previousString));
+        //console.log("codewriter> Possible"+JSON.stringify(previousString));
         previousString = previousString.replace(/\n/g, "\x1B\x0A");
       }
 

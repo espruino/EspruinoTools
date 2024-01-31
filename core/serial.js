@@ -260,7 +260,7 @@ To add a new serial device, you must add an object to
     for (var i=0; i<str.length; i++) {
       var ch = str.charCodeAt(i);
       if (ch>=256) {
-        console.warn("Attempted to send non-8 bit character - code "+ch);
+        console.warn("serial> Attempted to send non-8 bit character - code "+ch);
         ch = "?".charCodeAt(0);
       }
       bufView[i] = ch;
