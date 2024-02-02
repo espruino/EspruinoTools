@@ -70,10 +70,17 @@
   function init() {
     Espruino.Core.Config.add("WEB_BLUETOOTH", {
       section : "Communications",
-      name : "Connect over Bluetooth Smart (Web Bluetooth)",
+      name : "Connect over Bluetooth LE (Web Bluetooth)",
       descriptionHTML : 'Allow connection to Espruino via BLE with the Nordic UART implementation',
       type : "boolean",
       defaultValue : true,
+    });
+    Espruino.Core.Config.add("WEB_BLUETOOTH_FILTER", {
+      section : "Communications",
+      name : "Bluetooth LE (Web Bluetooth) Filter",
+      descriptionHTML : 'If non-empty, only Bluetooth devices with names that start with this value will be shown in the Web Bluetooth device list (otherwise any supported device is shown). For example entering <code>Puck.js</code> will return only Puck.js devices.',
+      type : "string",
+      defaultValue : "",
     });
     // If we're ok and have the getDevices extension, use it to remember previously paired devices
     if (getStatus(true)===true && navigator.bluetooth.getDevices) {
@@ -121,10 +128,14 @@
       promise = Promise.resolve(btDevice);
     } else {
       var filters = [];
-      Espruino.Core.Utils.recognisedBluetoothDevices().forEach(function(namePrefix) {
-        filters.push({ namePrefix: namePrefix });
-      });
-      filters.push({ services: [ NORDIC_SERVICE ] });
+      if (Espruino.Config.WEB_BLUETOOTH_FILTER && Espruino.Config.WEB_BLUETOOTH_FILTER.trim().length) {
+        filters.push({ namePrefix: Espruino.Config.WEB_BLUETOOTH_FILTER.trim() });
+      } else {
+        Espruino.Core.Utils.recognisedBluetoothDevices().forEach(function(namePrefix) {
+          filters.push({ namePrefix: namePrefix });
+        });
+        filters.push({ services: [ NORDIC_SERVICE ] });
+      }
       console.log("BT> Starting device chooser");
       promise = navigator.bluetooth.requestDevice({
           filters: filters,
