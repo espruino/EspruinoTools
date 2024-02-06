@@ -828,7 +828,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       if (ch<8) {
           // if the next character is a digit, it'd be interpreted
           // as a 2 digit octal character, so we can't use `\0` to escape it
-          if (nextCh>='0' && nextCh<='7') js += "\\x0"+ch;
+          if (nextCh>='0'.charCodeAt() && nextCh<='7'.charCodeAt()) js += "\\x0"+ch;
           else js += "\\"+ch;
       } else if (ch==8) js += "\\b";
       else if (ch==9) js += "\\t";
