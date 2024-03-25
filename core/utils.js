@@ -662,7 +662,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     fileLoader.click();
   }
 
-  /* Save a file with a save file dialog. callback(savedFileName) only called in chrome app case when we knopw the filename*/
+  /* Save a file with a save file dialog (data=String). callback(savedFileName) only called in chrome app case when we know the filename*/
   function fileSaveDialog(data, filename, callback) {
     function errorHandler() {
       Espruino.Core.Notifications.error("Error Saving", true);
