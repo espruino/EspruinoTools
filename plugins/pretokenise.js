@@ -178,7 +178,9 @@
           resultCode = resultCode.substring(0, resultCode.length-5); // remove 'atob('
         }
         let length = str.length;
-        if (length<256)
+        if (length==0) { // it's shorter just to write quotes
+          resultCode += "";
+        } else if (length<256)
           resultCode += String.fromCharCode(LEX_RAW_STRING8, length) + str;
         else if (length<65536)
           resultCode += String.fromCharCode(LEX_RAW_STRING16, length&255, (length>>8)&255)+str;
