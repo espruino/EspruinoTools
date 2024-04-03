@@ -9,7 +9,12 @@ function loadJS(filePath) {
   var contents = fs.readFileSync(filePath, {encoding:"utf8"});
   var realExports = exports;
   exports = undefined;
-  var r = eval(contents);
+  var r;
+  try {
+    r = eval(contents);
+  } catch (e) {
+    console.log("ERROR "+e+" while loading "+filePath);
+  }
   exports = realExports; // utf8 lib somehow breaks this
   return r;
   /* the code below would be better, but it doesn't seem to work when running

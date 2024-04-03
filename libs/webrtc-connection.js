@@ -93,7 +93,7 @@ if (typeof Peer == "undefined") {
 }
 if (typeof Peer == "undefined") {
   console.log("webrtc-connection: Peer.js not loaded - Remote Connection disabled");
-  throw false;
+  throw "No Peer.js implementation available";
 }
 
 var peer; // peer.js connection
