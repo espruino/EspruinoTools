@@ -22,6 +22,7 @@
       descriptionHTML : 'How should code be uploaded? See <a href="http://www.espruino.com/Saving" target="_blank">espruino.com/Saving</a> for more information.<br>'+
                         "<b>NOTE:</b> Avoid 'Direct to flash, even after <code>reset()</code>' for normal development - it can make it hard to recover if your code crashes the device.",
       type : {
+    // -1: is used by the app loader to signify that we want the code as-is (app loader adds write statements). Allows pretokenise to correctly check if we're writing to RAM or not
         0: "To RAM (default) - execute code while uploading. Use 'save()' to save a RAM image to Flash",
         1: "Direct to Flash (execute code at boot)",
         2: "Direct to Flash (execute code at boot, even after 'reset()') - USE WITH CARE",
