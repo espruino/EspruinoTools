@@ -56,7 +56,7 @@
     var board = Espruino.Core.Env.getBoardData();
     var tasks = 0;
     try {
-      var ast = acorn.parse(code, { ecmaVersion : 6 });
+      var ast = acorn.parse(code);
       var tasks = [];
       // function xyz() { "compiled" ... }
       ast.body.forEach(function(node) {
