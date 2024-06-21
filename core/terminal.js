@@ -248,8 +248,10 @@
         text+="\x08"; // backspace
       text+=thisValue.substr(commonChars);
       lastValue = terminalfocus.value;
-      if (text.length)
+      if (text.length) {
+        text = Espruino.Core.Utils.asUTF8Bytes(text); // convert UTF8 to constituent bytes
         onInputData(Espruino.Core.Utils.fixBrokenCode(text));
+      }
     }
     terminalfocus.addEventListener("input", changeListener);
     terminalfocus.addEventListener("keydown", function(e) {
@@ -294,6 +296,7 @@
         e.preventDefault();
         terminalfocus.value = "";
         lastValue = "";
+        ch = Espruino.Core.Utils.asUTF8Bytes(ch); // convert UTF8 to constituent bytes
         onInputData(ch);
       }
     });
@@ -483,10 +486,33 @@
     return str.substr(0,s+1);
   }
 
+
+
   var handleReceivedCharacter = function (/*char*/ch) {
+    function isUTF8StartChar(ch) {
+      return (ch>=0xC2) && (ch<=0xF4);
+    }
+    function newCharacter(ch) {
+      if (termText[termCursorY]===undefined) termText[termCursorY]="";
+      termText[termCursorY] = trimRight(
+          Espruino.Core.Utils.getSubString(termText[termCursorY],0,termCursorX) +
+          String.fromCharCode(ch) +
+          Espruino.Core.Utils.getSubString(termText[termCursorY],termCursorX+1));
+      termCursorX++;
+      // check for the 'prompt', eg '>' or 'debug>'
+      // if we have it, send a 'terminalPrompt' message
+      if (ch == ">".charCodeAt(0)) {
+        var prompt = termText[termCursorY];
+        if (prompt==">" || prompt=="debug>")
+          Espruino.callProcessor("terminalPrompt", prompt);
+      }
+    }
+
     //console.log("IN = "+ch);
     if (termControlChars.length==0) {
-      switch (ch) {
+      if (isUTF8StartChar(ch)) { // UTF8
+        termControlChars = [ ch ];
+      } else switch (ch) {
         case  8 : {
           if (termCursorX>0) termCursorX--;
         } break;
@@ -503,24 +529,31 @@
         } break;
         case 19 : break; // XOFF
         case 17 : break; // XON
-        case 0xC2 : break; // UTF8 for <255 - ignore this
-        default : {
-          // Else actually add character
-          if (termText[termCursorY]===undefined) termText[termCursorY]="";
-          termText[termCursorY] = trimRight(
-              Espruino.Core.Utils.getSubString(termText[termCursorY],0,termCursorX) +
-              String.fromCharCode(ch) +
-              Espruino.Core.Utils.getSubString(termText[termCursorY],termCursorX+1));
-          termCursorX++;
-          // check for the 'prompt', eg '>' or 'debug>'
-          // if we have it, send a 'terminalPrompt' message
-          if (ch == ">".charCodeAt(0)) {
-            var prompt = termText[termCursorY];
-            if (prompt==">" || prompt=="debug>")
-              Espruino.callProcessor("terminalPrompt", prompt);
-          }
-        }
+        default : newCharacter(ch); // Else actually add character
       }
+   } else if (isUTF8StartChar(termControlChars[0])) { // decode UTF8 chars
+    termControlChars.push(ch);
+    if ((ch&0xC0) == 0x80) { // it's valid
+      var c = termControlChars[0], cp=c, ra=0;
+      // work out first byte's value and how long this codepoint is
+      if ((c&0xE0)==0xC0) { // 2-byte code starts with 0b110xxxxx
+        cp=c&0x1F;ra=1;
+      } else if ((c&0xF0)==0xE0) { // 3-byte code starts with 0b1110xxxx
+        cp=c&0x0F;ra=2;
+      } else if ((c&0xF8)==0xF0) { // 4-byte code starts with 0b11110xxx
+        cp=c&0x07;ra=3;
+      }
+      // if we have enough data, decode it
+      if (termControlChars.length >= ra) {
+        for (var i=1;i<=ra;i++)
+          cp = (cp<<6) | (termControlChars[i] & 0x3F);
+        newCharacter(cp);
+        termControlChars = [];
+      }
+    } else { // invalid!
+      console.warn(`Invalid UTF8 sequence (${termControlChars.join(",")})`);
+      termControlChars = [];
+    }
    } else if (termControlChars[0]==27) { // Esc
      if (termControlChars[1]==91) { // Esc [
        if (termControlChars[2]==63) {

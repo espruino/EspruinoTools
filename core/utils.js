@@ -849,6 +849,32 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return js;
   }
 
+  /* Convert a normal JS string (one char per character) to a string of UTF8 bytes */
+  function asUTF8Bytes(str) {
+    var result = "";
+    var bytes = String.fromCharCode;
+    for (var i=0; i < str.length; i++) {
+      var charcode = str.charCodeAt(i);
+      if (charcode < 0x80) result += bytes(charcode);
+      else if (charcode < 0x800) {
+        result += bytes(0xc0 | (charcode >> 6),
+                        0x80 | (charcode & 0x3f));
+      } else if (charcode < 0xd800 || charcode >= 0xe000) {
+        result += bytes(0xe0 | (charcode >> 12),
+                    0x80 | ((charcode>>6) & 0x3f),
+                    0x80 | (charcode & 0x3f));
+      } else { // surrogate pair
+        i++;
+        charcode = ((charcode&0x3ff)<<10)|(str.charCodeAt(i)&0x3ff)
+        result += bytes(0xf0 | (charcode >>18),
+                        0x80 | ((charcode>>12) & 0x3f),
+                        0x80 | ((charcode>>6) & 0x3f),
+                        0x80 | (charcode & 0x3f));
+      }
+    }
+    return result;
+  }
+
   // Does the given string contain only ASCII characters?
   function isASCII(str) {
     for (var i=0;i<str.length;i++) {
@@ -965,6 +991,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       arrayBufferToString : arrayBufferToString,
       parseJSONish : parseJSONish,
       toJSONishString : toJSONishString,
+      asUTF8Bytes : asUTF8Bytes,
       isASCII : isASCII,
       btoa : btoa,
       atob : atob

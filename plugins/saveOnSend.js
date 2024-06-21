@@ -73,7 +73,9 @@
       }
     }
 
-    //
+    // convert any non-0..255 charcodes to UTF8 encoding
+    code = Espruino.Core.Utils.asUTF8Bytes(code);
+    // Now create the commands to do the upload
     console.log("Uploading "+code.length+" bytes to flash");
     if (!hasStorage) { // old style
       if (isStorageUpload) {
