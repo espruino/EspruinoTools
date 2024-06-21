@@ -54,6 +54,9 @@
   }
 
   function wrap(code, callback) {
+    // convert any non-0..255 charcodes to UTF8 encoding
+    code = Espruino.Core.Utils.asUTF8Bytes(code);
+    // Depending on settings, choose how we package code for upload
     var isFlashPersistent = Espruino.Config.SAVE_ON_SEND == 2;
     var isStorageUpload = Espruino.Config.SAVE_ON_SEND == 3;
     var isFlashUpload = Espruino.Config.SAVE_ON_SEND == 1 || isFlashPersistent || isStorageUpload;
@@ -73,9 +76,7 @@
       }
     }
 
-    // convert any non-0..255 charcodes to UTF8 encoding
-    code = Espruino.Core.Utils.asUTF8Bytes(code);
-    // Now create the commands to do the upload
+     // Now create the commands to do the upload
     console.log("Uploading "+code.length+" bytes to flash");
     if (!hasStorage) { // old style
       if (isStorageUpload) {
