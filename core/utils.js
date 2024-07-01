@@ -849,13 +849,14 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return js;
   }
 
-  /* Convert a normal JS string (one char per character) to a string of UTF8 bytes */
+  /* Convert a normal JS string (one char per character) to a string of UTF8 bytes (passes anything 0..255 straight through) */
   function asUTF8Bytes(str) {
     var result = "";
     var bytes = String.fromCharCode;
     for (var i=0; i < str.length; i++) {
       var charcode = str.charCodeAt(i);
-      if (charcode < 0x80) result += bytes(charcode);
+      // checking below 128 would ensure better compatibility with UTF8 (but breaks pretokenised code)
+      if (charcode < 256) result += bytes(charcode);
       else if (charcode < 0x800) {
         result += bytes(0xc0 | (charcode >> 6),
                         0x80 | (charcode & 0x3f));
