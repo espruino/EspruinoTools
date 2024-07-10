@@ -114,7 +114,7 @@
     "delete","do","else","enum","eval","export","extends","field","final","finally","for","function","goto",
     "if","implements","import","in","instanceof","native","new","package","private","protected","public",
     "return","static","switch","synchronized","throw","throws","transient","try","typeof","var","volatile","while","with"];
-    var allowedRegExChars = ['!','%','&','*','+','-','/','<','=','>','?','[','{','}','(',',',';',':']; // based on Espruino jslex.c (may not match spec 100%)
+    var allowedRegExChars = ['!','%','&','*','+','-','/','<','=','>','?','[','{','}','(',')',',',';',':']; // based on Espruino jslex.c (may not match spec 100%)
     var ch;
     var idx = 0;
     var lineNumber = 1;
