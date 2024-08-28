@@ -19,10 +19,14 @@
   function init() {
     Espruino.Core.Config.add("PRETOKENISE", {
       section : "Minification",
-      name : "Pretokenise code before upload (BETA)",
+      name : "Pretokenise code before upload",
       description : "All whitespace and comments are removed and all reserved words are converted to tokens before upload. This means a faster upload, less memory used, and increased performance (+10%) at the expense of code readability.",
-      type : "boolean",
-      defaultValue : false
+      type : {
+        0: "Never",
+        1: "Auto (tokenise Strings on 2v20.48 or later)",
+        2: "Yes (always tokenise everything, regardless of version)"
+      },
+      defaultValue : 0
     });
 
     // When code is sent to Espruino, search it for modules and add extra code required to load them
@@ -120,7 +124,9 @@
   function pretokenise(code, callback) {
     var pretokeniseStrings = false; // only works on 2v20.48 and later
     var boardData = Espruino.Core.Env.getBoardData();
-    if (boardData && boardData.VERSION) {
+    if (Espruino.Config.PRETOKENISE==2) {
+      pretokeniseStrings = true; // always
+    } else if (boardData && boardData.VERSION) {
       var v = parseFloat(boardData.VERSION.replace("v","0"));
       if (v >= 2020.48)
         pretokeniseStrings = true;

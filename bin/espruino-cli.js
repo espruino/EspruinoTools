@@ -459,6 +459,8 @@ function sendCode(callback) {
     }
     if (!args.outputHEX) {
       // if we're supposed to upload code somewhere ensure we do that properly
+      if (args.outputJS)
+        Espruino.Config.SAVE_ON_SEND = -1; // force tools not to mess with the file
       for (var storageName in args.storageContents) {
         var storageContent = args.storageContents[storageName];
         if (storageContent.code) {
@@ -497,7 +499,7 @@ function sendCode(callback) {
       }
       if (args.outputJS) {
         log("Writing output to "+args.outputJS);
-        require("fs").writeFileSync(args.outputJS, code);
+        require("fs").writeFileSync(args.outputJS, code, "binary");
       }
       if (!args.nosend)
         Espruino.Core.CodeWriter.writeToEspruino(code, function() {
