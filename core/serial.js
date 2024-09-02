@@ -352,10 +352,10 @@ To add a new serial device, you must add an object to
         return prev;
       }
       split = findSplitIdx(split, /\x03/, 250, "Ctrl-C"); // Ctrl-C
-      split = findSplitIdx(split, /reset\(\);\n/, 250, "reset()"); // Reset
-      split = findSplitIdx(split, /load\(\);\n/, 250, "load()"); // Load
-      split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);\n/, 250, "Modules.addCached"); // Adding a module
-      split = findSplitIdx(split, /\x10require\("Storage"\).write\([^\n]*\);\n/, 500, "Storage.write"); // Write chunk of data
+      split = findSplitIdx(split, /reset\(\);?\n/, 250, "reset()"); // Reset
+      split = findSplitIdx(split, /load\(\);?\n/, 250, "load()"); // Load
+      split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);?\n/, 250, "Modules.addCached"); // Adding a module
+      split = findSplitIdx(split, /require\("Storage"\).write\([^\n]*\);?\n/, 500, "Storage.write"); // Write chunk of data
     }
     // Otherwise split based on block size
     if (!split.match || split.end >= writeData[0].blockSize) {

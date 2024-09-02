@@ -76,16 +76,21 @@
 
   /// Parse and fix issues like `if (false)\n foo` in the root scope
   function reformatCode(code) {
-     var APPLY_LINE_NUMBERS = false;
-     var lineNumberOffset = 0;
-     var ENV = Espruino.Core.Env.getData();
-     if (ENV && ENV.VERSION_MAJOR && ENV.VERSION_MINOR) {
-       if (ENV.VERSION_MAJOR>1 ||
-           ENV.VERSION_MINOR>=81.086) {
-         if (Espruino.Config.STORE_LINE_NUMBERS)
-           APPLY_LINE_NUMBERS = true;
-       }
-     }
+    var APPLY_LINE_NUMBERS = false;
+    var lineNumberOffset = 0;
+    var ENV = Espruino.Core.Env.getData();
+    if (ENV && ENV.VERSION_MAJOR && ENV.VERSION_MINOR) {
+      if (ENV.VERSION_MAJOR>1 ||
+          ENV.VERSION_MINOR>=81.086) {
+        if (Espruino.Config.STORE_LINE_NUMBERS)
+          APPLY_LINE_NUMBERS = true;
+      }
+    }
+    /* There's only any point writing line numbers when we're saving to RAM. Otherwise we just
+    end up applying line numbers to require("Storage").write lines. see https://github.com/espruino/EspruinoTools/pull/179 */
+    if (Espruino.Config.SAVE_ON_SEND != 0) {
+      APPLY_LINE_NUMBERS = false;
+    }
     // Turn cr/lf into just lf (eg. windows -> unix)
     code = code.replace(/\r\n/g,"\n");
     // First off, try and fix funky characters
