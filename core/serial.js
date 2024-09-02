@@ -142,6 +142,7 @@ To add a new serial device, you must add an object to
   };
 
   var openSerial=function(serialPort, connectCallback, disconnectCallback) {
+    Espruino.Core.Serial.setSlowWrite(true); // force slow write to ensure things work ok - we may disable this when versionChecker figures out what board/version we use
     return openSerialInternal(serialPort, connectCallback, disconnectCallback, 5);
   }
 

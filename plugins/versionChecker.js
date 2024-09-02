@@ -60,9 +60,10 @@
           (env.CONSOLE=="USB"||env.CONSOLE=="Bluetooth"||env.CONSOLE=="Telnet")) {
         console.log("Firmware >1.43 supports faster writes over USB");
         Espruino.Core.Serial.setSlowWrite(false);
-      } else if (vCurrent >= 2.18 && env.BOARD=="ESP32" && env.CONSOLE=="Serial1") {
-        console.log("Firmware >=2.18 on ESP32 supports flow control");
-        Espruino.Core.Serial.setSlowWrite(true);
+      } else {
+        // setSlowWrite(true) called in Serial.open so is the default
+        if ( Espruino.Core.Serial.isSlowWrite()) // not disabled already?
+          console.log(`Note: Uploads may be slow. Use SERIAL_THROTTLE_SEND/'Throttle Send' option to disable throttling at the expense of unreliable uploads on some boards.`);
       }
 
       if (env.info!==undefined &&
