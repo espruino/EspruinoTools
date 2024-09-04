@@ -160,12 +160,13 @@
   function writeSerial(data, callback) {
     var writer = serialPort.writable.getWriter();
     writer.write(Espruino.Core.Utils.stringToArrayBuffer(data)).then(function() {
+      writer.releaseLock();
       callback();
     }).catch(function(error) {
+      writer.releaseLock();
       console.log('Serial> SEND ERROR: ' + error);
       closeSerial();
-    });
-    writer.releaseLock();
+    });    
   }
 
   // ----------------------------------------------------------
