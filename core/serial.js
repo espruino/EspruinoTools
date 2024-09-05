@@ -62,19 +62,32 @@ To add a new serial device, you must add an object to
       defaultValue : 9600,
     });
     Espruino.Core.Config.add("SERIAL_IGNORE", {
-     section : "Communications",
-     name : "Ignore Serial Ports",
-     description : "A '|' separated list of serial port paths to ignore, eg `/dev/ttyS*|/dev/*.SOC`",
-     type : "string",
-     defaultValue : "/dev/ttyS*|/dev/*.SOC|/dev/*.MALS"
-   });
+      section : "Communications",
+      name : "Ignore Serial Ports",
+      description : "A '|' separated list of serial port paths to ignore, eg `/dev/ttyS*|/dev/*.SOC`",
+      type : "string",
+      defaultValue : "/dev/ttyS*|/dev/*.SOC|/dev/*.MALS"
+    });
     Espruino.Core.Config.add("SERIAL_FLOW_CONTROL", {
-     section : "Communications",
-     name : "Software Flow Control",
-     description : "Respond to XON/XOFF flow control characters to throttle data uploads. By default Espruino sends XON/XOFF for USB and Bluetooth (on 2v05+).",
-     type : "boolean",
-     defaultValue : true
-   });
+      section : "Communications",
+      name : "Software Flow Control",
+      description : "Respond to XON/XOFF flow control characters to throttle data uploads. By default Espruino sends XON/XOFF for USB and Bluetooth (on 2v05+).",
+      type : "boolean",
+      defaultValue : true
+    });
+   Espruino.Core.Config.add("STORAGE_UPLOAD_METHOD", {
+    section : "Communications",
+    name : "Storage Upload Strategy",
+    description :
+"On some connections (Serial, >9600 baud) XON/XOFF flow control is too slow to reliably throttle data transfer when writing files, "+
+"and data can be lost. By default we add a delay after each write to Storage to help avoid this, but if your connection is stable "+
+"you can turn this off and greatly increase write speeds.",
+    type : {
+      0: "Delay Storage writes",
+      1: "No delays"
+    },
+    defaultValue : 0
+  });
 
     var devices = Espruino.Core.Serial.devices;
     for (var i=0;i<devices.length;i++) {
@@ -356,7 +369,8 @@ To add a new serial device, you must add an object to
       split = findSplitIdx(split, /reset\(\);?\n/, 250, "reset()"); // Reset
       split = findSplitIdx(split, /load\(\);?\n/, 250, "load()"); // Load
       split = findSplitIdx(split, /Modules.addCached\("[^\n]*"\);?\n/, 250, "Modules.addCached"); // Adding a module
-      split = findSplitIdx(split, /require\("Storage"\).write\([^\n]*\);?\n/, 500, "Storage.write"); // Write chunk of data
+      if ((0|Espruino.Config.STORAGE_UPLOAD_METHOD)==0) // only throttle writes if we haven't disabled it
+        split = findSplitIdx(split, /require\("Storage"\).write\([^\n]*\);?\n/, 250, "Storage.write"); // Write chunk of data
     }
     // Otherwise split based on block size
     if (!split.match || split.end >= writeData[0].blockSize) {
