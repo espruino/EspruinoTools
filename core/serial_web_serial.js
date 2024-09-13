@@ -36,7 +36,6 @@
 
   var serialPort;
   var serialPortReader;
-  var connectionDisconnectCallback;
 
   function init() {
     Espruino.Core.Config.add("WEB_SERIAL", {
@@ -101,8 +100,8 @@
       Espruino.Core.Status.setStatus("Connecting to serial port");
       serialPort = port;
       var br = parseInt(Espruino.Config.BAUD_RATE);
-      return port.open({ 
-        baudrate: br/*old*/, 
+      return port.open({
+        baudrate: br/*old*/,
         baudRate: br/*new*/,
         dataBits: 8, databits: 8,
         stopBits: 1, stopbits: 8,
@@ -114,22 +113,35 @@
         serialPortReader = serialPort.readable.getReader();
         serialPortReader.read().then(function ({ value, done }) {
           serialPortReader.releaseLock();
+          serialPortReader = undefined;
           if (value) {
             receiveCallback(value.buffer);
           }
           if (done) {
-            disconnectCallback();
+            console.log("Serial> serialPortReader done");
+            if (serialPort) {
+              console.log("Serial> serialPort.close()");
+              serialPort.close();
+              serialPort = undefined;
+              if (disconnectCallback) disconnectCallback();
+              disconnectCallback = undefined;
+            }
           } else {
             readLoop();
           }
-        }).catch(function() {           
-          serialPortReader.releaseLock(); 
-          console.log("Serial> serialPortReader cancelled");
+        }).catch(function(e) {
+          serialPortReader.releaseLock();
+          console.log("Serial> serialPortReader rejected", e);
         });
       }
       serialPort.addEventListener("disconnect", (event) => {
-        console.log("Serial> Port disconnected");
-        disconnectCallback();
+        console.log("Serial> Port disconnected", event);
+        if (serialPort) {
+          serialPort.close();
+          serialPort = undefined;
+        }
+        if (disconnectCallback) disconnectCallback();
+        disconnectCallback = undefined;
       });
       readLoop();
       Espruino.Core.Status.setStatus("Serial connected. Receiving data...");
@@ -139,22 +151,17 @@
       openCallback({ portName : getSerialDeviceInfo(serialPort).path });
     }).catch(function(error) {
       console.log('Serial> ERROR: ' + error);
-      disconnectCallback();
+      pairedDevices = pairedDevices.filter(dev=>getSerialDeviceInfo(dev).path != path); // error connecting, remove from paired devices
+      if (disconnectCallback) disconnectCallback();
+      disconnectCallback = undefined;
     });
   }
 
   function closeSerial() {
-    if (serialPort) {
-      serialPortReader.cancel().then(function() {
-        serialPort.close();
-        serialPort = undefined;
-        serialPortReader = undefined;
-      });
-    }
-    if (connectionDisconnectCallback) {
-      connectionDisconnectCallback();
-      connectionDisconnectCallback = undefined;
-    }
+    if (serialPortReader)
+      serialPortReader.cancel();
+    /* serialPortReader will handle tidying up
+    and calling disconnect */
   }
 
   function writeSerial(data, callback) {
@@ -166,7 +173,7 @@
       writer.releaseLock();
       console.log('Serial> SEND ERROR: ' + error);
       closeSerial();
-    });    
+    });
   }
 
   // ----------------------------------------------------------
