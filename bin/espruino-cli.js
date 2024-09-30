@@ -290,8 +290,8 @@ function setupConfig(Espruino, callback) {
  if (args.remotePeerID) { // Remote connection enabled
    if (!Espruino.Core.RemoteConnection)
      throw new Error("WebRTC not loaded - run again with --verbose for more info");
-   Espruino.Config.set("WEBRTC_BRIDGE_ID", args.remotePeerID);   
- } 
+   Espruino.Config.set("WEBRTC_BRIDGE_ID", args.remotePeerID);
+ }
  if (args.board) {
    log("Explicit board JSON supplied: "+JSON.stringify(args.board));
    var jsonLoaded = function(json) {
@@ -457,7 +457,9 @@ function sendCode(callback) {
       log("* with '-p devicePath' or use '--board BOARDNAME'                  *");
       log("********************************************************************");
     }
-    if (!args.outputHEX) {
+    if (args.outputHEX) {
+      Espruino.Config.SAVE_ON_SEND = -1; // force tools not to mess with the file
+    } else {
       // if we're supposed to upload code somewhere ensure we do that properly
       if (args.outputJS)
         Espruino.Config.SAVE_ON_SEND = -1; // force tools not to mess with the file
@@ -776,10 +778,10 @@ function getPortPath(port, callback) {
     var timeout = args.scanTimeout * 2;
     Espruino.Core.Serial.getPorts(function cb(ports, shouldCallAgain) {
       //log(JSON.stringify(ports,null,2));
-      var found = ports.find(function(p) { 
-        return (p.description && p.description.toLowerCase().indexOf(searchString)>=0) || 
+      var found = ports.find(function(p) {
+        return (p.description && p.description.toLowerCase().indexOf(searchString)>=0) ||
           (p.path && p.path.toLowerCase().indexOf(searchString)>=0) ||
-          p.autoconnect; 
+          p.autoconnect;
       });
       if (found) {
         log("Found "+JSON.stringify(found.description)+" ("+JSON.stringify(found.path)+")");
