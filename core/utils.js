@@ -450,7 +450,8 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   // Upload a file
   function uploadFile(fileName, contents, callback) {
-    var js = "\x10"+getUploadFileCode(fileName, contents).replace(/\n/g,"\n\x10");
+    var js = getUploadFileCode(fileName, contents).replace(/\n/g,"\n\x10");
+    // executeStatement prepends other code onto the command, so don't add `\x10` at the start of line as then it just ends up in the middle of what's sent
     Espruino.Core.Utils.executeStatement(js, callback);
   }
 
