@@ -17,8 +17,10 @@
      !process.versions.electron)
     return; // don't load this in std NodeJS
 
-  // Don't load if there is no document to attach the terminal to
-  if(typeof document === "undefined") return;
+  // Don't load if there is no document or element to attach the terminal to
+  if(typeof document === "undefined" ||
+    document.querySelector(".editor--terminal .editor__canvas")===null) return;
+
 
   var onInputData = function(d){}; // the handler for character data from user
 
@@ -50,9 +52,7 @@
   function init()
   {
     // Add stuff we need
-    document.getElementById("terminalfocus");
-    document.querySelector(".editor--terminal .editor__canvas").innerHTML = '<div id="terminal" class="terminal"></div>';
-    document.body.insertAdjacentHTML("beforeend", '<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1"></textarea>');
+    document.querySelector(".editor--terminal .editor__canvas").innerHTML = '<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1" style="z-index:-100;position:absolute;left:0px;top:0px;"></textarea><div id="terminal" class="terminal"></div>';
 
     var terminal = document.getElementById("terminal");
     var terminalfocus = document.getElementById("terminalfocus");
@@ -176,7 +176,8 @@
           }
         }
         terminalfocus.focus();
-        window.scrollTo(0,0); // as terminalfocus is offscreen, just in case force us back onscreen
+        if (document.body.offsetHeight < window.innerHeight+50)
+          window.scrollTo(0,0); // as terminalfocus is offscreen, just in case force us back onscreen (don't do if we're part of a big document)
         return;
       }
 
@@ -478,12 +479,13 @@
     keep that part of the screen in view */
     var cursor = document.getElementsByClassName("terminal__cursor");
     if (cursor.length) {
+      var tPos = terminal.getBoundingClientRect();
       var pos = cursor[0].getBoundingClientRect();
       var terminalfocus = document.getElementById("terminalfocus");
       var x = Math.min(pos.left, terminal.offsetWidth);
+      var y = Math.min(pos.top-tPos.top, terminal.height-terminalfocus.offsetHeight);
       terminalfocus.style.left=x+"px";
-      terminalfocus.style.top=pos.top+"px";
-      terminalfocus.style["z-index"]=-100;
+      terminalfocus.style.top=(pos.top-tPos.top)+"px";
     }
   };
 
