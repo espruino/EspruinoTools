@@ -50,8 +50,9 @@
   function init()
   {
     // Add stuff we need
-    $('<div id="terminal" class="terminal"></div>').appendTo(".editor--terminal .editor__canvas");
-    $('<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1"></textarea>').appendTo(document.body);
+    document.getElementById("terminalfocus");
+    document.querySelector(".editor--terminal .editor__canvas").innerHTML = '<div id="terminal" class="terminal"></div>';
+    document.body.insertAdjacentHTML("beforeend", '<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1"></textarea>');
 
     var terminal = document.getElementById("terminal");
     var terminalfocus = document.getElementById("terminalfocus");
@@ -98,19 +99,20 @@
       </p>
     </div>`;
       Espruino.Core.Utils.getVersionInfo(function(v) {
-        $("#versioninfo").html(v);
+        document.getElementById("versioninfo").innerHTML = v;
 
         var r = 0|(Math.random()*1000000);
-        $.get("https://www.espruino.com/ide/news.html?v="+encodeURIComponent(v.replace(/[ ,]/g,"")+"&r="+r), function (data){
-          $("#terminalnews").html(data);
+        Espruino.Core.Utils.getURL("https://www.espruino.com/ide/news.html?v="+encodeURIComponent(v.replace(/[ ,]/g,"")+"&r="+r), function (data){
+          document.getElementById("terminalnews").innerHTML = data;
         });
       });
     }
     terminal.innerHTML = html;
 
-    $(".tour_link").click(function(e) {
+    var el = document.querySelector(".tour_link")
+    if (el) el.addEventListener("click",function(e) {
       e.preventDefault();
-      $("#icon-tour").click();
+      document.getElementById("menu-tour").click();
     });
 
     var mouseDownTime = Date.now();
@@ -385,15 +387,16 @@
   };
 
   var updateTerminal = function() {
-    var terminal = $("#terminal");
+    var terminal = document.getElementById("terminal");
     // gather a list of elements for each line
     elements = [];
-    terminal.children().each(function() {
-      var n = $(this).attr("lineNumber");
-      if (n!==undefined)
-        elements[n] = $(this);
-      else
-        $(this).remove(); // remove stuff that doesn't have a line number
+    terminal.childNodes.forEach(n => {
+      var ln;
+      if (n.getAttribute && ((ln=n.getAttribute("lineNumber"))!==null)) {
+        elements[ln] = n;
+      } else {
+        n.remove(); // remove stuff that doesn't have a line number
+      }
     });
 
     // remove extra lines if there are too many
@@ -457,15 +460,19 @@
       if (elements[y]===undefined) {
         var prev = y-1;
         while (prev>=0 && elements[prev]===undefined) prev--;
-        elements[y] = $("<div class='termLine' lineNumber='"+y+"'>"+line+"</div>");
-        if (prev<0) elements[y].appendTo(terminal);
-        else elements[y].insertAfter(elements[prev]);
-      } else if (elements[y].html()!=line)
-        elements[y].html(line);
+        var div = document.createElement("div");
+        div.className = "termLine";
+        div.setAttribute("lineNumber",y);
+        div.innerHTML = line;
+        elements[y] = div;
+        if (prev<0) terminal.append(elements[y]);
+        else elements[prev].insertAdjacentElement("afterend",elements[y]);
+      } else if (elements[y].innerHTML!=line)
+        elements[y].innerHTML = line;
     }
     // now show the line where the cursor is
     if (elements[termCursorY]!==undefined) {
-      terminal[0].scrollTop = elements[termCursorY][0].offsetTop;
+      terminal.scrollTop = elements[termCursorY].offsetTop;
     }
     /* Move input box to the same place as the cursor, so Android devices
     keep that part of the screen in view */
@@ -680,12 +687,13 @@
 
   /// Give the terminal focus
   function focus() {
-    $("#terminalfocus").focus();
+    document.getElementById("terminalfocus").focus();
   };
 
   // Is the terminal actually visible, or is it so small it can't be seen?
   function isVisible() {
-    return ($("#terminal").width() > 20) && ($("#terminal").height() > 20);
+    var terminal = document.getElementById("terminalfocus");
+    return (terminal.offsetWidth > 20) && (terminal.offsetHeight > 20);
   }
 
   /** Get the Nth from latest terminal line (and the line number of it). 0=current line.
