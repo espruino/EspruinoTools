@@ -415,11 +415,11 @@
       // now renumber our elements (cycle them around)
       var newElements = [];
       for (i in elements) {
-        var n = elements[i].attr("lineNumber") - removedLines;
+        var n = elements[0].getAttribute("lineNumber") - removedLines;
         if (n<0) { // if it's fallen off the bottom, delete it
           elements[i].remove();
         } else {
-          elements[i].attr("lineNumber", n);
+          elements[i].setAttribute("lineNumber", n);
           newElements[n] = elements[i];
         }
       }
