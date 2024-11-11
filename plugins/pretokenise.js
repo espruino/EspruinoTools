@@ -122,6 +122,10 @@
   const LEX_RAW_STRING16 = 0xD2;
 
   function pretokenise(code, callback) {
+    callback(tokenise(code));
+  }
+
+  function tokenise(code) {
     var pretokeniseStrings = false; // only works on 2v20.48 and later
     var boardData = Espruino.Core.Env.getBoardData();
     if (Espruino.Config.PRETOKENISE==2) {
@@ -206,7 +210,7 @@
       lastTok = tok;
       tok = lex.next();
     }
-    callback(resultCode);
+    return resultCode;
   }
 
   function isTokenised(code) {
@@ -256,6 +260,7 @@
     init : init,
     sortOrder : 100, // after most plugins, before saveOnSend
     isTokenised : isTokenised, // could the given data be tokenised JS?
-    untokenise : untokenise // convert a file containing tokens back into strings
+    untokenise : untokenise, // fn(code) convert a file containing tokens back into strings
+    tokenise : tokenise // fn(code) convert a file containing tokens back into strings
   };
 }());
