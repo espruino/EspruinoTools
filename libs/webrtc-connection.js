@@ -100,7 +100,8 @@ var peer; // peer.js connection
 
 function webrtcInit(options) {
 
-  const WEBRTC_INACTIVITY_TIMEOUT = 2000; // how long before we kill a socket if no acitivity (because close eventys not getting fired!)
+  const WEBRTC_INACTIVITY_TIMEOUT = 10000; // how long before we kill a socket if no acitivity (because close eventys not getting fired!)
+  const WEBRTC_PING_INTERVAL = 1000; // how often do we send out 'ping' messages?
   
   var callbacks = {}; // list of callbacks
 
@@ -334,7 +335,7 @@ function webrtcInit(options) {
       if (options.onPeerConnected) options.onPeerConnected(conn.peer);
       conn.keepAliveTimer = setInterval(function() {
         conn.send("ping"); // don't send anything useful so we won't have to decode it in webrtcDataHandler
-      }, WEBRTC_INACTIVITY_TIMEOUT/2);
+      }, WEBRTC_PING_INTERVAL);
     });
     // Handle incoming data (messages only since this is the signal sender)
     conn.on('data', function (data) {
