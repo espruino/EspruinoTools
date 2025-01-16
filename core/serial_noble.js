@@ -59,12 +59,15 @@
   function startNoble() {
     try {
       process.on('uncaughtException', nobleExceptionHandler);
-      try {
-        noble = require('noble-winrt'); // for windows 10+ compat. noble-uwp should work too
-      } catch (e) {
+      if (Espruino.Core.Utils.isWindows()) { // ONLY try on windows - this breaks other OSes
+        try { noble = require('noble-winrt'); // for windows 10+ compat. noble-uwp should work too
+        } catch (e) { }
+      }
+      if (!noble) {
         try {
           noble = require('@abandonware/noble'); // this would be our preference on other platforms 
         } catch (e) {
+            console.log("ERROR",e);
           noble = require('noble'); // else try the standard noble
         }
       }
