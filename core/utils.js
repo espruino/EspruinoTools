@@ -67,6 +67,15 @@
     return !isNWApp() && !isChromeWebApp();
   }
 
+  /// Does the currently connected board have an ARM processor that can execute Thumb code?
+  function isARMThumb() {
+    var data = Espruino.Core.Env.getData();
+    if (!data || !data.chip) return false;
+    var family = data.chip.family;
+    return ["NRF51","NRF52","STM32F1","STM32F3","STM32F4","STM32L4"].includes(family);
+  }
+
+
   function escapeHTML(text, escapeSpaces)
   {
     escapeSpaces = typeof escapeSpaces !== 'undefined' ? escapeSpaces : true;
@@ -962,6 +971,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       isChromeWebApp : isChromeWebApp,
       isProgressiveWebApp : isProgressiveWebApp,
       hasNativeTitleBar : hasNativeTitleBar,
+      isARMThumb : isARMThumb,
       escapeHTML : escapeHTML,
       fixBrokenCode : fixBrokenCode,
       getSubString : getSubString,

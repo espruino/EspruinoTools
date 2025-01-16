@@ -386,6 +386,10 @@
   }
 
   function assembleBlock(asmLines, description) {
+    if (!Espruino.Core.Utils.isARMThumb()) {
+      Espruino.Core.Notifications.error("E.asm() requires an ARM Thumb processor");
+      return undefined; // fail
+    }
     var machineCode = [];
     try {
       assemble(asmLines, function(word) { machineCode.push("0x"+word.toString(16)); });
