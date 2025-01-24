@@ -67,6 +67,16 @@
     return !isNWApp() && !isChromeWebApp();
   }
 
+  function isCrossOriginSubframe() {
+    if (!window.parent) return false;
+    try {
+      return window.parent.location.host != window.location.host;
+      // if actually cross origin, this will throw "Blocked a frame with origin ... from accessing a cross-origin frame."
+    } catch (e) {
+      return true;
+    }
+  }
+
   /// Does the currently connected board have an ARM processor that can execute Thumb code?
   function isARMThumb() {
     var data = Espruino.Core.Env.getData();
@@ -971,6 +981,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       isChromeWebApp : isChromeWebApp,
       isProgressiveWebApp : isProgressiveWebApp,
       hasNativeTitleBar : hasNativeTitleBar,
+      isCrossOriginSubframe : isCrossOriginSubframe,
       isARMThumb : isARMThumb,
       escapeHTML : escapeHTML,
       fixBrokenCode : fixBrokenCode,
