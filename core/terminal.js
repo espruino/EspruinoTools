@@ -136,7 +136,7 @@
             selection.baseNode.parentNode &&
             selection.baseNode.parentNode.className=="termLine") {
           var cx = selection.baseOffset;
-          var cy = selection.baseNode.parentNode.attributes.linenumber.value;
+          var cy = selection.baseNode.parentNode.attributes.lineNumber.value;
           var prev = selection.baseNode.previousSibling;
           while (prev) {
             cx += prev.textContent.length;
@@ -393,7 +393,7 @@
     elements = [];
     terminal.childNodes.forEach(n => {
       var ln;
-      if (n.getAttribute && ((ln=n.getAttribute("lineNumber"))!==null)) {
+      if (n.getAttribute && ((ln=n.getAttribute("lineNumber"))!==null) && !elements[ln]/*no dups*/) {
         elements[ln] = n;
       } else {
         n.remove(); // remove stuff that doesn't have a line number
