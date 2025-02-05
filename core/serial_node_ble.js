@@ -1,18 +1,6 @@
 (function () {
 
-/* THIS IS TOTALLY BROKEN
-
-* It broke Windows builds - but I've now fixed that
-* It often fails with `Discovery already in progress`, and in doing so calls the
-  getPorts callback twice with `[]` as well as the data it's got. But it also disables
-  Noble so it completely breaks bluetooth on Linux too.
-* node-ble was a dependency (not optional) so it probably broke Mac OS too.  
-
-If enabled, this will need `"node-ble": "^1.7.0",` in package.json optionalDependencies
-
-*/
-
-  /*
+/*
   In order to allow a connection with the DBus daemon, you have to set up right permissions.
 
   Create the file `/etc/dbus-1/system.d/node-ble.conf` with the following content (customize with userid)
@@ -34,17 +22,18 @@ If enabled, this will need `"node-ble": "^1.7.0",` in package.json optionalDepen
 
   if (typeof require === 'undefined') return;
   if (require("os").platform() != "linux") {
-    console.log("serial_node_ble: Not running Linux - disabling Bluetopoth DBUS support");
+    console.log("serial_node_ble: Not running Linux - disabling Bluetooth DBUS support");
   }
 
-  var NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-  var NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
-  var NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
-  var NORDIC_TX_MAX_LENGTH = 20;
+  const NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+  const NORDIC_TX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+  const NORDIC_RX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+  const NORDIC_TX_MAX_LENGTH = 20;
+  const SCAN_STOP_TIMEOUT = 5000;
 
   var adapter = undefined;
   var errored = false;
-  
+
   var bluetooth;
 
   var btDevice;
@@ -53,6 +42,7 @@ If enabled, this will need `"node-ble": "^1.7.0",` in package.json optionalDepen
   var rxCharacteristic;
   var txInProgress = false;
   var scanStopTimeout = undefined;
+
 
   function init() {
     Espruino.Core.Config.add("BLUETOOTH_LOW_ENERGY_DBUS", {
@@ -67,7 +57,7 @@ If enabled, this will need `"node-ble": "^1.7.0",` in package.json optionalDepen
   async function getAdapter() {
     if (adapter)
       return adapter;
-      
+
     try {
       var {createBluetooth} = require('node-ble');
       var BT = createBluetooth();
@@ -91,14 +81,21 @@ If enabled, this will need `"node-ble": "^1.7.0",` in package.json optionalDepen
   }
 
   async function scanDevices(adapter) {
-    console.log("Scanning...");
-    await adapter.startDiscovery();
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    await adapter.stopDiscovery();
+
+
+    if (scanStopTimeout === undefined) {
+      console.log("serial_node_ble: Start Scanning...");
+      await adapter.startDiscovery();
+    } else clearTimeout(scanStopTimeout);
+    scanStopTimeout = setTimeout(function() {
+      console.log("serial_node_ble: Stop Scanning...");
+      scanStopTimeout = undefined;
+      adapter.stopDiscovery();
+    }, SCAN_STOP_TIMEOUT);
 
     devices = await adapter.devices();
 
-    reportedDevices = []
+    reportedDevices = [];
 
     await devices.reduce((p,address) => p.then(() =>
       adapter.getDevice(address)).then((d) => {

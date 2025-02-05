@@ -23,16 +23,17 @@
   },
   "dependencies": {
     "acorn": "^8.8.2",
-    "es6-shim": "^0.35.8",    
+    "es6-shim": "^0.35.8",
     "utf8": "^3.0.0",
     "ws": "^8.13.0"
   },
   "optionalDependencies": {
     "@abandonware/noble": "^1.9.2-14",
     "noble-winrt": "^0.1.1",
+    "node-ble": "^1.13.0",
+    "peerjs-on-node": "^1.0.2",
     "serialport": "^10.5.0",
-    "websocket": "^1.0.34",
-    "peerjs-on-node": "^1.0.2"
+    "websocket": "^1.0.34"
   },
   "keywords": [
     "espruino",
