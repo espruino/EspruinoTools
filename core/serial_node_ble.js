@@ -23,6 +23,7 @@
   if (typeof require === 'undefined') return;
   if (require("os").platform() != "linux") {
     console.log("serial_node_ble: Not running Linux - disabling Bluetooth DBUS support");
+    return;
   }
 
   const NORDIC_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
