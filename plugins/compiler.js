@@ -83,13 +83,21 @@
               d.init.callee.object.name=="E" &&
               d.init.callee.property.name=="compiledC" &&
               d.init.arguments &&
-              d.init.arguments.length==1 &&
-              d.init.arguments[0].type=="TemplateLiteral") {
-                tasks.push({
-                  type:"c",
-                  node:d.init,
-                  source: d.init.arguments[0].quasis[0].value.raw,
-                });
+              d.init.arguments.length==1) {
+            if (d.init.arguments[0].type=="TemplateLiteral") {
+              tasks.push({
+                type:"c",
+                node:d.init,
+                source: d.init.arguments[0].quasis[0].value.raw,
+              });
+            }
+            if (d.init.arguments[0].type=="Literal") {
+              tasks.push({
+                type:"c",
+                node:d.init,
+                source: d.init.arguments[0].value,
+              });
+            }
           }
         }
       });

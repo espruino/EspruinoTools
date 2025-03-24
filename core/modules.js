@@ -192,10 +192,7 @@
         resolve();
       });
     }
-    if (alreadyMinified)
-      loadProcessedModule({code:data,name:modName});
-    else
-      Espruino.callProcessor("transformModuleForEspruino", {code:data,name:modName}, loadProcessedModule);
+    Espruino.callProcessor("transformModuleForEspruino", {code:data,name:modName,minified:alreadyMinified}, loadProcessedModule);
   }
 
   /** Given a module name (which could be a URL), try and find it. Return

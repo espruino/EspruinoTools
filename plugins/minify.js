@@ -61,6 +61,8 @@
     });
    // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformModuleForEspruino", function(module, callback) {
+      if (module.minified) // don't minify if module already minified
+        return callback(module);
       minify(module.code, function(code) {
         module.code = code;
         callback(module);
