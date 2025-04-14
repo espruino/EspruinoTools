@@ -15,7 +15,8 @@
     "espruino": "./bin/espruino-cli.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint bin core plugins"
   },
   "repository": {
     "type": "git",
@@ -46,5 +47,9 @@
   "bugs": {
     "url": "https://github.com/espruino/EspruinoTools/issues"
   },
-  "homepage": "https://github.com/espruino/EspruinoTools#readme"
+  "homepage": "https://github.com/espruino/EspruinoTools#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "eslint": "^9.24.0"
+  }
 }
