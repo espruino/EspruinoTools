@@ -49,6 +49,19 @@
     });
   }
 
+  /* Replace this node with the given text, and
+  update node start/end positions of other nodes
+  we're interested in */
+  function replaceNode(node, newCode) {
+    code = code.substr(0,node.start) + newCode + code.substr(node.end);
+    var offs = newCode.length - (node.end-node.start); // offset for future code snippets
+    for (var i in tasks)
+      if (tasks[i].node.start > node.start) {
+        tasks[i].node.start += offs;
+        tasks[i].node.end += offs;
+      }
+  }
+
   function compileCode(code, description, callback) {
     if (!Espruino.Config.COMPILATION)
       return callback(code);
@@ -110,18 +123,6 @@
         }
       }
 
-      /* Replace this node with the given text, and
-      update node start/end positions of other nodes
-      we're interested in */
-      function replaceNode(node, newCode) {
-        code = code.substr(0,node.start) + newCode + code.substr(node.end);
-        var offs = newCode.length - (node.end-node.start); // offset for future code snippets
-        for (var i in tasks)
-          if (tasks[i].node.start > node.start) {
-            tasks[i].node.start += offs;
-            tasks[i].node.end += offs;
-          }
-      }
       var taskCount = 0;
       tasks.forEach(function (task) {
         taskCount++;
