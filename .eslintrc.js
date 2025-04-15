@@ -17,7 +17,7 @@ module.exports = {
     "no-extra-semi": "warn",
     "no-redeclare": "warn",
     "no-var": "off",
-    "no-unused-vars": "warn",
+    "no-unused-vars": ["warn", { args: "none" }],
     "no-control-regex": "off",
   },
 };
