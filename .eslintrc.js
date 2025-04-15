@@ -6,6 +6,10 @@ module.exports = {
     es6: true,
   },
 
+  parserOptions: {
+    ecmaVersion: 8,
+  },
+
   globals: {
     chrome: "readonly", // Chromium specific browser global
     $: "readonly", // Firefox and Chromium helpers
