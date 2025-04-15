@@ -140,7 +140,7 @@ for (var i=2;i<process.argv.length;i++) {
      if (!isNextValid(next) || isNaN(args.baudRate)) throw new Error("Expecting a numeric argument to -b");
    } else if (arg=="-j") {
      args.job = "";                                          // will trigger makeJobFile
-     if (isNextValidJSON(next)) { i++; args.job =  next; };  // optional
+     if (isNextValidJSON(next)) { i++; args.job =  next; }  // optional
    } else if (arg=="-o") {
      i++; args.outputJS = next;
      if (!isNextValidJS(next)) throw new Error("Expecting a JS filename argument to -o");
@@ -152,7 +152,7 @@ for (var i=2;i<process.argv.length;i++) {
      if (!next || next.indexOf(":")<0) throw new Error("Expecting a fn:file.bin argument to --storage");
      args.storageContents[d[0]] = d[1];
    } else if (arg=="-f") {
-     i++; var arg = next;
+     i++; arg = next;
      if (!isNextValid(next)) throw new Error("Expecting a filename argument to -f");
      arg = arg.split(':', 2);
      args.updateFirmware = arg[0];
@@ -218,14 +218,15 @@ function setupConfig(Espruino, callback) {
  if (args.updateFirmware && (args.file || args.expr))
    throw new Error("Can't update firmware *and* upload code right now.");
  if (args.espruino) {  // job file injections
-   for (var key in args.espruino) Espruino.Config[key] = args.espruino[key];
+   for (let key in args.espruino)
+     Espruino.Config[key] = args.espruino[key];
  }
  if (args.outputHEX) {
    log("--ohex used - enabling MODULE_AS_FUNCTION");
    Espruino.Config.MODULE_AS_FUNCTION = true;
  }
  if (Object.keys(args.storageContents).length) {
-  for (var storageName in args.storageContents) {
+  for (let storageName in args.storageContents) {
     var fileName = args.storageContents[storageName];
     if (fileName=="-")
       args.storageContents[storageName] = { code : true };
@@ -235,7 +236,7 @@ function setupConfig(Espruino, callback) {
   }
  }
  if (args.config) {
-   for (var key in args.config) {
+   for (let key in args.config) {
      console.log("Command-line option set Espruino.Config."+key+" to "+JSON.stringify(args.config[key]));
      Espruino.Config[key] = args.config[key];
    }
@@ -319,7 +320,7 @@ function setupConfig(Espruino, callback) {
 address of the next file.
 NOTE: On platforms with only a 64 bit write (STM32L4) this won't work */
 function setStorageBufferFile(buffer, addr, filename, data) {
-  if (!typeof data=="string") throw "Expecting string";
+  if (!("string"==typeof data)) throw "Expecting string";
   if (addr&3) throw "Unaligned";
   var fileSize = data.length;
   var nextAddr = addr+32+((fileSize+3)&~3);
@@ -335,10 +336,10 @@ function setStorageBufferFile(buffer, addr, filename, data) {
               0,0,0,0,0,0,0,0,
               0,0,0,0,0,0,0,0,
               0,0,0,0], addr+4);
-  for (var i=0;i<filename.length;i++)
+  for (let i=0;i<filename.length;i++)
     buffer[addr+4+i] = filename.charCodeAt(i);
   // Write the data in
-  for (var i=0;i<fileSize;i++)
+  for (let i=0;i<fileSize;i++)
     buffer[addr+32+i] = data.charCodeAt(i);
   // return next addr
   return nextAddr;
@@ -404,7 +405,7 @@ function makeJobFile(config) {
       default: job[key] = args[key];  // otherwise just output each key: value
     }
     // write fields of Espruino.Config passed as config
-    for (var k in config) { if (typeof config[k]!=='function') job.espruino[k] = config[k]; };
+    for (var k in config) { if (typeof config[k]!=='function') job.espruino[k] = config[k]; }
   }
   // name job file same as code file with json ending or default and save.
   var jobFile = isNextValidJS(args.file) ? args.file.slice(0,args.file.lastIndexOf('.'))+'.json' : "job.json";
@@ -477,8 +478,8 @@ function sendCode(callback) {
         log("Writing hex output to "+args.outputHEX);
         var storage = {}
         var hadCode = false;
-        for (var storageName in args.storageContents) {
-          var storageContent = args.storageContents[storageName];
+        for (let storageName in args.storageContents) {
+          let storageContent = args.storageContents[storageName];
           if (storageContent.code) {
             storage[storageName] = code;
             hadCode = true;
@@ -492,8 +493,8 @@ function sendCode(callback) {
       } else {
         // if not creating a hex, we just add the code needed to upload
         // files to the beginning of what we upload
-        for (var storageName in args.storageContents) {
-          var storageContent = args.storageContents[storageName];
+        for (let storageName in args.storageContents) {
+          let storageContent = args.storageContents[storageName];
           if (!storageContent.code) {
             code = Espruino.Core.Utils.getUploadFileCode(storageName, storageContent.data)+"\n" + code;
           }
@@ -820,12 +821,12 @@ function startConnect() {
       this.idx = 0;
       this.connect = connect;
       this.iterate = function() {
-        if (idx>=ports.length) tasksComplete();
-        else getPortPath(ports[idx++], function(path) {
-          connect(path,iterate);
+        if (this.idx>=ports.length) tasksComplete();
+        else getPortPath(ports[this.idx++], function(path) {
+          connect(path, this.iterate);
         });
       };
-      iterate();
+      this.iterate();
     })(args.ports, connect);
   }
 }
