@@ -92,7 +92,7 @@
 
     var chr = { '"': '&quot;', '&': '&amp;', '<': '&lt;', '>': '&gt;', ' ' : (escapeSpaces ? '&nbsp;' : ' ') };
 
-    return text.toString().replace(/[\"&<> ]/g, function (a) { return chr[a]; });
+    return text.toString().replace(/["&<> ]/g, function (a) { return chr[a]; });
   }
 
   /* Google Docs, forums, etc tend to break code by replacing characters with
@@ -946,7 +946,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     var enc1, enc2, enc3, enc4;
     var i = 0;
     // remove all characters that are not A-Z, a-z, 0-9, +, /, or =
-    input = input.replace(/[^A-Za-z0-9\+\/\=]/g, '');
+    input = input.replace(/[^A-Za-z0-9+/=]/g, '');
     while (i < input.length) {
       enc1 = keyStr.indexOf(input.charAt(i++));
       enc2 = keyStr.indexOf(input.charAt(i++));

@@ -12,7 +12,7 @@ Use embed.js on the client side to link this in.
     console.log("serial_frame: Not running in a browser");
     return;
   }
-  if (typeof window.parent == undefined ||
+  if ((typeof window.parent == "undefined") ||
       window.parent === window) {
     console.log("serial_frame: Not running inside an iframe");
     return;

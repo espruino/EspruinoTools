@@ -442,10 +442,10 @@
       } else {
         line = Espruino.Core.Utils.escapeHTML(line);
         // handle URLs
-        line = line.replace(/(https?:\/\/[-a-zA-Z0-9@:%._\+~#=\/\?]+)/g, '<a href="$1" target="_blank">$1</a>');
+        line = line.replace(/(https?:\/\/[-a-zA-Z0-9@:%._+~#=/?]+)/g, '<a href="$1" target="_blank">$1</a>');
       }
       // detect inline images and link them in
-      var m = line.match(/data:image\/\w+;base64,[\w\+\/=]+/);
+      var m = line.match(/data:image\/\w+;base64,[\w+/=]+/);
       if (m) {
         var src = m[0];
         line = line.substr(0,m.index)+'<a href="'+src+'" download><img class="terminal-inline-image" src="'+src+'"/></a>'+line.substr(m.index+m[0].length);

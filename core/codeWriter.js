@@ -72,7 +72,7 @@
         }, 100);
       });
     });
-  };
+  }
 
   /// Parse and fix issues like `if (false)\n foo` in the root scope
   function reformatCode(code) {
@@ -94,7 +94,7 @@
     // Turn cr/lf into just lf (eg. windows -> unix)
     code = code.replace(/\r\n/g,"\n");
     // First off, try and fix funky characters
-    for (var i=0;i<code.length;i++) {
+    for (let i=0;i<code.length;i++) {
       var ch = code.charCodeAt(i);
       if ((ch<32 || ch>255) && ch!=9/*Tab*/ && ch!=10/*LF*/ && ch!=13/*CR*/) {
         console.warn("codewriter> Unexpected character code "+ch+" at position "+i+". Replacing with ?");
@@ -107,7 +107,7 @@
     but this hack works for now. Fixes EspruinoWebIDE#140 */
     if (APPLY_LINE_NUMBERS) {
       var l = code.split("\n");
-      var i = 0;
+      let i = 0;
       while (l[i] && (l[i].substr(0,8)=="Modules." ||
                       l[i].substr(0,8)=="setTime(")) i++;
       lineNumberOffset = -i;
@@ -231,7 +231,7 @@
       return undefined;
     }
     return resultCode;
-  };
+  }
 
   Espruino.Core.CodeWriter = {
     init : init,

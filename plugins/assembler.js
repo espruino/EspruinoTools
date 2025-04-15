@@ -314,7 +314,7 @@
       for (var n in ops[opName]) {
         var op = ops[opName][n];
         var m;
-        if (m=args.match(op.regex)) {
+        if ((m=args.match(op.regex))) {
           found = true;
           // work out the base opcode
           var opCode = getOpCode(op.base);

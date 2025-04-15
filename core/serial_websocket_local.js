@@ -3,7 +3,7 @@ Gordon Williams (gw@pur3.co.uk)
 */
 (function() {
 
-  if (typeof window == "undefined" || typeof WebSocket == undefined) return;
+  if (typeof window == "undefined" || (typeof WebSocket == "undefined")) return;
   console.log("WebSocket localhost support (EspruinoHost) enabled - running in web browser");
 
   var WS_ENABLED = true;

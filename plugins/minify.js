@@ -110,7 +110,7 @@
       Espruino.Core.Notifications.error(e.toString()+description);
       console.error(e.stack);
       callback(code);
-    } finally { }
+    }
   }
   function obfuscate(syntax,options) {
     // hack for random changes between version we have included for Web IDE and node.js version
