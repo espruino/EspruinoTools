@@ -9,6 +9,7 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
   // Support for websockets on Node.js...
   if (typeof WebSocket == "undefined" || typeof require!=="undefined") {
     try {
+      // eslint-disable-next-line no-global-assign
       WebSocket = require("ws").WebSocket;
     } catch (e) {
       console.log("'ws' module not installed");
