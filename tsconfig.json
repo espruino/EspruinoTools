@@ -1,0 +1,11 @@
+{
+  // Change this to match your project
+  "include": ["index.js", "espruino.js"],
+  "compilerOptions": {
+    "allowJs": true,
+    "declaration": true, // Generate d.ts files
+    "emitDeclarationOnly": true,
+    "outDir": "types",
+    "declarationMap": true // go to js file when using IDE functions like "Go to Definition" in VSCode
+  }
+}
