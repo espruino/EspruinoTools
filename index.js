@@ -53,6 +53,10 @@ var jqShim = {
 
 var espruinoInitialised = false;
 
+/**
+ * init Espruino global vars
+ * @param {() => void} callback 
+ */
 function init(callback) {
   if (espruinoInitialised) {
     console.log("Already initialised.");
@@ -105,21 +109,31 @@ function init(callback) {
   jqReady.forEach(function(cb){cb();});
   Espruino.init();
   callback();
-};
+}
 
 /** Initialise EspruinoTools and call the callback.
  When the callback is called, the global variable 'Espruino'
  will then contain everything that's needed to use EspruinoTools */
 exports.init = init;
 
-/** Send a file to an Espruino on the given port, call the callback when done */
-exports.sendFile = function(port, filename, callback) {
+/**
+ * Send a file to an Espruino on the given port, call the callback when done
+ * @param {string} port 
+ * @param {string} filename 
+ * @param {() => void} callback 
+ */
+function sendFile(port, filename, callback) {
   var code = fs.readFileSync(filename, {encoding:"utf8"});
   sendCode(port, code, callback);
-};
+}
+exports.sendFile = sendFile;
 
-exports.sendCode = sendCode;
-
+/**
+ * Send code to Espruino
+ * @param {string} port 
+ * @param {string} code 
+ * @param {() => void} callback 
+*/
 function sendCode(port, code, callback) {
   var response = "";
   init(function() {
@@ -127,7 +141,7 @@ function sendCode(port, code, callback) {
       data = new Uint8Array(data);
       for (var i=0;i<data.length;i++)
         response += String.fromCharCode(data[i]);
-     });
+    });
     Espruino.Core.Serial.open(port, function(status) {
       if (status === undefined) {
         console.error("Unable to connect!");
@@ -145,10 +159,16 @@ function sendCode(port, code, callback) {
         callback(response);
     });
   });
-};
+}
+exports.sendCode = sendCode;
 
-/** Execute an expression on Espruino, call the callback with the result */
-exports.expr = function(port, expr, callback) {
+/**
+ * Execute an expression on Espruino, call the callback with the result
+ * @param {string} port 
+ * @param {string} expr 
+ * @param {(result: string) => void} callback 
+ */
+function expr(port, expr, callback) {
   var exprResult = undefined;
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
@@ -167,10 +187,16 @@ exports.expr = function(port, expr, callback) {
       if (callback) callback(exprResult);
     });
   });
-};
+}
+exports.expr = expr;
 
-/** Execute a statement on Espruino, call the callback with what is printed to the console */
-exports.statement = function(port, expr, callback) {
+/**
+ * Execute a statement on Espruino, call the callback with what is printed to the console
+ * @param {string} port 
+ * @param {string} expr 
+ * @param {(result: string) => void} callback 
+ */
+function statement(port, expr, callback) {
   var exprResult = undefined;
   init(function() {
     Espruino.Core.Serial.startListening(function(data) { });
@@ -189,10 +215,17 @@ exports.statement = function(port, expr, callback) {
       if (callback) callback(exprResult);
     });
   });
-};
+}
+exports.statement = statement;
 
-/** Flash the given firmware file to an Espruino board. */
-exports.flash = function(port, filename, flashOffset, callback) {
+/**
+ * Flash the given firmware file to an Espruino board.
+ * @param {string} port 
+ * @param {string} filename 
+ * @param {*} flashOffset 
+ * @param {() => void} callback 
+ */
+function flash(port, filename, flashOffset, callback) {
   if (typeof flashOffset === 'function') {
     // backward compatibility if flashOffset is missed
     callback = flashOffset;
@@ -218,4 +251,5 @@ exports.flash = function(port, filename, flashOffset, callback) {
       if (callback) callback();
     });
   });
-};
+}
+exports.flash = flash;
