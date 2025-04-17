@@ -426,6 +426,45 @@ To add a new serial device, you must add an object to
     }
   };
 
+  /** 
+   * Simplified events system.
+   * @typedef {"close"|"data"|"open"|"error"|"ack"|"nak"|"packet"} PacketEvent
+   * @typedef {(...any) => void} PacketEventListener
+   */
+
+  /** @type {Object.<PacketEvent, PacketEventListener} */
+  var pkListeners = {};
+      
+  /**
+   * Act on events using a simplified events listener
+   * @param {PacketEvent} evt
+   * @param {PacketEventListener} cb 
+   */
+  function on(evt, cb) { 
+    let e = "on" + evt; 
+    if (!pkListeners[e]) pkListeners[e] = []; 
+    pkListeners[e].push(cb); 
+  } 
+
+  /**
+   * Emit event on the event handler, will call all registered callbacks for {evt} and pass {data}
+   * @param {PacketEvent} evt 
+   * @param  {...any} data 
+   */
+  function emit(evt, ...data) { 
+    let e = "on" + evt; 
+    if (pkListeners[e]) pkListeners[e].forEach(fn => fn(...data));
+  }
+
+  /**
+   * Remove a {PacketEvent} listener
+   * @param {PacketEvent} evt 
+   * @param {PacketEventListener} callback 
+   */
+  function removeListener(evt, callback) { 
+    let e = "on" + evt; 
+    if (pkListeners[e]) pkListeners[e] = pkListeners[e].filter(fn => fn != callback);
+  }
 
   // ----------------------------------------------------------
   Espruino.Core.Serial = {
@@ -456,6 +495,9 @@ To add a new serial device, you must add an object to
     },
     "setBinary": function(isOn) {
       sendingBinary = isOn;
-    }
+    },
+
+    // Packet events system
+    on, emit, removeListener
   };
 })();
