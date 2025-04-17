@@ -77,9 +77,7 @@
     }
   }
 
-  /** Does the currently connected board have an ARM processor that can execute Thumb code?
-   *  @returns {boolean}
-   */
+  /** Does the currently connected board have an ARM processor that can execute Thumb code? */
   function isARMThumb() {
     var data = Espruino.Core.Env.getData();
     if (!data || !data.chip) return false;
@@ -310,7 +308,6 @@
    * and hope it comes back. Calls callback with first argument true if it
    * had to Ctrl-C out
    * @param {(hadToBreak?: boolean) => void} callback 
-   * @returns 
    */
   function getEspruinoPrompt(callback) {
     if (Espruino.Core.Terminal!==undefined &&
@@ -479,7 +476,6 @@
   }
 
   /**
-   * Download a file - storageFile or normal file
    * @param {string} fileName Path to file to download
    * @param {(content?: string) => void} callback Call back with contents of file, or undefined if no content
    */
@@ -517,7 +513,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Upload a file
    * @param {string} fileName Path to file to upload
    * @param {string} contents Contents of the file being uploaded
    * @param {(result: string) => void} callback 
@@ -660,7 +655,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * GET's a URL as JSON
    * @param {string} url 
    * @param {(data?: any) => void} callback {data} will return 'undefined' on error
    */
@@ -674,7 +668,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Check if an input string has http:// or https:// prefix
    * @param {string} text 
    * @returns {boolean}
    */
@@ -692,7 +685,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Open a file load dialog.
    * @param {Object} options
    * @param {string} options.id ID to ensure that subsequent calls with the same ID remember the last used directory.
    * @param {'text' | 'arraybuffer'} options.type (default 'text') Callback with either 'text' or 'arraybuffer'
@@ -872,10 +864,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     xmlhttp.send(null);
   }
 
-  /**
-   * Get version info returns the version and app type
-   * @param {(version: string) => void} callback 
-   */
+  /** @param {(version: string) => void} callback */
   function getVersionInfo(callback) {
     getVersion(function(version) {
       var platform = "Web App";
@@ -889,7 +878,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Converts a string to an ArrayBuffer
    * @param {string} str 
    * @returns {ArrayBuffer}
    */
@@ -907,7 +895,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Converts a string to a Buffer
    * @param {string} str 
    * @returns {Buffer}
    */
@@ -920,8 +907,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Converts a DataView to an ArrayBuffer
-   * @param {string} str TODO: Is this broken? code expects 'dv' not 'str
+   * @param {string} str
    * @returns {ArrayBuffer}
    */
   function dataViewToArrayBuffer(str) {
@@ -933,7 +919,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Converts an ArrayBuffer to a string
    * @param {ArrayBuffer} buf
    * @returns {string}
    */
