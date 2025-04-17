@@ -483,7 +483,8 @@
       var pos = cursor[0].getBoundingClientRect();
       var terminalfocus = document.getElementById("terminalfocus");
       var x = Math.min(pos.left, terminal.offsetWidth);
-      var y = Math.min(pos.top-tPos.top, terminal.height-terminalfocus.offsetHeight);
+      // TODO: 'y' is already defined in outer scope, but this redeclaration doesn't appear to be used in this scope?
+      var y = Math.min(pos.top-tPos.top, terminal.height-terminalfocus.offsetHeight); 
       terminalfocus.style.left=x+"px";
       terminalfocus.style.top=(pos.top-tPos.top)+"px";
     }
