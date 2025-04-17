@@ -19,13 +19,13 @@
 
   }
 
-  function decodeBase64(d) {
-    return Buffer.from(d,'base64').toString('binary');
-  }
+  // function decodeBase64(d) {
+  //   return Buffer.from(d,'base64').toString('binary');
+  // }
 
-  function encodeBase64(d) {
-    return Buffer.from(d,'binary').toString('base64');
-  }
+  // function encodeBase64(d) {
+  //   return Buffer.from(d,'binary').toString('base64');
+  // }
 
   function isWindows() {
     return (typeof navigator!="undefined") && navigator.userAgent.indexOf("Windows")>=0;
@@ -220,7 +220,7 @@
             if (ch=="\\") { // handle escape characters
               nextCh();
               var escape = '\\'+ch;
-              var escapeExtra = 0;
+              // var escapeExtra = 0;
               if (ch=="x") {
                 nextCh();escape += ch;
                 nextCh();escape += ch;

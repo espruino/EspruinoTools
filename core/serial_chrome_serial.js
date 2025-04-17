@@ -30,7 +30,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
   }
 
   var connectionInfo;
-  var connectedPort; // unused?
+  // var connectedPort; // unused?
   var connectionDisconnectCallback;
   var connectionReadCallback;
 
@@ -65,7 +65,7 @@ Author: Gordon Williams (gw@pur3.co.uk)
           openCallback(undefined);
         } else {
           connectionInfo = cInfo;
-          connectedPort = serialPort;
+          // connectedPort = serialPort;
           console.log(cInfo);
           openCallback(cInfo);
         }
