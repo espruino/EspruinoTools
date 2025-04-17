@@ -21,26 +21,33 @@
   function init() {
   }
 
+  /**
+   * @typedef {Object} FlasherOptions
+   * @property {ArrayBuffer} binary
+   * @property {(status: string) => void} cbStatus
+   * @property {(err: Error) => void} cbDone
+   * @property {string} serialDevice Serial2
+   * @property {string} serialRx A3
+   * @property {string} serialTx A2
+   * @property {string} chBoot A14
+   * @property {string} chPD A13
+   */
+
+  /** 
+   * @param {FlasherOptions} options
+   * @returns {FlasherOptions}
+   */
   function defaultOptions(options) {
     options.serialDevice = options.serialDevice||"Serial2";
     options.serialRx = options.serialRx||"A3";
     options.serialTx = options.serialTx||"A2";
   }
 
-  /* options = {
-    binary : ArrayBuffer,
-    cbStatus,
-    cbDone,
-    serialDevice, // Serial2
-    serialRx, // A3
-    serialTx, // A2
-    chBoot, // A14
-    chPD, // A13
-     */
+  /** @param {FlasherOptions} options  */
   function flashDevice(options) {
     if (!options.binary) throw new Error("Needs binary");
     defaultOptions(options);
-
+    
     var prevReader = Espruino.Core.Serial.startListening(function (buffer) {
       var bufView = new Uint8Array(buffer);
       for (var i=0;i<bufView.length;i++)
@@ -84,7 +91,11 @@
     });
   }
 
-
+/**
+ * @param {FlasherOptions} options 
+ * @param {number} cmd 
+ * @param {ArrayBuffer} data 
+ */
 function wr(options,cmd,data) {
   //console.log("Write",cmd,data.length,data);
   if (typeof data !== "string")
@@ -112,6 +123,7 @@ function sendCmd(options, cmd, data) {
   });
 }
 
+/** @param {FlasherOptions} options  */
 function setupEspruino(options) {
   if (options.cbStatus) options.cbStatus("Configuring Espruino...");
   return new Promise((resolve,reject)=>{
@@ -152,6 +164,7 @@ function setupEspruino(options) {
   });
 }
 
+/** @param {FlasherOptions} options  */
 function unsetupEspruino(options) {
   if (options.cbStatus) options.cbStatus("Resetting Espruino...");
   return new Promise((resolve,reject)=>{
@@ -163,6 +176,7 @@ function unsetupEspruino(options) {
   });
 }
 
+/** @param {FlasherOptions} options  */
 function cmdSync(options) {
   console.log("Syncing...");
   return new Promise((resolve,reject)=>{
@@ -197,8 +211,7 @@ function cmdSync(options) {
   });
 }
 
-
-
+/** @param {FlasherOptions} options  */
 function cmdFlash(options) {
   var binary = new Uint8Array(options.binary);
   var blockCount = Math.floor((binary.length + (BLOCK_SIZE-1)) / BLOCK_SIZE);
@@ -227,6 +240,10 @@ function cmdFlash(options) {
   });
 }
 
+/**
+ * @param {FlasherOptions} options 
+ * @param {(version: string) => void} callback 
+ */
 function getFirmwareVersion(options, callback) {
   defaultOptions(options);
   Espruino.Core.Serial.write('\x03\x10reset()\n', false, function() {

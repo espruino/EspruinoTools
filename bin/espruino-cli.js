@@ -756,8 +756,7 @@ function terminal(devicePath, exitCallback) {
           if (args.watchFile) sendOnFileChanged();
         });
       });
-    }
-    else {
+    } else {
       // figure out what code we need to send (if any)
       sendCode(function() {
         if (args.watchFile) sendOnFileChanged();

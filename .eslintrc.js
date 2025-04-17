@@ -23,5 +23,6 @@ module.exports = {
     "no-var": "off",
     "no-unused-vars": ["warn", { args: "none" }],
     "no-control-regex": "off",
+    "brace-style": ["warn", "1tbs", { "allowSingleLine": true }]
   },
 };
