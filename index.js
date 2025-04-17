@@ -222,7 +222,7 @@ exports.statement = statement;
  * Flash the given firmware file to an Espruino board.
  * @param {string} port 
  * @param {string} filename 
- * @param {*} flashOffset 
+ * @param {number} flashOffset
  * @param {() => void} callback 
  */
 function flash(port, filename, flashOffset, callback) {
