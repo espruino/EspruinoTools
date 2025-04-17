@@ -934,10 +934,10 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * Converts an ArrayBuffer to a string
-   * @param {string} str TODO: Is this one also broken? Expects 'buf' not 'str'
+   * @param {ArrayBuffer} buf
    * @returns {string}
    */
-  function arrayBufferToString(str) {
+  function arrayBufferToString(buf) {
     return String.fromCharCode.apply(null, new Uint8Array(buf));
   }
 
