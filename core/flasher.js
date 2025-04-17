@@ -392,6 +392,7 @@
       Espruino.Core.Terminal.setInputDataHandler(oldHandler);
       callback(err);
     };
+
     // initialise
     initialiseChip(function (err) {
       if (err) return finish(err);
@@ -417,9 +418,7 @@
         }, 2000/*timeout*/);
       });
     });
-  };
-
-
+  }
 
   Espruino.Core.Flasher = {
     init : init,

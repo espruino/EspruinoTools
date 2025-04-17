@@ -9,6 +9,10 @@
      isSupportedByBrowser=true;
   }
 
+  /**
+   * @param {boolean} ignoreSettings 
+   * @returns {{warning?: string, error?: string} | boolean}
+   */
   function getStatus(ignoreSettings) {
     /* If BLE is handled some other way (eg noble), then it can be disabled here */
     if (Espruino.Core.Serial.NO_WEB_BLUETOOTH) {

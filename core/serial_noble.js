@@ -241,7 +241,7 @@
     }
   };
 
-  // Throttled serial write
+  /** Throttled serial write */
   var writeSerial = function (data, callback) {
     if (txCharacteristic === undefined) return;
 
