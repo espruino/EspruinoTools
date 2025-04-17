@@ -805,13 +805,13 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   };
 
   // Converts a DataView to an ArrayBuffer
-  function dataViewToArrayBuffer(str) {
+  function dataViewToArrayBuffer(dv) {
     var bufView = new Uint8Array(dv.byteLength);
     for (var i = 0; i < bufView.length; i++) {
       bufView[i] = dv.getUint8(i);
     }
     return bufView.buffer;
-  };
+  }
 
   // Converts an ArrayBuffer to a string
   function arrayBufferToString(buf) {
