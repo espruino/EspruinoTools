@@ -526,7 +526,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   /**
    * Taking a standard semver type string, parse and convert to float
    * @param {string} version Version string eg. v1.2.3
-   * @returns {float}
+   * @returns {number}
    */
   function versionToFloat(version) {
     return parseFloat(version.trim().replace("v","."));
@@ -632,7 +632,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   /**
    * GET's a URL as a Binary file
    * @param {string} url 
-   * @param {(err: Error, data: ArrayBuffer) => void} callback 
+   * @param {(err: string, data?: ArrayBuffer) => void} callback 
    */
   function getBinaryURL(url, callback) {
     console.log("Downloading "+url);
