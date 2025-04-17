@@ -215,32 +215,50 @@ To add a new serial device, you must add an object to
         });
       }
     }, function(data) { // RECEIEVE DATA
-      if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers");
-      if (Espruino.Config.SERIAL_FLOW_CONTROL) {
-        var u = new Uint8Array(data);
-        for (var i=0;i<u.length;i++) {
-          if (u[i]==17) { // XON
-            console.log("XON received => resume upload");
-            flowControlXOFF = false;
-            if (flowControlTimeout) {
-              clearTimeout(flowControlTimeout);
-              flowControlTimeout = undefined;
+      if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers")
+
+      // Filter incoming data to handle and remove control characters
+      const filteredData = new Uint8Array(data).filter((v) => {
+        switch (v) {
+          case 17: // XON
+            if (Espruino.Config.SERIAL_FLOW_CONTROL) {
+              console.log("XON received => resume upload")
+              flowControlXOFF = false
+              if (flowControlTimeout) {
+                clearTimeout(flowControlTimeout)
+                flowControlTimeout = undefined
+              }
             }
-          }
-          if (u[i]==19) { // XOFF
-            console.log("XOFF received => pause upload");
-            flowControlXOFF = true;
-            if (flowControlTimeout)
-              clearTimeout(flowControlTimeout);
-            flowControlTimeout = setTimeout(function() {
-              console.log(`XOFF timeout (${FLOW_CONTROL_RESUME_TIMEOUT}s) => resume upload anyway`);
-              flowControlXOFF = false;
-              flowControlTimeout = undefined;
-            }, FLOW_CONTROL_RESUME_TIMEOUT);
-          }
+            return false
+
+          case 19:
+            if (Espruino.Config.SERIAL_FLOW_CONTROL) {
+              console.log("XOFF received => pause upload")
+              flowControlXOFF = true
+              if (flowControlTimeout) clearTimeout(flowControlTimeout)
+              flowControlTimeout = setTimeout(function () {
+                console.log(
+                  `XOFF timeout (${FLOW_CONTROL_RESUME_TIMEOUT}s) => resume upload anyway`
+                )
+                flowControlXOFF = false
+                flowControlTimeout = undefined
+              }, FLOW_CONTROL_RESUME_TIMEOUT)
+            }
+            return false
+
+          case 6: // ACK
+            emit("ack")
+            return false
+
+          case 21: // NACK
+            emit("nack")
+            return false
         }
-      }
-      if (readListener) readListener(data);
+
+        return true
+      })
+
+      if (readListener) readListener(filteredData.buffer)
     }, function(error) { // DISCONNECT
       currentDevice = undefined;
       if (writeTimeout!==undefined)
@@ -428,7 +446,7 @@ To add a new serial device, you must add an object to
 
   /** 
    * Simplified events system.
-   * @typedef {"close"|"data"|"open"|"error"|"ack"|"nak"|"packet"} PacketEvent
+   * @typedef {"close"|"data"|"open"|"error"|"ack"|"nack"|"packet"} PacketEvent
    * @typedef {(...any) => void} PacketEventListener
    */
 
