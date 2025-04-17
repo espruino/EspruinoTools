@@ -294,6 +294,22 @@ To add a new serial device, you must add an object to
     return currentDevice!==undefined;
   };
 
+  var findSplitIdx = function(prev, substr, delay, reason) {
+    var match = writeData[0].data.match(substr);
+    // not found
+    if (match===null) return prev;
+    // or previous find was earlier in str
+    var end = match.index + match[0].length;
+    if (end > prev.end) return prev;
+    // found, and earlier
+    prev.start = match.index;
+    prev.end = end;
+    prev.delay = delay;
+    prev.match = match[0];
+    prev.reason = reason;
+    return prev;
+  }
+
   var writeSerialWorker = function(isStarting) {
     writeTimeout = undefined; // we've been called
     // check flow control
@@ -350,21 +366,6 @@ To add a new serial device, you must add an object to
     var split = writeData[0].nextSplit || { start:0, end:writeData[0].data.length, delay:0 };
     // if we get something like Ctrl-C or `reset`, wait a bit for it to complete
     if (!sendingBinary) {
-      function findSplitIdx(prev, substr, delay, reason) {
-        var match = writeData[0].data.match(substr);
-        // not found
-        if (match===null) return prev;
-        // or previous find was earlier in str
-        var end = match.index + match[0].length;
-        if (end > prev.end) return prev;
-        // found, and earlier
-        prev.start = match.index;
-        prev.end = end;
-        prev.delay = delay;
-        prev.match = match[0];
-        prev.reason = reason;
-        return prev;
-      }
       split = findSplitIdx(split, /\x03/, 250, "Ctrl-C"); // Ctrl-C
       split = findSplitIdx(split, /reset\(\);?\n/, 250, "reset()"); // Reset
       split = findSplitIdx(split, /load\(\);?\n/, 250, "load()"); // Load
