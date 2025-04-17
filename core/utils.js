@@ -814,7 +814,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   };
 
   // Converts an ArrayBuffer to a string
-  function arrayBufferToString(str) {
+  function arrayBufferToString(buf) {
     return String.fromCharCode.apply(null, new Uint8Array(buf));
   };
 
