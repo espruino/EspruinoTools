@@ -969,6 +969,36 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return output;
   }
 
+  // Enum of known packet types
+  const pkTypes = Object.freeze({
+    RESPONSE:  0,      // Response to an EVAL packet
+    EVAL:      0x2000, // execute and return the result as RESPONSE packet
+    EVENT:     0x4000, // parse as JSON and create `E.on('packet', ...)` event
+    FILE_SEND: 0x6000, // called before DATA, with {fn:"filename",s:123}
+    DATA:      0x8000, // Sent after FILE_SEND with blocks of data for the file
+    FILE_RECV: 0xA000  // receive a file - returns a series of PT_TYPE_DATA packets, with a final zero length packet to end
+  })
+
+  // Create a packet ready for packet transfer 
+  function createPacket(pkType, data) {
+    // Check the packet type is one of the known types
+    if (!Object.hasOwn(pkTypes, pkType)) throw new Error(`'pkType' '${pkType}' not one of ${Object.keys(pkTypes)}`);
+
+    // Check the data is a string type and length is in bounds
+    if (typeof data !== 'string') throw new Error("data must be a String");
+    if (data.length <= 0 || data.length > 0x1FFF) throw new Error('data length is out of bounds, max 8191 bytes');
+
+    // Create packet heading using packet type and data length
+    const heading = pkTypes[pkType] | data.length
+
+    return String.fromCharCode(
+      16,                   // DLE (Data Link Escape)
+      1,                    // SOH (Start of Heading)
+      (heading >> 8) &0xFF, // Upper byte of heading
+      heading & 0xFF        // Lower byte of heading
+    ) + data;               // Data blob
+  }
+
   Espruino.Core.Utils = {
       init : init,
       isWindows : isWindows,
@@ -1017,6 +1047,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       asUTF8Bytes : asUTF8Bytes,
       isASCII : isASCII,
       btoa : btoa,
-      atob : atob
+      atob : atob,
+      createPacket : createPacket
   };
 }());
