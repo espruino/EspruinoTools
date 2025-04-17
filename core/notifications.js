@@ -13,26 +13,20 @@
 
 (function() {
 
-  function init()
-  {
-  }
+  function init() { }
 
   Espruino.Core.Notifications = {
       init : init,
-      success: function(msg, setStatus)
-      {
+      success: function(msg, setStatus) {
         toastr.success(msg);
       },
-      error: function(msg, setStatus)
-      {
+      error: function(msg, setStatus) {
         toastr.error(msg);
       },
-      warning: function(msg, setStatus)
-      {
+      warning: function(msg, setStatus) {
         Espruino.callProcessor("notification",{type:"warning",msg:msg},function(){});
       },
-      info: function(msg, setStatus)
-      {
+      info: function(msg, setStatus) {
         Espruino.callProcessor("notification",{type:"info",msg:msg},function(){});
       }
   };
