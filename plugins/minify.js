@@ -194,6 +194,8 @@
         _callback(code);
       };
     })();
+    
+    // TODO: None of the below block is called
     var minifyCode = code;
     var minifyCallback = callback;
     if (isModule) {
@@ -206,6 +208,7 @@
         callback(minified.substr(header.length, minified.length-(header.length+footer.length+1)));
       }
     }
+    // End of unused block
 
     switch(level){
       case "WHITESPACE_ONLY":

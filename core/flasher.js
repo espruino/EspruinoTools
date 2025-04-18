@@ -362,7 +362,7 @@
       console.log("Downloaded "+binary.byteLength+" bytes");
       flashBinaryToDevice(binary, flashOffset, callback, statusCallback);
     });
-  };
+  }
 
 
   function resetDevice(callback) {
@@ -417,9 +417,7 @@
         }, 2000/*timeout*/);
       });
     });
-  };
-
-
+  }
 
   Espruino.Core.Flasher = {
     init : init,
