@@ -236,12 +236,13 @@
       if (needSpaceBetween(lastCh, ch))
         resultCode += " ";
       if (ch>=LEX_OPERATOR_START) {
+        var len
         if (ch==LEX_RAW_STRING8) { // decode raw strings
-          var len = code.charCodeAt(i+1);
+          len = code.charCodeAt(i+1);
           resultCode += Espruino.Core.Utils.toJSONishString(code.substring(i+2, i+2+len));
           i+=1+len;
         } else if (ch==LEX_RAW_STRING16) {
-          var len = code.charCodeAt(i+1) | (code.charCodeAt(i+2)<<8);
+          len = code.charCodeAt(i+1) | (code.charCodeAt(i+2)<<8);
           resultCode += Espruino.Core.Utils.toJSONishString(code.substring(i+3, i+3+len));
           i+=2+len;
         } else if (ch<LEX_OPERATOR_START+TOKENS.length) // decoded other tokens

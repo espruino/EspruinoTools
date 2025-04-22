@@ -335,7 +335,7 @@
       callback(data);
     });
 
-  };
+  }
 
   /* check for any terminal-inline-image and if they are still BMP
   then convert them to PNG using canvas */
@@ -430,7 +430,7 @@
       if (i in elements)
         elements[i].remove();
     // now write this to the screen
-    var t = [];
+    // var t = [];
     for (var y in termText) {
       var line = termText[y];
       if (y == termCursorY) {
@@ -483,7 +483,8 @@
       var pos = cursor[0].getBoundingClientRect();
       var terminalfocus = document.getElementById("terminalfocus");
       var x = Math.min(pos.left, terminal.offsetWidth);
-      var y = Math.min(pos.top-tPos.top, terminal.height-terminalfocus.offsetHeight);
+      // TODO: 'y' is already defined in outer scope, but this redeclaration doesn't appear to be used in this scope?
+      var y = Math.min(pos.top-tPos.top, terminal.height-terminalfocus.offsetHeight); 
       terminalfocus.style.left=x+"px";
       terminalfocus.style.top=(pos.top-tPos.top)+"px";
     }
@@ -494,8 +495,6 @@
     while (s>0 && str[s]==" ") s--;
     return str.substr(0,s+1);
   }
-
-
 
   var handleReceivedCharacter = function (/*char*/ch) {
     function isUTF8StartChar(ch) {
@@ -612,7 +611,7 @@
     var old = onInputData;
     onInputData = callback;
     return old;
-  };
+  }
 
   /// Called when data comes OUT of Espruino INTO the terminal
   function outputDataHandler(readData) {
@@ -632,7 +631,7 @@
         displayData = [];
         displayTimeout = null;
       }, 50);
-  };
+  }
 
   var receivedData = "";
   function searchData(bytes){
@@ -661,12 +660,12 @@
     });
     // Ensure that data from Espruino goes to this terminal
     Espruino.Core.Serial.startListening(Espruino.Core.Terminal.outputDataHandler);
-  };
+  }
 
   /// Get the current terminal line that we're on
   function getCurrentLine() {
     return termText.length-1;
-  };
+  }
 
   /// Set extra text to display before a certain terminal line
   function setExtraText(line, text) {
@@ -674,23 +673,23 @@
       termExtraText[line] = text;
       updateTerminal();
     }
-  };
+  }
 
   /// Clear all extra text that is to be displayed
   function clearExtraText() {
     termExtraText = {};
     updateTerminal();
-  };
+  }
 
   /// Does the terminal have focus?
   function hasFocus() {
     return document.querySelector("#terminal").classList.contains("focus");
-  };
+  }
 
   /// Give the terminal focus
   function focus() {
     document.getElementById("terminalfocus").focus();
-  };
+  }
 
   // Is the terminal actually visible, or is it so small it can't be seen?
   function isVisible() {
@@ -713,7 +712,7 @@
     while (line < termText.length && termText[line].substr(0,1)==":")
       text += "\n"+termText[line++].substr(1);
     return { line : startLine, text : text };
-  };
+  }
 
   /** Get the Nth from latest line of text in the terminal (unlike getInputLine) */
   function getTerminalLine(n) {
@@ -721,7 +720,7 @@
     var line = termText.length-(1+n);
     if (line<0) return undefined;
     return termText[line];
-  };
+  }
 
   /** Add a notification to the terminal (as HTML). If options.buttonclick is set
   then the first <button> inside the notification text

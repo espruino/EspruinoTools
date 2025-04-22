@@ -13,7 +13,7 @@
 (function(){
 
   const BLOCK_SIZE = 0x400;
-  var uart;
+  // var uart;
   var uartLine = "";
   var packetHandler;
 
@@ -166,7 +166,7 @@ function unsetupEspruino(options) {
 function cmdSync(options) {
   console.log("Syncing...");
   return new Promise((resolve,reject)=>{
-    var success = false;
+    // var success = false;
     var interval;
     packetHandler = function(d) {
       if (d.cmd==8) {
