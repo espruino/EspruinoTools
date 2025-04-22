@@ -19,14 +19,6 @@
 
   }
 
-  // function decodeBase64(d) {
-  //   return Buffer.from(d,'base64').toString('binary');
-  // }
-
-  // function encodeBase64(d) {
-  //   return Buffer.from(d,'binary').toString('base64');
-  // }
-
   function isWindows() {
     return (typeof navigator!="undefined") && navigator.userAgent.indexOf("Windows")>=0;
   }
