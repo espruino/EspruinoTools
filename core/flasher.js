@@ -362,7 +362,7 @@
       console.log("Downloaded "+binary.byteLength+" bytes");
       flashBinaryToDevice(binary, flashOffset, callback, statusCallback);
     });
-  };
+  }
 
 
   function resetDevice(callback) {

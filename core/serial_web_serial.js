@@ -109,9 +109,11 @@
         flowControl: "none",
         rtscts: false });
     }).then(function () {
+      var getReaderSuccess = false;
       function readLoop() {
         serialPortReader = serialPort.readable.getReader();
         serialPortReader.read().then(function ({ value, done }) {
+          getReaderSuccess = true;
           serialPortReader.releaseLock();
           serialPortReader = undefined;
           if (value) {
@@ -130,8 +132,19 @@
             readLoop();
           }
         }).catch(function(e) {
-          serialPortReader.releaseLock();
-          console.log("Serial> serialPortReader rejected", e);
+          if (getReaderSuccess == false && e == "BreakError: Break received") {
+            // This fixes a longstanding issue (since 2017) that affected ESP32 devices.
+            // Espruino Web IDE, sometimes did not connect to an ESP32 device, especially the first time you tried. 
+            // The workaround was to use another tool to connect to the ESP32, like minicom or cutecom
+            // and once connected using one of these tools, you tried again using Espruino Web IDE.
+            console.log("Condition break received and ignored");
+            console.log("Retrying the read loop...");
+            getReaderSuccess = true;
+            readLoop();
+          } else {
+            serialPortReader.releaseLock();
+            console.log("Serial> serialPortReader rejected", e);
+          }
         });
       }
       serialPort.addEventListener("disconnect", (event) => {

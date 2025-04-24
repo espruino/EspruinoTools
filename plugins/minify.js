@@ -194,6 +194,7 @@
         _callback(code);
       };
     })();
+
     var minifyCode = code;
     var minifyCallback = callback;
     if (isModule) {
@@ -210,8 +211,8 @@
     switch(level){
       case "WHITESPACE_ONLY":
       case "SIMPLE_OPTIMIZATIONS":
-      case "ADVANCED_OPTIMIZATIONS": minifyCodeGoogle(code, callback, level, description); break;
-      case "ESPRIMA": minifyCodeEsprima(code, callback, description); break;
+      case "ADVANCED_OPTIMIZATIONS": minifyCodeGoogle(minifyCode, minifyCallback, level, description); break;
+      case "ESPRIMA": minifyCodeEsprima(minifyCode, minifyCallback, description); break;
       default: callback(code); break;
     }
   }
