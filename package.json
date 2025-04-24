@@ -18,7 +18,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint bin core plugins",
-    "ts:generate": "tsc"
+    "ts:generate": "tsc -p types/tsconfig.json",
+    "ts:validate": "tsc -p types/tsconfig-validate.json"
   },
   "repository": {
     "type": "git",
