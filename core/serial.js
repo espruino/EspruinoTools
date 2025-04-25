@@ -231,7 +231,7 @@ To add a new serial device, you must add an object to
             }
             return false
 
-          case 19:
+          case 19: // XOFF
             if (Espruino.Config.SERIAL_FLOW_CONTROL) {
               console.log("XOFF received => pause upload")
               flowControlXOFF = true

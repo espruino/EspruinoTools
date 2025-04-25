@@ -438,6 +438,108 @@
     }
   };
 
+  /**
+   * 
+   * @param {Uint8Array} buffer 
+   * @returns {Uint8Array}
+   */
+  function parsePacketsFromBuffer(buffer) {
+
+    // Find DLE
+    const dle = buffer.findIndex(v => v === 0x10)
+    if (dle < 0) return 
+
+    // Check for SOH
+    if (buffer.at(dle + 1) !== 0x1) {
+      console.log("DLE not followed by SOH")
+      return 
+    }
+
+    // Check there's still space for headers
+    if (buffer.at(dle + 2) === undefined || buffer.at(dle + 3) === undefined) return 
+    const upper = buffer.at(dle + 2)
+    const lower = buffer.at(dle + 3)
+
+    // Parse heading from 2 bytes after control headers
+    const heading = new Number(upper << 8) | new Number(lower)
+    const pkLen = heading & 0x1FFF
+    const pkTyp = heading & 0xE000
+
+    // Ignoring heading bytes, check if there's enough bytes in the buffer to satisfy pkLen
+    if (buffer.length < dle + 4 + pkLen) return 
+
+    const packet = buffer.subarray(dle, dle + 4 + pkLen)
+    Espruino.Core.Serial.emit('packet', pkTyp, packet.subarray(4, packet.length))
+
+    buffer.fill(undefined, dle, dle + packet.length)
+
+    return
+  }
+  
+  /**
+   * 
+   * @param {*} pkType 
+   * @param {*} data 
+   * @param {*} callback 
+   */
+  function sendPacket(pkType, data, callback) {
+
+    function onAck() {
+      // TODO: What do we actually need to do in the event of an ack
+      // tidy()
+      // callback()
+    }
+    
+    function onNack(err) {
+      tidy()
+      callback(err)
+    }
+    
+    function onPacket(rxPkType, data) {
+      const packetData = String.fromCharCode(...data)
+      console.log('onPacket', rxPkType, packetData)
+
+      // TODO: Depending on the rx type and tx type match up packet types, wait for x number of data
+      if (pkType === pkTypes.EVAL && rxPkType === pkTypes.RESPONSE) {
+        tidy()
+        callback(data)
+      }
+    }
+
+    // Tidy up the event listeners from this packet task
+    function tidy() {
+      Espruino.Core.Serial.removeListener("ack", onAck)
+      Espruino.Core.Serial.removeListener("nack", onNack)
+      Espruino.Core.Serial.removeListener("packet",onPacket)
+    }
+
+    // Attach event handlers for this packet event
+    Espruino.Core.Serial.on("ack", onAck)
+    Espruino.Core.Serial.on("nack", onNack)
+    Espruino.Core.Serial.on("packet", onPacket)
+
+    // Write packet to serial port
+    Espruino.Core.Serial.write(createPacket(pkType, data), undefined, function() {
+      // TODO: Add 1 sec timeout
+
+      let dataBuffer = new Uint8Array()
+
+      // Each time data comes in, expand the buffer and add the new data to it
+      Espruino.Core.Serial.startListening((data) => {
+        const newBuffer = new Uint8Array(data)
+
+        const tempBuffer = new Uint8Array(dataBuffer.length + newBuffer.length)
+        tempBuffer.set(dataBuffer,0)
+        tempBuffer.set(newBuffer, dataBuffer.length)
+
+        dataBuffer = tempBuffer
+
+        // Now we've added more data to the buffer, try to parse out any packets
+        parsePacketsFromBuffer(dataBuffer)
+      })
+    })
+  }
+
   // Download a file - storageFile or normal file
   function downloadFile(fileName, callback) {
     var options = {exprPrintsResult:true, maxTimeout:600}; // ten minute timeout
@@ -1020,6 +1122,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       countBrackets : countBrackets,
       getEspruinoPrompt : getEspruinoPrompt,
       executeExpression : function(expr,callback) { executeExpression(expr,callback,{exprPrintsResult:false}); },
+      executeExpressionV2: function(expr,callback) { sendPacket("EVAL",expr,callback); /* TODO: Callback and parseRJSON */ },
       executeStatement : function(statement,callback) { executeExpression(statement,callback,{exprPrintsResult:true}); },
       downloadFile : downloadFile, // (fileName, callback)
       getUploadFileCode : getUploadFileCode, //(fileName, contents);
