@@ -467,25 +467,71 @@
     }
   }
 
+  /** 
+   * Packet types mapped to their wire values
+   * @typedef {Object} PacketTypes
+   * @property {number} RESPONSE - Response to an EVAL packet
+   * @property {number} EVAL - Execute and return the result as RESPONSE packet
+   * @property {number} EVENT - Parse as JSON and create `E.on('packet', ...)` event
+   * @property {number} FILE_SEND - Called before DATA, with {fn:"filename",s:123}
+   * @property {number} DATA - Sent after FILE_SEND with blocks of data for the file
+   * @property {number} FILE_RECV - Receive a file - returns a series of PT_TYPE_DATA packets, with a final zero length packet to end
+   */
+  const pkTypes = Object.freeze({
+    RESPONSE:  0,     
+    EVAL:      0x2000,
+    EVENT:     0x4000,
+    FILE_SEND: 0x6000,
+    DATA:      0x8000,
+    FILE_RECV: 0xA000 
+  })
+
   /**
-   * 
+   * Creates a new packet for transfer using the packet protocol
+   * @param {number} pkType The packet type being sent, from `PacketTypes`
+   * @param {string} data Data to be appended to the end of the packet (max length 8191 bytes)
+   * @returns {string}
+   */
+  function createPacket(pkType, data) {
+    
+    // Check the packet type is one of the known types
+    if (!Object.hasOwn(pkTypes, pkType)) throw new Error(`'pkType' '${pkType}' not one of ${Object.keys(pkTypes)}`);
+
+    // Check the data is a string type and length is in bounds
+    if (typeof data !== 'string') throw new Error("data must be a String");
+    if (data.length <= 0 || data.length > 0x1FFF) throw new Error('data length is out of bounds, max 8191 bytes');
+
+    // Create packet heading using packet type and data length
+    const heading = pkTypes[pkType] | data.length
+
+    return String.fromCharCode(
+      16,                   // DLE (Data Link Escape)
+      1,                    // SOH (Start of Heading)
+      (heading >> 8) &0xFF, // Upper byte of heading
+      heading & 0xFF        // Lower byte of heading
+    ) + data;               // Data blob
+  }
+
+  /**
+   * Take an input buffer and look for the initial control characters and then attempt to parse a 
+   * complete data packet from the buffer. Any complete packet is sent via `emit("packet")` and then
+   * stripped from `buffer` modifiying it.
    * @param {Uint8Array} buffer 
-   * @returns {Uint8Array}
    */
   function parsePacketsFromBuffer(buffer) {
 
     // Find DLE
     const dle = buffer.findIndex(v => v === 0x10)
-    if (dle < 0) return 
+    if (dle < 0) return
 
     // Check for SOH
     if (buffer.at(dle + 1) !== 0x1) {
       console.log("DLE not followed by SOH")
-      return 
+      return
     }
 
     // Check there's still space for headers
-    if (buffer.at(dle + 2) === undefined || buffer.at(dle + 3) === undefined) return 
+    if (buffer.at(dle + 2) === undefined || buffer.at(dle + 3) === undefined) return
     const upper = buffer.at(dle + 2)
     const lower = buffer.at(dle + 3)
 
@@ -495,7 +541,7 @@
     const pkTyp = heading & 0xE000
 
     // Ignoring heading bytes, check if there's enough bytes in the buffer to satisfy pkLen
-    if (buffer.length < dle + 4 + pkLen) return 
+    if (buffer.length < dle + 4 + pkLen) return
 
     const packet = buffer.subarray(dle, dle + 4 + pkLen)
     Espruino.Core.Serial.emit('packet', pkTyp, packet.subarray(4, packet.length))
@@ -504,12 +550,12 @@
 
     return
   }
-  
+
   /**
-   * 
-   * @param {*} pkType 
-   * @param {*} data 
-   * @param {*} callback 
+   * Send a packet
+   * @param {number} pkType 
+   * @param {string} data 
+   * @param {() => void} callback 
    */
   function sendPacket(pkType, data, callback) {
 
@@ -518,12 +564,12 @@
       // tidy()
       // callback()
     }
-    
+
     function onNack(err) {
       tidy()
       callback(err)
     }
-    
+
     function onPacket(rxPkType, data) {
       const packetData = String.fromCharCode(...data)
       console.log('onPacket', rxPkType, packetData)
@@ -539,7 +585,7 @@
     function tidy() {
       Espruino.Core.Serial.removeListener("ack", onAck)
       Espruino.Core.Serial.removeListener("nack", onNack)
-      Espruino.Core.Serial.removeListener("packet",onPacket)
+      Espruino.Core.Serial.removeListener("packet", onPacket)
     }
 
     // Attach event handlers for this packet event
@@ -548,17 +594,18 @@
     Espruino.Core.Serial.on("packet", onPacket)
 
     // Write packet to serial port
-    Espruino.Core.Serial.write(createPacket(pkType, data), undefined, function() {
+    Espruino.Core.Serial.write(createPacket(pkType, data), undefined, function () {
       // TODO: Add 1 sec timeout
 
       let dataBuffer = new Uint8Array()
 
       // Each time data comes in, expand the buffer and add the new data to it
+      // TODO: This seems problematic if there are subsequent/concurrent calls
       Espruino.Core.Serial.startListening((data) => {
         const newBuffer = new Uint8Array(data)
 
         const tempBuffer = new Uint8Array(dataBuffer.length + newBuffer.length)
-        tempBuffer.set(dataBuffer,0)
+        tempBuffer.set(dataBuffer, 0)
         tempBuffer.set(newBuffer, dataBuffer.length)
 
         dataBuffer = tempBuffer
@@ -569,10 +616,11 @@
     })
   }
 
-  /* Download a file - storageFile or normal file
-    * @param {string} fileName Path to file to download
-    * @param {(content?: string) => void} callback Call back with contents of file, or undefined if no content
-    */
+  /**
+   * Download a file - storageFile or normal file
+   * @param {string} fileName Path to file to download
+   * @param {(content?: string) => void} callback Call back with contents of file, or undefined if no content
+   */
   function downloadFile(fileName, callback) {
     var options = {exprPrintsResult:true, maxTimeout:600}; // ten minute timeout
     executeExpression(`(function(filename) {
@@ -1195,36 +1243,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       }
     }
     return output;
-  }
-
-  // Enum of known packet types
-  const pkTypes = Object.freeze({
-    RESPONSE:  0,      // Response to an EVAL packet
-    EVAL:      0x2000, // execute and return the result as RESPONSE packet
-    EVENT:     0x4000, // parse as JSON and create `E.on('packet', ...)` event
-    FILE_SEND: 0x6000, // called before DATA, with {fn:"filename",s:123}
-    DATA:      0x8000, // Sent after FILE_SEND with blocks of data for the file
-    FILE_RECV: 0xA000  // receive a file - returns a series of PT_TYPE_DATA packets, with a final zero length packet to end
-  })
-
-  // Create a packet ready for packet transfer 
-  function createPacket(pkType, data) {
-    // Check the packet type is one of the known types
-    if (!Object.hasOwn(pkTypes, pkType)) throw new Error(`'pkType' '${pkType}' not one of ${Object.keys(pkTypes)}`);
-
-    // Check the data is a string type and length is in bounds
-    if (typeof data !== 'string') throw new Error("data must be a String");
-    if (data.length <= 0 || data.length > 0x1FFF) throw new Error('data length is out of bounds, max 8191 bytes');
-
-    // Create packet heading using packet type and data length
-    const heading = pkTypes[pkType] | data.length
-
-    return String.fromCharCode(
-      16,                   // DLE (Data Link Escape)
-      1,                    // SOH (Start of Heading)
-      (heading >> 8) &0xFF, // Upper byte of heading
-      heading & 0xFF        // Lower byte of heading
-    ) + data;               // Data blob
   }
 
   Espruino.Core.Utils = {
