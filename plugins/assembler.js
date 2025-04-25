@@ -480,7 +480,7 @@
              code;
     }
     callback(code);
-  };
+  }
 
 
   Espruino.Plugins.Assembler = {

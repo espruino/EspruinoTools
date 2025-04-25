@@ -19,14 +19,6 @@
 
   }
 
-  function decodeBase64(d) {
-    return Buffer.from(d,'base64').toString('binary');
-  }
-
-  function encodeBase64(d) {
-    return Buffer.from(d,'binary').toString('base64');
-  }
-
   function isWindows() {
     return (typeof navigator!="undefined") && navigator.userAgent.indexOf("Windows")>=0;
   }
@@ -118,7 +110,7 @@
       while (s.length < len) s+=" ";
       return s;
     }
-  };
+  }
 
   /** Get a Lexer to parse JavaScript - this is really very nasty right now and it doesn't lex even remotely properly.
    * It'll return {type:"type", str:"chars that were parsed", value:"string", startIdx: Index in string of the start, endIdx: Index in string of the end}, until EOF when it returns undefined */
@@ -220,7 +212,7 @@
             if (ch=="\\") { // handle escape characters
               nextCh();
               var escape = '\\'+ch;
-              var escapeExtra = 0;
+              // var escapeExtra = 0;
               if (ch=="x") {
                 nextCh();escape += ch;
                 nextCh();escape += ch;
@@ -244,7 +236,7 @@
               value += ch;
             }
             nextCh();
-          };
+          }
           if (ch!==undefined) s+=ch;
           nextCh();
         }
@@ -260,7 +252,7 @@
     return {
       next : nextToken
     };
-  };
+  }
 
   /** Count brackets in a string - will be 0 if all are closed */
   function countBrackets(str) {
@@ -331,7 +323,7 @@
     };
     // send a newline, and we hope we'll see '=undefined\r\n>'
     Espruino.Core.Serial.write('\n');
-  };
+  }
 
   /** Return the value of executing an expression on the board. If
   If options.exprPrintsResult=false/undefined the actual value returned by the expression is returned.
@@ -436,7 +428,7 @@
       console.error("executeExpression called when not connected!");
       callback(undefined);
     }
-  };
+  }
 
   /**
    * 
@@ -578,7 +570,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   function versionToFloat(version) {
     return parseFloat(version.trim().replace("v","."));
-  };
+  }
 
   /// Gets a URL, and returns callback(data) or callback(undefined) on error. options={method:"GET/POST", data:{a:1,b:2}}
   function getURL(url, callback, options) {
@@ -712,7 +704,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return window.location.protocol=="https:";
   }
 
-
   /* Open a file load dialog.
   options = {
    id :  ID is to ensure that subsequent calls with  the same ID remember the last used directory.
@@ -826,7 +817,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
           window.URL.revokeObjectURL(url);
       }, 0);
     }
-  };
+  }
 
   /** Bluetooth device names that we KNOW run Espruino */
   var recongisedDevices = [
@@ -895,7 +886,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       buf[i] = ch;
     }
     return buf.buffer;
-  };
+  }
 
   // Converts a string to a Buffer
   function stringToBuffer(str) {
@@ -904,21 +895,21 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       buf.writeUInt8(str.charCodeAt(i), i);
     }
     return buf;
-  };
+  }
 
   // Converts a DataView to an ArrayBuffer
-  function dataViewToArrayBuffer(str) {
+  function dataViewToArrayBuffer(dv) {
     var bufView = new Uint8Array(dv.byteLength);
     for (var i = 0; i < bufView.length; i++) {
       bufView[i] = dv.getUint8(i);
     }
     return bufView.buffer;
-  };
+  }
 
   // Converts an ArrayBuffer to a string
-  function arrayBufferToString(str) {
+  function arrayBufferToString(buf) {
     return String.fromCharCode.apply(null, new Uint8Array(buf));
-  };
+  }
 
   /* Parses a JSON string into JS, taking into account some of the issues
   with Espruino's JSON from 2v04 and before */
@@ -936,7 +927,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       tok = lex.next();
     }
     return JSON.parse(final);
-  };
+  }
 
   /* Escape a string (like JSON.stringify) so that Espruino can understand it,
   however use \0,\1,\x,etc escapes whenever possible to make the String as small

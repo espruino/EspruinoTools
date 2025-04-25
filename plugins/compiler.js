@@ -49,28 +49,33 @@
     });
   }
 
-  /* Replace this node with the given text, and
-  update node start/end positions of other nodes
-  we're interested in */
-  function replaceNode(node, newCode) {
-    code = code.substr(0,node.start) + newCode + code.substr(node.end);
-    var offs = newCode.length - (node.end-node.start); // offset for future code snippets
-    for (var i in tasks)
-      if (tasks[i].node.start > node.start) {
-        tasks[i].node.start += offs;
-        tasks[i].node.end += offs;
-      }
-  }
-
+  /** Given a string containing code, this parses it using acorn
+   * then attempts to find functions with the string "compiled"
+   * in them and sends them off to the compiler.
+   */
   function compileCode(code, description, callback) {
+    var tasks = [];
+
+    /* Replace this node with the given text, and
+    update node start/end positions of other nodes
+    we're interested in */
+    function replaceNode(node, newCode) {
+      code = code.substr(0,node.start) + newCode + code.substr(node.end);
+      var offs = newCode.length - (node.end-node.start); // offset for future code snippets
+      for (var i in tasks)
+        if (tasks[i].node.start > node.start) {
+          tasks[i].node.start += offs;
+          tasks[i].node.end += offs;
+        }
+    }
+
     if (!Espruino.Config.COMPILATION)
       return callback(code);
 
     var board = Espruino.Core.Env.getBoardData();
-    var tasks = 0;
     try {
-      var ast = acorn.parse(code);
-      var tasks = [];
+      var ast = acorn.parse(code, {ecmaVersion: 2020});
+      tasks = [];
       // function xyz() { "compiled" ... }
       ast.body.forEach(function(node) {
         if (node.type=="FunctionDeclaration") {

@@ -126,12 +126,12 @@
     console.log("loadModule("+fullModuleName+")");
 
     var urls = []; // Array of where to look for this module
-    var modName; // Simple name of the module
+    // var modName; // Simple name of the module
     if(Espruino.Core.Utils.isURL(fullModuleName)) {
-      modName = fullModuleName.substr(fullModuleName.lastIndexOf("/") + 1).split(".")[0];
+      // modName = fullModuleName.substr(fullModuleName.lastIndexOf("/") + 1).split(".")[0];
       urls = [ fullModuleName ];
     } else {
-      modName = fullModuleName;
+      // modName = fullModuleName;
       Espruino.Config.MODULE_URL.split("|").forEach(function (url) {
         url = url.trim();
         if (url.length!=0)
@@ -139,7 +139,7 @@
           urls.push(url + "/" + fullModuleName + extension);
         })
       });
-    };
+    }
 
     // Recursively go through all the urls
     (function download(urls) {
@@ -234,7 +234,7 @@
         callback(loadedModuleData.join("\n") + "\n" + code);
       });
     }
-  };
+  }
 
 
   Espruino.Core.Modules = {
