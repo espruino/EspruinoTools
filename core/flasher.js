@@ -392,6 +392,7 @@
       Espruino.Core.Terminal.setInputDataHandler(oldHandler);
       callback(err);
     };
+
     // initialise
     initialiseChip(function (err) {
       if (err) return finish(err);

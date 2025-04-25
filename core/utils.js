@@ -69,7 +69,7 @@
     }
   }
 
-  /// Does the currently connected board have an ARM processor that can execute Thumb code?
+  /** Does the currently connected board have an ARM processor that can execute Thumb code? */
   function isARMThumb() {
     var data = Espruino.Core.Env.getData();
     if (!data || !data.chip) return false;
@@ -78,8 +78,13 @@
   }
 
 
-  function escapeHTML(text, escapeSpaces)
-  {
+  /**
+   * Process text to produce a web safe string
+   * @param {string} text Input text to be escaped
+   * @param {boolean} escapeSpaces Should spaces be escaped to '&nbsp;'?
+   * @returns {string} 
+   */
+  function escapeHTML(text, escapeSpaces) {
     escapeSpaces = typeof escapeSpaces !== 'undefined' ? escapeSpaces : true;
 
     var chr = { '"': '&quot;', '&': '&amp;', '<': '&lt;', '>': '&gt;', ' ' : (escapeSpaces ? '&nbsp;' : ' ') };
@@ -87,10 +92,13 @@
     return text.toString().replace(/["&<> ]/g, function (a) { return chr[a]; });
   }
 
-  /* Google Docs, forums, etc tend to break code by replacing characters with
-  fancy unicode versions. Un-break the code by undoing these changes */
-  function fixBrokenCode(text)
-  {
+  /**
+   * Google Docs, forums, etc tend to break code by replacing characters with fancy unicode versions. 
+   * Un-break the code by undoing these changes
+   * @param {string} text
+   * @returns {string}
+   */
+  function fixBrokenCode(text) {
     // make sure we ignore `&shy;` - which gets inserted
     // by the forum's code formatter
     text = text.replace(/\u00AD/g,'');
@@ -102,6 +110,13 @@
   }
 
 
+  /**
+   * Return a substring from a given input string of a given length and start position
+   * @param {string} str Input string
+   * @param {number} from First character position
+   * @param {number} len Number of characters to return
+   * @returns {string}
+   */
   function getSubString(str, from, len) {
     if (len == undefined) {
       return str.substr(from, len);
@@ -112,8 +127,17 @@
     }
   }
 
-  /** Get a Lexer to parse JavaScript - this is really very nasty right now and it doesn't lex even remotely properly.
-   * It'll return {type:"type", str:"chars that were parsed", value:"string", startIdx: Index in string of the start, endIdx: Index in string of the end}, until EOF when it returns undefined */
+  /**
+   * Get a Lexer to parse JavaScript - this is really very nasty right now and it doesn't lex even remotely properly.
+   * @param {string} str 
+   * @typedef {Object} LexerOutput
+   * @property {string} type
+   * @property {string} str Chars that were parsed
+   * @property {string} value
+   * @property {number} startIdx Index in string of the start
+   * @property {number} endIdx Index in string of the end
+   * @returns {LexerOutput} until EOF and then returns 'undefined'
+   */
   function getLexer(str) {
     // Nasty lexer - no comments/etc
     var chAlpha="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$";
@@ -254,7 +278,11 @@
     };
   }
 
-  /** Count brackets in a string - will be 0 if all are closed */
+  /**
+   * Count brackets in a string - will be 0 if all are closed
+   * @param {string} str String to process
+   * @returns {number}
+   */
   function countBrackets(str) {
     var lex = getLexer(str);
     var brackets = 0;
@@ -267,9 +295,12 @@
     return brackets;
   }
 
-  /** Try and get a prompt from Espruino - if we don't see one, issue Ctrl-C
+  /**
+   * Try and get a prompt from Espruino - if we don't see one, issue Ctrl-C
    * and hope it comes back. Calls callback with first argument true if it
-     had to Ctrl-C out */
+   * had to Ctrl-C out
+   * @param {(hadToBreak?: boolean) => void} callback 
+   */
   function getEspruinoPrompt(callback) {
     if (Espruino.Core.Terminal!==undefined &&
         Espruino.Core.Terminal.getTerminalLine()==">") {
@@ -325,10 +356,16 @@
     Espruino.Core.Serial.write('\n');
   }
 
-  /** Return the value of executing an expression on the board. If
-  If options.exprPrintsResult=false/undefined the actual value returned by the expression is returned.
-  If options.exprPrintsResult=true, whatever expression prints to the console is returned
-  options.maxTimeout (default 30) is how long we're willing to wait (in seconds) for data if Espruino keeps transmitting */
+  /**
+   * Return the value of executing an expression on the board.
+   * @param {string} expressionToExecute 
+   * @param {(result: string) => void} callback 
+   * @param {Object} options
+   * @param {boolean} options.exprPrintsResult If 'true' whatever the expression prints to 
+   * the console is returned, otherwise the actual value returned by the expression is returned.
+   * @param {number} options.maxTimeout (default 30) is how long we're willing to wait (in seconds) 
+   * for data if Espruino keeps transmitting.
+   */
   function executeExpression(expressionToExecute, callback, options) {
     options = options||{};
     options.exprPrintsResult = !!options.exprPrintsResult;
@@ -532,7 +569,10 @@
     })
   }
 
-  // Download a file - storageFile or normal file
+  /* Download a file - storageFile or normal file
+    * @param {string} fileName Path to file to download
+    * @param {(content?: string) => void} callback Call back with contents of file, or undefined if no content
+    */
   function downloadFile(fileName, callback) {
     var options = {exprPrintsResult:true, maxTimeout:600}; // ten minute timeout
     executeExpression(`(function(filename) {
@@ -546,7 +586,12 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       }, options);
   }
 
-  // Get the JS needed to upload a file
+  /**
+   * Get the JS needed to upload a file
+   * @param {string} fileName Path to file to upload
+   * @param {string} contents Contents of the file being uploaded
+   * @returns {string} JS code needed to upload file
+   */
   function getUploadFileCode(fileName, contents) {
     var js = [];
     if ("string" != typeof contents)
@@ -561,18 +606,34 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return js.join("\n");
   }
 
-  // Upload a file
+  /**
+   * @param {string} fileName Path to file to upload
+   * @param {string} contents Contents of the file being uploaded
+   * @param {(result: string) => void} callback 
+   */
   function uploadFile(fileName, contents, callback) {
     var js = getUploadFileCode(fileName, contents).replace(/\n/g,"\n\x10");
     // executeStatement prepends other code onto the command, so don't add `\x10` at the start of line as then it just ends up in the middle of what's sent
     Espruino.Core.Utils.executeStatement(js, callback);
   }
 
+  /**
+   * Taking a standard semver type string, parse and convert to float
+   * @param {string} version Version string eg. v1.2.3
+   * @returns {number}
+   */
   function versionToFloat(version) {
     return parseFloat(version.trim().replace("v","."));
   }
 
-  /// Gets a URL, and returns callback(data) or callback(undefined) on error. options={method:"GET/POST", data:{a:1,b:2}}
+  /**
+   * Perform an XHR request
+   * @param {string} url 
+   * @param {(data?:string) => void} callback Returning data or 'undefined' on error.
+   * @param {Object} options HTTP request options
+   * @param {'GET'|'POST'} options.method HTTP method
+   * @param {Object} options.data Object to be passed as form data
+   */
   function getURL(url, callback, options) {
     if (options===undefined) options={};
     if (!options.method) options.method="GET";
@@ -662,8 +723,12 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     });
   }
 
-  /// Gets a URL as a Binary file, returning callback(err, ArrayBuffer)
-  var getBinaryURL = function(url, callback) {
+  /**
+   * GET's a URL as a Binary file
+   * @param {string} url 
+   * @param {(err: string, data?: ArrayBuffer) => void} callback 
+   */
+  function getBinaryURL(url, callback) {
     console.log("Downloading "+url);
     Espruino.Core.Status.setStatus("Downloading binary...");
     var xhr = new XMLHttpRequest();
@@ -681,9 +746,12 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     });
     xhr.open("GET", url, true);
     xhr.send(null);
-  };
+  }
 
-  /// Gets a URL as JSON, and returns callback(data) or callback(undefined) on error
+  /**
+   * @param {string} url 
+   * @param {(data?: any) => void} callback {data} will return 'undefined' on error
+   */
   function getJSONURL(url, callback) {
     getURL(url, function(d) {
       if (!d) return callback(d);
@@ -693,27 +761,30 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     });
   }
 
+  /**
+   * @param {string} text 
+   * @returns {boolean}
+   */
   function isURL(text) {
     return (new RegExp( '(http|https)://' )).test(text);
   }
 
-  /* Are we served from a secure location so we're
-   forced to use a secure get? */
+  /**
+   * Are we served from a secure location so we're forced to use a secure get?
+   * @returns {boolean}
+   */
   function needsHTTPS() {
     if (typeof window==="undefined" || !window.location) return false;
     return window.location.protocol=="https:";
   }
 
-  /* Open a file load dialog.
-  options = {
-   id :  ID is to ensure that subsequent calls with  the same ID remember the last used directory.
-   type :
-     type=="text" => (default) Callback is called with a string
-     type=="arraybuffer" => Callback is called with an arraybuffer
-   mimeType : (optional) comma-separated list of accepted mime types for files or extensions (eg. ".js,application/javascript")
-
-   callback(contents, mimeType, fileName)
-  */
+  /**
+   * @param {Object} options
+   * @param {string} options.id ID to ensure that subsequent calls with the same ID remember the last used directory.
+   * @param {'text' | 'arraybuffer'} options.type (default 'text') Callback with either 'text' or 'arraybuffer'
+   * @param {string | undefined} options.mimeType Optional comma-separated list of accepted mime types for files or extensions (eg. ".js,application/javascript")
+   * @param {(contents: ArrayBuffer | string, mimeType: string, fileName: string) => void} callback 
+   */
   function fileOpenDialog(options, callback) {
     function readerLoaded(e,files,i,options,fileLoader) {
     /* Doing reader.readAsText(file) interprets the file as UTF8
@@ -736,15 +807,17 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       } else {
         fileLoader.callback = undefined;
       }
-  }
-  function setupReader(files,i,options,fileLoader) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      readerLoaded(e,files,i,options,fileLoader)
-    };
-    if (options.type=="text" || options.type=="arraybuffer") reader.readAsArrayBuffer(files[i]);
-    else throw new Error("fileOpenDialog: unknown type "+options.type);
-  }
+    }
+
+    function setupReader(files,i,options,fileLoader) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        readerLoaded(e,files,i,options,fileLoader)
+      };
+      if (options.type=="text" || options.type=="arraybuffer") reader.readAsArrayBuffer(files[i]);
+      else throw new Error("fileOpenDialog: unknown type "+options.type);
+    }
+
     options = options||{};
     options.type = options.type||"text";
     options.id = options.id||"default";
@@ -775,7 +848,12 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     fileLoader.click();
   }
 
-  /* Save a file with a save file dialog (data=String). callback(savedFileName) only called in chrome app case when we know the filename*/
+  /**
+   * Save a file with a save file dialog
+   * @param {string} data 
+   * @param {string} filename 
+   * @param {(savedFileName: string) => void} callback only called in chrome app case when we know the filename
+   */
   function fileSaveDialog(data, filename, callback) {
     function errorHandler() {
       Espruino.Core.Notifications.error("Error Saving", true);
@@ -821,25 +899,40 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /** Bluetooth device names that we KNOW run Espruino */
   var recongisedDevices = [
-       "Puck.js", "Pixl.js", "MDBT42Q", "Espruino", "Badge", "Thingy", "RuuviTag", "iTracker", "Smartibot", "Bangle.js", "Micro:bit"
+    "Puck.js", "Pixl.js", "MDBT42Q", "Espruino", "Badge", "Thingy", 
+    "RuuviTag", "iTracker", "Smartibot", "Bangle.js", "Micro:bit"
   ];
 
+  /** Returns a list of recognised bluetooth devices */
   function recognisedBluetoothDevices() {
     return recongisedDevices;
   }
 
+  /**
+   * Add a new device to the list of recognised devices
+   * @param {string} name 
+   */
   function addRecognisedDeviceName(name){
     if (name) recongisedDevices.push(name);
   }
 
+  /** List of recognised device addresses */
   var recognisedDeviceAddresses = [];
 
+  /**
+   * Add a new recognised device address to 'recognisedDeviceAddresses'
+   * @param {string} address 
+   */
   function addRecognisedDeviceAddress(address){
     if (address) recognisedDeviceAddresses.push(address);
   }
 
-  /** If we can't find service info, add devices
-  based only on their name/address */
+  /**
+   * If we can't find service info, add devices based only on their name/address
+   * @param {string} name 
+   * @param {string} address 
+   * @returns {boolean} Returns true if there was a recognised device
+   */
   function isRecognisedBluetoothDevice(name, address) {
     if (address && recognisedDeviceAddresses.includes(address)) return true;
     if (!name) return false;
@@ -850,7 +943,10 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return false;
   }
 
-
+  /**
+   * Get the version from the manifest.json
+   * @param {(version: string) => void} callback 
+   */
   function getVersion(callback) {
     var xmlhttp = new XMLHttpRequest();
     var path = (window.location.pathname.indexOf("relay")>=0)?"../":"";
@@ -862,6 +958,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     xmlhttp.send(null);
   }
 
+  /** @param {(version: string) => void} callback */
   function getVersionInfo(callback) {
     getVersion(function(version) {
       var platform = "Web App";
@@ -874,7 +971,10 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     });
   }
 
-  // Converts a string to an ArrayBuffer
+  /**
+   * @param {string} str 
+   * @returns {ArrayBuffer}
+   */
   function stringToArrayBuffer(str) {
     var buf=new Uint8Array(str.length);
     for (var i=0; i<str.length; i++) {
@@ -888,7 +988,10 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return buf.buffer;
   }
 
-  // Converts a string to a Buffer
+  /**
+   * @param {string} str 
+   * @returns {Buffer}
+   */
   function stringToBuffer(str) {
     var buf = Buffer.alloc(str.length);
     for (var i = 0; i < buf.length; i++) {
@@ -897,7 +1000,10 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return buf;
   }
 
-  // Converts a DataView to an ArrayBuffer
+  /**
+   * @param {string} dv
+   * @returns {ArrayBuffer}
+   */
   function dataViewToArrayBuffer(dv) {
     var bufView = new Uint8Array(dv.byteLength);
     for (var i = 0; i < bufView.length; i++) {
@@ -906,13 +1012,20 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return bufView.buffer;
   }
 
-  // Converts an ArrayBuffer to a string
+  /**
+   * @param {ArrayBuffer} buf
+   * @returns {string}
+   */
   function arrayBufferToString(buf) {
     return String.fromCharCode.apply(null, new Uint8Array(buf));
   }
 
-  /* Parses a JSON string into JS, taking into account some of the issues
-  with Espruino's JSON from 2v04 and before */
+  /**
+   * Parses a JSON string into JS, taking into account some of the 
+   * issues with Espruino's JSON from 2v04 and before
+   * @param {string} str 
+   * @returns {any}
+   */
   function parseJSONish(str) {
     var lex = getLexer(str);
     var tok = lex.next();
@@ -929,10 +1042,14 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return JSON.parse(final);
   }
 
-  /* Escape a string (like JSON.stringify) so that Espruino can understand it,
-  however use \0,\1,\x,etc escapes whenever possible to make the String as small
-  as it can be. On Espruino with UTF8 support, not using \u.... also allows it
-  to use non-UTF8 Strings which are more efficient. */
+  /**
+   * Escape a string (like JSON.stringify) so that Espruino can understand it,
+   * however use \0,\1,\x,etc escapes whenever possible to make the String as small
+   * as it can be. On Espruino with UTF8 support, not using \u.... also allows it
+   * to use non-UTF8 Strings which are more efficient.
+   * @param {string} txt 
+   * @returns {string}
+   */
   function toJSONishString(txt) {
     let js = "\"";
     for (let i=0;i<txt.length;i++) {
@@ -962,7 +1079,12 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return js;
   }
 
-  /* Convert a normal JS string (one char per character) to a string of UTF8 bytes (passes anything 0..255 straight through) */
+  /**
+   * Convert a normal JS string (one char per character) to a string of UTF8 bytes 
+   * (passes anything 0..255 straight through)
+   * @param {string} str 
+   * @returns {string}
+   */
   function asUTF8Bytes(str) {
     var result = "";
     var bytes = String.fromCharCode;
@@ -989,7 +1111,11 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return result;
   }
 
-  // Does the given string contain only ASCII characters?
+  /**
+   * Does the given string contain only ASCII characters?
+   * @param {string} str 
+   * @returns {boolean}
+   */
   function isASCII(str) {
     for (var i=0;i<str.length;i++) {
       var c = str.charCodeAt(i);
@@ -999,7 +1125,11 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return true;
   }
 
-  // btoa that works on utf8
+  /**
+   * btoa (base64 encoder) that works on utf8
+   * @param {string} input 
+   * @returns {string}
+   */
   function btoa(input) {
     var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     var out = "";
@@ -1027,6 +1157,11 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
     return out;
   }
 
+  /**
+   * atob (base64 decoder)
+   * @param {string} input 
+   * @returns {string}
+   */
   function atob(input) {
     // Copied from https://github.com/strophe/strophejs/blob/e06d027/src/polyfills.js#L149
     // This code was written by Tyler Akins and has been placed in the

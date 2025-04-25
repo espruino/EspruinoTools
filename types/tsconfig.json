@@ -1,0 +1,10 @@
+{
+  "include": ["../index.js"],
+  "compilerOptions": {
+    "allowJs": true,
+    "declaration": true, // Generate d.ts files
+    "emitDeclarationOnly": true,
+    "outDir": ".",
+    "declarationMap": true // go to js file when using IDE functions like "Go to Definition" in VSCode
+  }
+}
