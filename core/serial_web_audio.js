@@ -2,6 +2,10 @@
 
   var BAUD = 9600;
 
+  /**
+   * @param {boolean} ignoreSettings 
+   * @returns {{warning?: string, error?: string} | boolean}
+   */
   function getStatus(ignoreSettings) {
     if (typeof navigator == "undefined" || typeof window == "undefined") {
       return {warning:"Not running in a browser"};

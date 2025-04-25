@@ -108,12 +108,13 @@
       Espruino.Config[name] = options.defaultValue;
   }
 
-  /** Add a section (or information on the page).
-   * options = {
-   *   sortOrder : int, // a number used for sorting
-   *   description : "",
-   *   getHTML : function(callback(html)) // optional
-   * };
+  /**
+   * Add a section (or information on the page).
+   * @param {string} name 
+   * @param {Object} options 
+   * @param {number} options.sortOrder a number used for sorting
+   * @param {string} options.description
+   * @param {() => void | undefined} options.getHTML
    */
   function addSection(name, options) {
     options.name = name;
@@ -176,7 +177,8 @@
     }
   };
 
-  function clearAll() { // clear all settings
+  /** Clear all settings */
+  function clearAll() {
     _set({});
     for (var name in Espruino.Core.Config.data) {
       var options = Espruino.Core.Config.data[name];
@@ -185,7 +187,8 @@
   }
 
   Espruino.Core.Config = {
-      loadConfiguration : loadConfiguration, // special - called before init
+      /** special - called before init */
+      loadConfiguration : loadConfiguration, 
 
       init : init,
       add : add,
@@ -196,7 +199,8 @@
       getSection : getSection,
       getSections : getSections,
 
-      clearAll : clearAll, // clear all settings
+      /** Clear all settings */
+      clearAll : clearAll, 
   };
 
 })();

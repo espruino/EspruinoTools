@@ -74,7 +74,11 @@
     });
   }
 
-  /// Parse and fix issues like `if (false)\n foo` in the root scope
+  /**
+   * Parse and fix issues like `if (false)\n foo` in the root scope
+   * @param {string} code 
+   * @returns {string | undefined}
+   */
   function reformatCode(code) {
     var APPLY_LINE_NUMBERS = false;
     var lineNumberOffset = 0;

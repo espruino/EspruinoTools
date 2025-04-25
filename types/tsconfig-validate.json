@@ -1,0 +1,9 @@
+{
+  // This tsconfig emits no types, it's just used to validate if types being passed are valid with 'checkJs'
+  "include": ["../*.js", "../core/**/*.js", "../plugins/**/*.js"],
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true
+  }
+}

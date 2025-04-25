@@ -60,7 +60,8 @@
     try {
       process.on('uncaughtException', nobleExceptionHandler);
       if (Espruino.Core.Utils.isWindows()) { // ONLY try on windows - this breaks other OSes
-        try { noble = require('noble-winrt'); // for windows 10+ compat. noble-uwp should work too
+        try {
+          noble = require('noble-winrt'); // for windows 10+ compat. noble-uwp should work too
         } catch (e) {
           console.log("Noble: noble-winrt not available",e);
         }
@@ -240,7 +241,7 @@
     }
   };
 
-  // Throttled serial write
+  /** Throttled serial write */
   var writeSerial = function (data, callback) {
     if (txCharacteristic === undefined) return;
 
