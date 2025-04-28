@@ -137,12 +137,24 @@
     }
 
     var lex = (function() {
-      var t = acorn.tokenizer(code);
+      let t = acorn.tokenizer(code, { ecmaVersion : 2020 });
       return { next : function() {
-        var tk = t.getToken();
+        let tk = t.getToken();
+        let tkStr = code.substring(tk.start, tk.end), tkValue = tk.value;
         if (tk.type.label=="eof") return undefined;
-        var tp = "?";
-        if (tk.type.label=="template") tp="TEMPLATEDSTRING";
+        let tp = "?";
+        if (tk.type.label=="`") { // template string
+          // acorn splits these up into tokens, so we have to work through to the end, then just include the full text
+          let tk2, hasTemplate = false;
+          do {
+            tk2 = t.getToken();
+            if (tk2.type.label=="${")
+              hasTemplate = true;
+          } while (tk2.type.label!="`");
+          tkStr = code.substring(tk.start, tk2.end);
+          tp = hasTemplate ? "TEMPLATEDSTRING" : "STRING"; // if we don't have any templates, treat as a normal string (https://github.com/espruino/Espruino/issues/2577)
+          tkValue = hasTemplate ? tkStr : eval(tkStr); // don't evaluate if it has templates as it must be done at runtime!
+        }
         if (tk.type.label=="string") tp="STRING";
         if (tk.type.label=="num") tp="NUMBER";
         if (tk.type.keyword || tk.type.label=="name") tp="ID";
@@ -150,8 +162,8 @@
         return {
           startIdx : tk.start,
           endIdx : tk.end,
-          str : code.substring(tk.start, tk.end),
-          value : tk.value,
+          str : tkStr,
+          value : tkValue,
           type : tp
         };
       }};
