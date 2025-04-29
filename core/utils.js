@@ -517,21 +517,27 @@
    * complete data packet from the buffer. Any complete packet is sent via `emit("packet")` and then
    * stripped from `buffer` modifiying it.
    * @param {Uint8Array} buffer 
+   * @returns {Uint8Array}
    */
   function parsePacketsFromBuffer(buffer) {
 
     // Find DLE
     const dle = buffer.findIndex(v => v === 0x10)
-    if (dle < 0) return
+    if (dle < 0) return buffer
 
     // Check for SOH
     if (buffer.at(dle + 1) !== 0x1) {
-      console.log("DLE not followed by SOH")
-      return
+      // console.warn("DLE not followed by SOH")
+      // TODO: Not stripping out this invalid control will cause a loop
+      buffer.set([undefined], dle) // Remove this DLE
+      return buffer
     }
 
     // Check there's still space for headers
-    if (buffer.at(dle + 2) === undefined || buffer.at(dle + 3) === undefined) return
+    if (buffer.at(dle + 2) === undefined || buffer.at(dle + 3) === undefined) {
+      console.warn("NO SPACE FOR HEADERS")
+      return buffer
+    }
     const upper = buffer.at(dle + 2)
     const lower = buffer.at(dle + 3)
 
@@ -541,14 +547,20 @@
     const pkTyp = heading & 0xE000
 
     // Ignoring heading bytes, check if there's enough bytes in the buffer to satisfy pkLen
-    if (buffer.length < dle + 4 + pkLen) return
+    if (buffer.length < dle + 4 + pkLen) {
+      return buffer
+    }
 
+    // Pick out a packet from the buffer and emit it via the event handler
     const packet = buffer.subarray(dle, dle + 4 + pkLen)
+    console.log("Packet recieved... type:", pkTyp, "length:", pkLen)
     Espruino.Core.Serial.emit('packet', pkTyp, packet.subarray(4, packet.length))
 
-    buffer.fill(undefined, dle, dle + packet.length)
+    // Fill the buffer region of the packet that was sent with undefined
+    buffer.fill(undefined, 0, dle + packet.length)
 
-    return
+    // Return the input buffer but with the stripped packet filtered out
+    return buffer.filter(v => v !== undefined)
   }
 
   /**
@@ -558,7 +570,7 @@
    * @param {() => void} callback 
    */
   function sendPacket(pkType, data, callback) {
-
+    
     function onAck() {
       // TODO: What do we actually need to do in the event of an ack
       // tidy()
@@ -570,14 +582,26 @@
       callback(err)
     }
 
+    let allData
     function onPacket(rxPkType, data) {
+      tidy()
       const packetData = String.fromCharCode(...data)
-      console.log('onPacket', rxPkType, packetData)
 
       // TODO: Depending on the rx type and tx type match up packet types, wait for x number of data
-      if (pkType === pkTypes.EVAL && rxPkType === pkTypes.RESPONSE) {
-        tidy()
-        callback(data)
+      if (pkTypes[pkType] === pkTypes.EVAL && rxPkType === pkTypes.RESPONSE) {
+        callback(packetData)
+
+      // If the packet type is data, we need to wait for the 0 length `DATA` packet and then send all of the data joined together
+      } else if (pkTypes[pkType] === pkTypes.FILE_RECV && rxPkType === pkTypes.DATA) {
+        if (data.length === 0) {
+          callback(allData)
+          console.log("zero packet")
+        } else {
+          console.log("appending data", String.fromCharCode(...data))
+          allData += String.fromCharCode(...data)
+        }
+      }else {
+        callback("nodata")
       }
     }
 
@@ -611,7 +635,7 @@
         dataBuffer = tempBuffer
 
         // Now we've added more data to the buffer, try to parse out any packets
-        parsePacketsFromBuffer(dataBuffer)
+        dataBuffer = parsePacketsFromBuffer(dataBuffer)
       })
     })
   }
@@ -632,6 +656,10 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
         if (contents===undefined) callback();
         else callback(atob(contents));
       }, options);
+  }
+
+  function downloadFileV2(fileName, fs, callback) {
+    sendPacket("FILE_RECV", JSON.stringify({ fn: fileName, fs }), callback)
   }
 
   /**
@@ -1269,6 +1297,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       executeExpressionV2: function(expr,callback) { sendPacket("EVAL",expr,callback); /* TODO: Callback and parseRJSON */ },
       executeStatement : function(statement,callback) { executeExpression(statement,callback,{exprPrintsResult:true}); },
       downloadFile : downloadFile, // (fileName, callback)
+      downloadFileV2 : downloadFileV2,
       getUploadFileCode : getUploadFileCode, //(fileName, contents);
       uploadFile : uploadFile, // (fileName, contents, callback)
       versionToFloat : versionToFloat,
