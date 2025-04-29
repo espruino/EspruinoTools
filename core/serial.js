@@ -215,32 +215,50 @@ To add a new serial device, you must add an object to
         });
       }
     }, function(data) { // RECEIEVE DATA
-      if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers");
-      if (Espruino.Config.SERIAL_FLOW_CONTROL) {
-        var u = new Uint8Array(data);
-        for (var i=0;i<u.length;i++) {
-          if (u[i]==17) { // XON
-            console.log("XON received => resume upload");
-            flowControlXOFF = false;
-            if (flowControlTimeout) {
-              clearTimeout(flowControlTimeout);
-              flowControlTimeout = undefined;
+      if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers")
+
+      // Filter incoming data to handle and remove control characters
+      const filteredData = new Uint8Array(data).filter((v) => {
+        switch (v) {
+          case 17: // XON
+            if (Espruino.Config.SERIAL_FLOW_CONTROL) {
+              console.log("XON received => resume upload")
+              flowControlXOFF = false
+              if (flowControlTimeout) {
+                clearTimeout(flowControlTimeout)
+                flowControlTimeout = undefined
+              }
             }
-          }
-          if (u[i]==19) { // XOFF
-            console.log("XOFF received => pause upload");
-            flowControlXOFF = true;
-            if (flowControlTimeout)
-              clearTimeout(flowControlTimeout);
-            flowControlTimeout = setTimeout(function() {
-              console.log(`XOFF timeout (${FLOW_CONTROL_RESUME_TIMEOUT}s) => resume upload anyway`);
-              flowControlXOFF = false;
-              flowControlTimeout = undefined;
-            }, FLOW_CONTROL_RESUME_TIMEOUT);
-          }
+            return false
+
+          case 19: // XOFF
+            if (Espruino.Config.SERIAL_FLOW_CONTROL) {
+              console.log("XOFF received => pause upload")
+              flowControlXOFF = true
+              if (flowControlTimeout) clearTimeout(flowControlTimeout)
+              flowControlTimeout = setTimeout(function () {
+                console.log(
+                  `XOFF timeout (${FLOW_CONTROL_RESUME_TIMEOUT}s) => resume upload anyway`
+                )
+                flowControlXOFF = false
+                flowControlTimeout = undefined
+              }, FLOW_CONTROL_RESUME_TIMEOUT)
+            }
+            return false
+
+          case 6: // ACK
+            emit("ack")
+            return false
+
+          case 21: // NACK
+            emit("nack")
+            return false
         }
-      }
-      if (readListener) readListener(data);
+
+        return true
+      })
+
+      if (readListener) readListener(filteredData.buffer)
     }, function(error) { // DISCONNECT
       currentDevice = undefined;
       if (writeTimeout!==undefined)
@@ -412,6 +430,45 @@ To add a new serial device, you must add an object to
     }
   };
 
+  /** 
+   * Simplified events system.
+   * @typedef {"close"|"data"|"open"|"error"|"ack"|"nack"|"packet"} PacketEvent
+   * @typedef {(...any) => void} PacketEventListener
+   */
+
+  /** @type {Object.<PacketEvent, PacketEventListener} */
+  var pkListeners = {};
+      
+  /**
+   * Act on events using a simplified events listener
+   * @param {PacketEvent} evt
+   * @param {PacketEventListener} cb 
+   */
+  function on(evt, cb) { 
+    let e = "on" + evt; 
+    if (!pkListeners[e]) pkListeners[e] = []; 
+    pkListeners[e].push(cb); 
+  } 
+
+  /**
+   * Emit event on the event handler, will call all registered callbacks for {evt} and pass {data}
+   * @param {PacketEvent} evt 
+   * @param  {...any} data 
+   */
+  function emit(evt, ...data) { 
+    let e = "on" + evt; 
+    if (pkListeners[e]) pkListeners[e].forEach(fn => fn(...data));
+  }
+
+  /**
+   * Remove a {PacketEvent} listener
+   * @param {PacketEvent} evt 
+   * @param {PacketEventListener} callback 
+   */
+  function removeListener(evt, callback) { 
+    let e = "on" + evt; 
+    if (pkListeners[e]) pkListeners[e] = pkListeners[e].filter(fn => fn != callback);
+  }
 
   // ----------------------------------------------------------
   Espruino.Core.Serial = {
@@ -442,6 +499,9 @@ To add a new serial device, you must add an object to
     },
     "setBinary": function(isOn) {
       sendingBinary = isOn;
-    }
+    },
+
+    // Packet events system
+    on, emit, removeListener
   };
 })();
