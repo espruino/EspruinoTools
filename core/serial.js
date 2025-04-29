@@ -51,6 +51,12 @@ To add a new serial device, you must add an object to
   var flowControlXOFF = false;
   /// Set up when flow control received - if no response is received we start sending anyway
   var flowControlTimeout;
+  /// used by rxDataHandler - last received character
+  let rxDataHandlerLastCh = 0;
+  /// used by rxDataHandler - used for parsing
+  let rxDataHandlerPacket = undefined;
+  /// timeout for unfinished packet
+  let rxDataHandlerTimeout = undefined;
 
 
   function init() {
@@ -159,6 +165,88 @@ To add a new serial device, you must add an object to
     return openSerialInternal(serialPort, connectCallback, disconnectCallback, 5);
   }
 
+  var rxDataHandler = function(data) {
+    if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers")
+
+    // Filter incoming data to handle and remove control characters
+    const filteredData = new Uint8Array(data).filter((ch) => {
+      let lastCh = rxDataHandlerLastCh;
+      rxDataHandlerLastCh = ch;
+
+      if (rxDataHandlerPacket!==undefined) {
+        rxDataHandlerPacket.push(ch);
+        let flags = (rxDataHandlerPacket[0]<<8) | rxDataHandlerPacket[1];
+        let len = flags & 0x1FFF;
+        let rxLen = rxDataHandlerPacket.length;
+        if (rxLen>=2 && rxLen>=(len+2)) {
+          console.log("Got packet end");
+          if (rxDataHandlerTimeout) {
+            clearTimeout(rxDataHandlerTimeout);
+            rxDataHandlerTimeout = undefined;
+          }
+          emit("packet", flags&0xE000, new Uint8Array(rxDataHandlerPacket.slice(2)));
+          rxDataHandlerPacket = undefined; // stop packet reception
+        }
+        return false; // don't pass data in packet through
+      } else switch (ch) {
+        case 16: // DLE - potential start of packet (ignore)
+          return false;
+
+        case 1: // SOH - start of packet if after DLE
+          if (lastCh == 16/*DLE*/) {
+            console.log("Packet start received");
+            rxDataHandlerPacket = [];
+            rxDataHandlerTimeout = setTimeout(()=>{
+              rxDataHandlerTimeout = undefined;
+              console.log(`Packet timeout (2s - contents ${JSON.stringify(rxDataHandlerPacket)})`);
+              // TODO: emit packet error?
+              rxDataHandlerPacket = undefined;
+            }, 2000);
+            return false;
+          } else
+            return true; // else pass through
+
+        case 17: // XON
+          if (Espruino.Config.SERIAL_FLOW_CONTROL && rxDataHandlerPacket===undefined) {
+            console.log("XON received => resume upload")
+            flowControlXOFF = false
+            if (flowControlTimeout) {
+              clearTimeout(flowControlTimeout)
+              flowControlTimeout = undefined
+            }
+          }
+          return false;
+
+        case 19: // XOFF
+          if (Espruino.Config.SERIAL_FLOW_CONTROL && rxDataHandlerPacket===undefined) {
+            console.log("XOFF received => pause upload")
+            flowControlXOFF = true
+            if (flowControlTimeout) clearTimeout(flowControlTimeout)
+            flowControlTimeout = setTimeout(function () {
+              console.log(
+                `XOFF timeout (${FLOW_CONTROL_RESUME_TIMEOUT}s) => resume upload anyway`
+              )
+              flowControlXOFF = false
+              flowControlTimeout = undefined
+            }, FLOW_CONTROL_RESUME_TIMEOUT)
+          }
+          return false;
+
+        case 6: // ACK
+          emit("ack")
+          return false;
+
+        case 21: // NACK
+          emit("nack")
+          return false;
+      }
+
+      return true;
+    })
+
+    if (readListener) readListener(filteredData.buffer)
+  };
+
   var openSerialInternal=function(serialPort, connectCallback, disconnectCallback, attempts) {
     /* If openSerial is called, we need to have called getPorts first
       in order to figure out which one of the serial_ implementations
@@ -214,52 +302,8 @@ To add a new serial device, you must add an object to
           connectCallback = undefined;
         });
       }
-    }, function(data) { // RECEIEVE DATA
-      if (!(data instanceof ArrayBuffer)) console.warn("Serial port implementation is not returning ArrayBuffers")
-
-      // Filter incoming data to handle and remove control characters
-      const filteredData = new Uint8Array(data).filter((v) => {
-        switch (v) {
-          case 17: // XON
-            if (Espruino.Config.SERIAL_FLOW_CONTROL) {
-              console.log("XON received => resume upload")
-              flowControlXOFF = false
-              if (flowControlTimeout) {
-                clearTimeout(flowControlTimeout)
-                flowControlTimeout = undefined
-              }
-            }
-            return false
-
-          case 19: // XOFF
-            if (Espruino.Config.SERIAL_FLOW_CONTROL) {
-              console.log("XOFF received => pause upload")
-              flowControlXOFF = true
-              if (flowControlTimeout) clearTimeout(flowControlTimeout)
-              flowControlTimeout = setTimeout(function () {
-                console.log(
-                  `XOFF timeout (${FLOW_CONTROL_RESUME_TIMEOUT}s) => resume upload anyway`
-                )
-                flowControlXOFF = false
-                flowControlTimeout = undefined
-              }, FLOW_CONTROL_RESUME_TIMEOUT)
-            }
-            return false
-
-          case 6: // ACK
-            emit("ack")
-            return false
-
-          case 21: // NACK
-            emit("nack")
-            return false
-        }
-
-        return true
-      })
-
-      if (readListener) readListener(filteredData.buffer)
-    }, function(error) { // DISCONNECT
+    }, rxDataHandler, // RECEIEVE DATA
+    function(error) { // DISCONNECT
       currentDevice = undefined;
       if (writeTimeout!==undefined)
         clearTimeout(writeTimeout);

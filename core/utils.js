@@ -513,57 +513,6 @@
   }
 
   /**
-   * Take an input buffer and look for the initial control characters and then attempt to parse a 
-   * complete data packet from the buffer. Any complete packet is sent via `emit("packet")` and then
-   * stripped from `buffer` modifiying it.
-   * @param {Uint8Array} buffer 
-   * @returns {Uint8Array}
-   */
-  function parsePacketsFromBuffer(buffer) {
-
-    // Find DLE
-    const dle = buffer.findIndex(v => v === 0x10)
-    if (dle < 0) return buffer
-
-    // Check for SOH
-    if (buffer.at(dle + 1) !== 0x1) {
-      // console.warn("DLE not followed by SOH")
-      // TODO: Not stripping out this invalid control will cause a loop
-      buffer.set([undefined], dle) // Remove this DLE
-      return buffer
-    }
-
-    // Check there's still space for headers
-    if (buffer.at(dle + 2) === undefined || buffer.at(dle + 3) === undefined) {
-      console.warn("NO SPACE FOR HEADERS")
-      return buffer
-    }
-    const upper = buffer.at(dle + 2)
-    const lower = buffer.at(dle + 3)
-
-    // Parse heading from 2 bytes after control headers
-    const heading = new Number(upper << 8) | new Number(lower)
-    const pkLen = heading & 0x1FFF
-    const pkTyp = heading & 0xE000
-
-    // Ignoring heading bytes, check if there's enough bytes in the buffer to satisfy pkLen
-    if (buffer.length < dle + 4 + pkLen) {
-      return buffer
-    }
-
-    // Pick out a packet from the buffer and emit it via the event handler
-    const packet = buffer.subarray(dle, dle + 4 + pkLen)
-    console.log("Packet recieved... type:", pkTyp, "length:", pkLen)
-    Espruino.Core.Serial.emit('packet', pkTyp, packet.subarray(4, packet.length))
-
-    // Fill the buffer region of the packet that was sent with undefined
-    buffer.fill(undefined, 0, dle + packet.length)
-
-    // Return the input buffer but with the stripped packet filtered out
-    return buffer.filter(v => v !== undefined)
-  }
-
-  /**
    * Send a packet
    * @param {number} pkType 
    * @param {string} data 
@@ -584,23 +533,23 @@
 
     let allData
     function onPacket(rxPkType, data) {
-      tidy()
-      const packetData = String.fromCharCode(...data)
-
+      const packetData = String.fromCharCode(...data);
       // TODO: Depending on the rx type and tx type match up packet types, wait for x number of data
       if (pkTypes[pkType] === pkTypes.EVAL && rxPkType === pkTypes.RESPONSE) {
+        tidy();
         callback(packetData)
-
-      // If the packet type is data, we need to wait for the 0 length `DATA` packet and then send all of the data joined together
+        // If the packet type is data, we need to wait for the 0 length `DATA` packet and then send all of the data joined together
       } else if (pkTypes[pkType] === pkTypes.FILE_RECV && rxPkType === pkTypes.DATA) {
         if (data.length === 0) {
-          callback(allData)
-          console.log("zero packet")
+          tidy();
+          console.log("zero packet");
+          callback(allData);
         } else {
           console.log("appending data", String.fromCharCode(...data))
           allData += String.fromCharCode(...data)
         }
       }else {
+        tidy();
         callback("nodata")
       }
     }
@@ -612,31 +561,13 @@
       Espruino.Core.Serial.removeListener("packet", onPacket)
     }
 
-    // Attach event handlers for this packet event
-    Espruino.Core.Serial.on("ack", onAck)
-    Espruino.Core.Serial.on("nack", onNack)
-    Espruino.Core.Serial.on("packet", onPacket)
-
     // Write packet to serial port
     Espruino.Core.Serial.write(createPacket(pkType, data), undefined, function () {
-      // TODO: Add 1 sec timeout
-
-      let dataBuffer = new Uint8Array()
-
-      // Each time data comes in, expand the buffer and add the new data to it
-      // TODO: This seems problematic if there are subsequent/concurrent calls
-      Espruino.Core.Serial.startListening((data) => {
-        const newBuffer = new Uint8Array(data)
-
-        const tempBuffer = new Uint8Array(dataBuffer.length + newBuffer.length)
-        tempBuffer.set(dataBuffer, 0)
-        tempBuffer.set(newBuffer, dataBuffer.length)
-
-        dataBuffer = tempBuffer
-
-        // Now we've added more data to the buffer, try to parse out any packets
-        dataBuffer = parsePacketsFromBuffer(dataBuffer)
-      })
+      // Attach event handlers for this packet event
+      Espruino.Core.Serial.on("ack", onAck);
+      Espruino.Core.Serial.on("nack", onNack);
+      Espruino.Core.Serial.on("packet", onPacket);
+      // TODO: Timeout handling?
     })
   }
 
