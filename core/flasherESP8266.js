@@ -33,7 +33,7 @@
    * @property {string} chPD A13
    */
 
-  /** 
+  /**
    * @param {FlasherOptions} options
    * @returns {FlasherOptions}
    */
@@ -47,7 +47,7 @@
   function flashDevice(options) {
     if (!options.binary) throw new Error("Needs binary");
     defaultOptions(options);
-    
+
     var prevReader = Espruino.Core.Serial.startListening(function (buffer) {
       var bufView = new Uint8Array(buffer);
       for (var i=0;i<bufView.length;i++)
@@ -57,7 +57,7 @@
           var a = l.shift();
           console.log(">>>",a);
           try {
-          if (packetHandler) packetHandler(Espruino.Core.Utils.parseJSONish(a));
+          if (packetHandler) packetHandler(Espruino.Core.Utils.parseRJSON(a));
           } catch(e) { console.log("Unable to decode"); }
         }
         uartLine = l[0];
@@ -92,9 +92,9 @@
   }
 
 /**
- * @param {FlasherOptions} options 
- * @param {number} cmd 
- * @param {ArrayBuffer} data 
+ * @param {FlasherOptions} options
+ * @param {number} cmd
+ * @param {ArrayBuffer} data
  */
 function wr(options,cmd,data) {
   //console.log("Write",cmd,data.length,data);
@@ -241,8 +241,8 @@ function cmdFlash(options) {
 }
 
 /**
- * @param {FlasherOptions} options 
- * @param {(version: string) => void} callback 
+ * @param {FlasherOptions} options
+ * @param {(version: string) => void} callback
  */
 function getFirmwareVersion(options, callback) {
   defaultOptions(options);

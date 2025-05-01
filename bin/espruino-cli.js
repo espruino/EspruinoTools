@@ -195,8 +195,8 @@ for (var i=2;i<process.argv.length;i++) {
 args.espruinoPrefix = args.quiet?"":"--] ";
 args.espruinoPostfix = "";
 if (args.color) {
- args.espruinoPrefix = "\033[32m";
- args.espruinoPostfix = "\033[0m";
+ args.espruinoPrefix = "\x1b[32m"; // \x1b = \033 = 27 (escape)
+ args.espruinoPostfix = "\x1b[0m";
 }
 //this is called after Espruino tools are loaded, and
 //sets up configuration as requested by the command-line options
