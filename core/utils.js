@@ -82,7 +82,7 @@
    * Process text to produce a web safe string
    * @param {string} text Input text to be escaped
    * @param {boolean} escapeSpaces Should spaces be escaped to '&nbsp;'?
-   * @returns {string} 
+   * @returns {string}
    */
   function escapeHTML(text, escapeSpaces) {
     escapeSpaces = typeof escapeSpaces !== 'undefined' ? escapeSpaces : true;
@@ -93,7 +93,7 @@
   }
 
   /**
-   * Google Docs, forums, etc tend to break code by replacing characters with fancy unicode versions. 
+   * Google Docs, forums, etc tend to break code by replacing characters with fancy unicode versions.
    * Un-break the code by undoing these changes
    * @param {string} text
    * @returns {string}
@@ -129,7 +129,7 @@
 
   /**
    * Get a Lexer to parse JavaScript - this is really very nasty right now and it doesn't lex even remotely properly.
-   * @param {string} str 
+   * @param {string} str
    * @typedef {Object} LexerOutput
    * @property {string} type
    * @property {string} str Chars that were parsed
@@ -299,7 +299,7 @@
    * Try and get a prompt from Espruino - if we don't see one, issue Ctrl-C
    * and hope it comes back. Calls callback with first argument true if it
    * had to Ctrl-C out
-   * @param {(hadToBreak?: boolean) => void} callback 
+   * @param {(hadToBreak?: boolean) => void} callback
    */
   function getEspruinoPrompt(callback) {
     if (Espruino.Core.Terminal!==undefined &&
@@ -358,12 +358,12 @@
 
   /**
    * Return the value of executing an expression on the board.
-   * @param {string} expressionToExecute 
-   * @param {(result: string) => void} callback 
+   * @param {string} expressionToExecute
+   * @param {(result: string) => void} callback
    * @param {Object} options
-   * @param {boolean} options.exprPrintsResult If 'true' whatever the expression prints to 
+   * @param {boolean} options.exprPrintsResult If 'true' whatever the expression prints to
    * the console is returned, otherwise the actual value returned by the expression is returned.
-   * @param {number} options.maxTimeout (default 30) is how long we're willing to wait (in seconds) 
+   * @param {number} options.maxTimeout (default 30) is how long we're willing to wait (in seconds)
    * for data if Espruino keeps transmitting.
    */
   function executeExpression(expressionToExecute, callback, options) {
@@ -467,110 +467,6 @@
     }
   }
 
-  /** 
-   * Packet types mapped to their wire values
-   * @typedef {Object} PacketTypes
-   * @property {number} RESPONSE - Response to an EVAL packet
-   * @property {number} EVAL - Execute and return the result as RESPONSE packet
-   * @property {number} EVENT - Parse as JSON and create `E.on('packet', ...)` event
-   * @property {number} FILE_SEND - Called before DATA, with {fn:"filename",s:123}
-   * @property {number} DATA - Sent after FILE_SEND with blocks of data for the file
-   * @property {number} FILE_RECV - Receive a file - returns a series of PT_TYPE_DATA packets, with a final zero length packet to end
-   */
-  const pkTypes = Object.freeze({
-    RESPONSE:  0,     
-    EVAL:      0x2000,
-    EVENT:     0x4000,
-    FILE_SEND: 0x6000,
-    DATA:      0x8000,
-    FILE_RECV: 0xA000 
-  })
-
-  /**
-   * Creates a new packet for transfer using the packet protocol
-   * @param {number} pkType The packet type being sent, from `PacketTypes`
-   * @param {string} data Data to be appended to the end of the packet (max length 8191 bytes)
-   * @returns {string}
-   */
-  function createPacket(pkType, data) {
-    
-    // Check the packet type is one of the known types
-    if (!Object.hasOwn(pkTypes, pkType)) throw new Error(`'pkType' '${pkType}' not one of ${Object.keys(pkTypes)}`);
-
-    // Check the data is a string type and length is in bounds
-    if (typeof data !== 'string') throw new Error("data must be a String");
-    if (data.length <= 0 || data.length > 0x1FFF) throw new Error('data length is out of bounds, max 8191 bytes');
-
-    // Create packet heading using packet type and data length
-    const heading = pkTypes[pkType] | data.length
-
-    return String.fromCharCode(
-      16,                   // DLE (Data Link Escape)
-      1,                    // SOH (Start of Heading)
-      (heading >> 8) &0xFF, // Upper byte of heading
-      heading & 0xFF        // Lower byte of heading
-    ) + data;               // Data blob
-  }
-
-  /**
-   * Send a packet
-   * @param {number} pkType 
-   * @param {string} data 
-   * @param {() => void} callback 
-   */
-  function sendPacket(pkType, data, callback) {
-    
-    function onAck() {
-      // TODO: What do we actually need to do in the event of an ack
-      // tidy()
-      // callback()
-    }
-
-    function onNack(err) {
-      tidy()
-      callback(err)
-    }
-
-    let allData
-    function onPacket(rxPkType, data) {
-      const packetData = String.fromCharCode(...data);
-      // TODO: Depending on the rx type and tx type match up packet types, wait for x number of data
-      if (pkTypes[pkType] === pkTypes.EVAL && rxPkType === pkTypes.RESPONSE) {
-        tidy();
-        callback(packetData)
-        // If the packet type is data, we need to wait for the 0 length `DATA` packet and then send all of the data joined together
-      } else if (pkTypes[pkType] === pkTypes.FILE_RECV && rxPkType === pkTypes.DATA) {
-        if (data.length === 0) {
-          tidy();
-          console.log("zero packet");
-          callback(allData);
-        } else {
-          console.log("appending data", String.fromCharCode(...data))
-          allData += String.fromCharCode(...data)
-        }
-      }else {
-        tidy();
-        callback("nodata")
-      }
-    }
-
-    // Tidy up the event listeners from this packet task
-    function tidy() {
-      Espruino.Core.Serial.removeListener("ack", onAck)
-      Espruino.Core.Serial.removeListener("nack", onNack)
-      Espruino.Core.Serial.removeListener("packet", onPacket)
-    }
-
-    // Write packet to serial port
-    Espruino.Core.Serial.write(createPacket(pkType, data), undefined, function () {
-      // Attach event handlers for this packet event
-      Espruino.Core.Serial.on("ack", onAck);
-      Espruino.Core.Serial.on("nack", onNack);
-      Espruino.Core.Serial.on("packet", onPacket);
-      // TODO: Timeout handling?
-    })
-  }
-
   /**
    * Download a file - storageFile or normal file
    * @param {string} fileName Path to file to download
@@ -587,10 +483,6 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
         if (contents===undefined) callback();
         else callback(atob(contents));
       }, options);
-  }
-
-  function downloadFileV2(fileName, fs, callback) {
-    sendPacket("FILE_RECV", JSON.stringify({ fn: fileName, fs }), callback)
   }
 
   /**
@@ -616,7 +508,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   /**
    * @param {string} fileName Path to file to upload
    * @param {string} contents Contents of the file being uploaded
-   * @param {(result: string) => void} callback 
+   * @param {(result: string) => void} callback
    */
   function uploadFile(fileName, contents, callback) {
     var js = getUploadFileCode(fileName, contents).replace(/\n/g,"\n\x10");
@@ -635,7 +527,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * Perform an XHR request
-   * @param {string} url 
+   * @param {string} url
    * @param {(data?:string) => void} callback Returning data or 'undefined' on error.
    * @param {Object} options HTTP request options
    * @param {'GET'|'POST'} options.method HTTP method
@@ -732,8 +624,8 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * GET's a URL as a Binary file
-   * @param {string} url 
-   * @param {(err: string, data?: ArrayBuffer) => void} callback 
+   * @param {string} url
+   * @param {(err: string, data?: ArrayBuffer) => void} callback
    */
   function getBinaryURL(url, callback) {
     console.log("Downloading "+url);
@@ -756,7 +648,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * @param {string} url 
+   * @param {string} url
    * @param {(data?: any) => void} callback {data} will return 'undefined' on error
    */
   function getJSONURL(url, callback) {
@@ -769,7 +661,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * @param {string} text 
+   * @param {string} text
    * @returns {boolean}
    */
   function isURL(text) {
@@ -790,7 +682,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
    * @param {string} options.id ID to ensure that subsequent calls with the same ID remember the last used directory.
    * @param {'text' | 'arraybuffer'} options.type (default 'text') Callback with either 'text' or 'arraybuffer'
    * @param {string | undefined} options.mimeType Optional comma-separated list of accepted mime types for files or extensions (eg. ".js,application/javascript")
-   * @param {(contents: ArrayBuffer | string, mimeType: string, fileName: string) => void} callback 
+   * @param {(contents: ArrayBuffer | string, mimeType: string, fileName: string) => void} callback
    */
   function fileOpenDialog(options, callback) {
     function readerLoaded(e,files,i,options,fileLoader) {
@@ -857,8 +749,8 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * Save a file with a save file dialog
-   * @param {string} data 
-   * @param {string} filename 
+   * @param {string} data
+   * @param {string} filename
    * @param {(savedFileName: string) => void} callback only called in chrome app case when we know the filename
    */
   function fileSaveDialog(data, filename, callback) {
@@ -906,7 +798,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /** Bluetooth device names that we KNOW run Espruino */
   var recongisedDevices = [
-    "Puck.js", "Pixl.js", "MDBT42Q", "Espruino", "Badge", "Thingy", 
+    "Puck.js", "Pixl.js", "MDBT42Q", "Espruino", "Badge", "Thingy",
     "RuuviTag", "iTracker", "Smartibot", "Bangle.js", "Micro:bit"
   ];
 
@@ -917,7 +809,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * Add a new device to the list of recognised devices
-   * @param {string} name 
+   * @param {string} name
    */
   function addRecognisedDeviceName(name){
     if (name) recongisedDevices.push(name);
@@ -928,7 +820,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * Add a new recognised device address to 'recognisedDeviceAddresses'
-   * @param {string} address 
+   * @param {string} address
    */
   function addRecognisedDeviceAddress(address){
     if (address) recognisedDeviceAddresses.push(address);
@@ -936,8 +828,8 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * If we can't find service info, add devices based only on their name/address
-   * @param {string} name 
-   * @param {string} address 
+   * @param {string} name
+   * @param {string} address
    * @returns {boolean} Returns true if there was a recognised device
    */
   function isRecognisedBluetoothDevice(name, address) {
@@ -952,7 +844,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * Get the version from the manifest.json
-   * @param {(version: string) => void} callback 
+   * @param {(version: string) => void} callback
    */
   function getVersion(callback) {
     var xmlhttp = new XMLHttpRequest();
@@ -979,7 +871,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * @param {string} str 
+   * @param {string} str
    * @returns {ArrayBuffer}
    */
   function stringToArrayBuffer(str) {
@@ -996,7 +888,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * @param {string} str 
+   * @param {string} str
    * @returns {Buffer}
    */
   function stringToBuffer(str) {
@@ -1028,25 +920,76 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Parses a JSON string into JS, taking into account some of the 
+   * Parses a very relaxed version of a JSON string into JS, taking into account some of the
    * issues with Espruino's JSON from 2v04 and before
-   * @param {string} str 
+   * @param {string} str
    * @returns {any}
    */
-  function parseJSONish(str) {
-    var lex = getLexer(str);
-    var tok = lex.next();
-    var final = "";
-    while (tok!==undefined) {
-      var s = tok.str;
-      if (tok.type=="STRING") {
-        s = s.replace(/\\([0-9])/g,"\\u000$1");
-        s = s.replace(/\\x(..)/g,"\\u00$1");
-      }
-      final += s;
+  function parseRJSON(str) {
+    let lex = getLexer(str);
+    let tok = lex.next();
+    function match(s) {
+      if (tok.str!=s) throw new Error("Expecting "+s+" got "+JSON.stringify(tok.str));
       tok = lex.next();
     }
-    return JSON.parse(final);
+
+    function recurse() {
+      while (tok!==undefined) {
+        if (tok.type == "NUMBER") {
+          let v = parseFloat(tok.str);
+          tok = lex.next();
+          return v;
+        }
+        if (tok.str == "-") {
+          tok = lex.next();
+          let v = -parseFloat(tok.str);
+          tok = lex.next();
+          return v;
+        }
+        if (tok.type == "STRING") {
+          let v = tok.value;
+          tok = lex.next();
+          return v;
+        }
+        if (tok.type == "ID") switch (tok.str) {
+          case "true" : tok = lex.next(); return true;
+          case "false" : tok = lex.next(); return false;
+          case "null" : tok = lex.next(); return null;
+        }
+        if (tok.str == "[") {
+          tok = lex.next();
+          let arr = [];
+          while (tok.str != ']') {
+            arr.push(recurse());
+            if (tok.str != ']') match(",");
+          }
+          match("]");
+          return arr;
+        }
+        if (tok.str == "{") {
+          tok = lex.next();
+          let obj = {};
+          while (tok.str != '}') {
+            let key = tok.type=="STRING" ? tok.value : tok.str;
+            tok = lex.next();
+            match(":");
+            obj[key] = recurse();
+            if (tok.str != '}') match(",");
+          }
+          match("}");
+          return obj;
+        }
+        match("EOF");
+      }
+    }
+
+    let json = undefined;
+    try {
+      json = recurse();
+    } catch (e) {
+      console.log("RJSON parse error", e);
+    }
+    return json;
   }
 
   /**
@@ -1054,7 +997,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
    * however use \0,\1,\x,etc escapes whenever possible to make the String as small
    * as it can be. On Espruino with UTF8 support, not using \u.... also allows it
    * to use non-UTF8 Strings which are more efficient.
-   * @param {string} txt 
+   * @param {string} txt
    * @returns {string}
    */
   function toJSONishString(txt) {
@@ -1087,9 +1030,9 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
   }
 
   /**
-   * Convert a normal JS string (one char per character) to a string of UTF8 bytes 
+   * Convert a normal JS string (one char per character) to a string of UTF8 bytes
    * (passes anything 0..255 straight through)
-   * @param {string} str 
+   * @param {string} str
    * @returns {string}
    */
   function asUTF8Bytes(str) {
@@ -1120,7 +1063,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * Does the given string contain only ASCII characters?
-   * @param {string} str 
+   * @param {string} str
    * @returns {boolean}
    */
   function isASCII(str) {
@@ -1134,7 +1077,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * btoa (base64 encoder) that works on utf8
-   * @param {string} input 
+   * @param {string} input
    * @returns {string}
    */
   function btoa(input) {
@@ -1166,7 +1109,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
 
   /**
    * atob (base64 decoder)
-   * @param {string} input 
+   * @param {string} input
    * @returns {string}
    */
   function atob(input) {
@@ -1225,10 +1168,8 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       countBrackets : countBrackets,
       getEspruinoPrompt : getEspruinoPrompt,
       executeExpression : function(expr,callback) { executeExpression(expr,callback,{exprPrintsResult:false}); },
-      executeExpressionV2: function(expr,callback) { sendPacket("EVAL",expr,callback); /* TODO: Callback and parseRJSON */ },
       executeStatement : function(statement,callback) { executeExpression(statement,callback,{exprPrintsResult:true}); },
       downloadFile : downloadFile, // (fileName, callback)
-      downloadFileV2 : downloadFileV2,
       getUploadFileCode : getUploadFileCode, //(fileName, contents);
       uploadFile : uploadFile, // (fileName, contents, callback)
       versionToFloat : versionToFloat,
@@ -1249,12 +1190,12 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       stringToBuffer : stringToBuffer,
       dataViewToArrayBuffer : dataViewToArrayBuffer,
       arrayBufferToString : arrayBufferToString,
-      parseJSONish : parseJSONish,
+      parseRJSON : parseRJSON,
+      parseJSONish : parseRJSON, // deprecated
       toJSONishString : toJSONishString,
       asUTF8Bytes : asUTF8Bytes,
       isASCII : isASCII,
       btoa : btoa,
-      atob : atob,
-      createPacket : createPacket
+      atob : atob
   };
 }());
