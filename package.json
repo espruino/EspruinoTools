@@ -52,6 +52,7 @@
   },
   "homepage": "https://github.com/espruino/EspruinoTools#readme",
   "devDependencies": {
+    "@babel/eslint-parser": "^7.27.1",
     "@types/node": "^22.14.1",
     "eslint": "^8.57.1",
     "typescript": "^5.8.3"

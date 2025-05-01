@@ -7,8 +7,10 @@ module.exports = {
   },
 
   parserOptions: {
-    ecmaVersion: 8,
+    ecmaVersion: 11,
+    "requireConfigFile": false
   },
+  parser: "@babel/eslint-parser", // needed for fields in classes
 
   globals: {
     chrome: "readonly", // Chromium specific browser global
