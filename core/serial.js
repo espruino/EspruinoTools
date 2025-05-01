@@ -194,7 +194,12 @@ To add a new serial device, you must add an object to
       this.closeHandler();
     }
 
-    /** Call this to send data, this splits data, handles queuing and flow control, and calls writeLowLevel to actually write the data  */
+    /** Call this to send data, this splits data, handles queuing and flow control, and calls writeLowLevel to actually write the data.
+     * 'callback' can optionally return a promise, in which case writing only continues when the promise resolves
+     * @param {string} data
+     * @param {() => Promise|void} callback
+     * @returns {Promise}
+      */
     write(data, callback) {
       let connection = this;
       return new Promise((resolve,reject) => {
@@ -231,15 +236,18 @@ To add a new serial device, you must add an object to
           log(2, "Sending "+ JSON.stringify(chunk));
           connection.writeLowLevel(chunk).then(function() {
             log(3, "Sent");
+            let promise = undefined;
             if (!txItem.data) {
               connection.txDataQueue.shift(); // remove this element
               if (txItem.callback)
-                txItem.callback();
+                promise = txItem.callback();
               if (txItem.resolve)
                 txItem.resolve();
             }
+            if (!(promise instanceof Promise))
+              promise = Promise.resolve();
             connection.txInProgress = false;
-            writeChunk();
+            promise.then(writeChunk); // if txItem.callback() returned a promise, wait until it completes before continuing
           }, function(error) {
             log(1, 'SEND ERROR: ' + error);
             uart.writeProgress();
