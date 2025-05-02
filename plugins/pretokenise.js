@@ -226,7 +226,7 @@
           if (val==0) { // it's shorter just to write quotes
             resultCode += String.fromCharCode(LEX_RAW_INT0);
           } else if (val>=-128 && val<128)
-            resultCode += String.fromCharCode(LEX_RAW_INT8, val);
+            resultCode += String.fromCharCode(LEX_RAW_INT8, val&255);
           else if (val>=-32768 && val<32768)
             resultCode += String.fromCharCode(LEX_RAW_INT16, val&255, (val>>8)&255);
           else
@@ -282,6 +282,16 @@
           let len = code.charCodeAt(i+1) | (code.charCodeAt(i+2)<<8);
           resultCode += Espruino.Core.Utils.toJSONishString(code.substring(i+3, i+3+len));
           i+=2+len;
+        } else if (ch==LEX_RAW_INT0) { // decode raw strings
+          resultCode += "0";
+        } else if (ch==LEX_RAW_INT8) { // decode raw strings
+          let val = code.charCodeAt(i+1);
+          resultCode += val.toString();
+          i+=1;
+        } else if (ch==LEX_RAW_INT16) {
+          let val = code.charCodeAt(i+1) | (code.charCodeAt(i+2)<<8);
+          resultCode += val.toString();
+          i+=2;
         } else if (ch<LEX_OPERATOR_START+TOKENS.length) // decoded other tokens
           resultCode += TOKENS[ch-LEX_OPERATOR_START];
         else {
