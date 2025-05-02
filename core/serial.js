@@ -223,8 +223,8 @@ To add a new serial device, you must add an object to
             return;
           }
           var txItem = connection.txDataQueue[0];
-          uart.writeProgress(txItem.maxLength - txItem.data.length, txItem.maxLength);
-          connection.updateProgress(txItem.maxLength - txItem.data.length, txItem.maxLength);
+          uart.writeProgress(txItem.maxLength - (txItem.data?txItem.data.length:0), txItem.maxLength);
+          connection.updateProgress(txItem.maxLength - (txItem.data?txItem.data.length:0), txItem.maxLength);
           if (txItem.data.length <= connection.chunkSize) {
             chunk = txItem.data;
             txItem.data = undefined;
@@ -759,10 +759,11 @@ To add a new serial device, you must add an object to
       //console.log("serial: Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
       Espruino.Core.Serial.connection.write(d, function() { // write data, but the callback returns a promise that delays
         return new Promise(resolve => setTimeout(function() {
-          if (isLast && writeData.showStatus)
+          if (isLast && writeData.showStatus) {
             Espruino.Core.Status.setStatus("Sent");
-          if (writeData.callback)
-            writeData.callback();
+            if (writeData.callback)
+              writeData.callback();
+          }
           resolve();
         }, split.delay));
       });
