@@ -31,7 +31,7 @@
 
     // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformForEspruino", function(code, callback) {
-      if (!Espruino.Config.PRETOKENISE) return callback(code);
+      if (Espruino.Config.PRETOKENISE == 0) return callback(code); // disabled?
       if (Espruino.Config.SAVE_ON_SEND == 0) {
         console.log("pretokenise> Can't pretokenise code sent to REPL (RAM)");
         return callback(code);
@@ -40,7 +40,7 @@
     });
    // When code is sent to Espruino, search it for modules and add extra code required to load them
     Espruino.addProcessor("transformModuleForEspruino", function(module, callback) {
-      if (!Espruino.Config.PRETOKENISE ||
+      if (Espruino.Config.PRETOKENISE == 0 || // disabled?
           Espruino.Config.MODULE_AS_FUNCTION) return callback(module);
       /* if MODULE_AS_FUNCTION is specified the module is uploaded inside a 'function'
       block, in which case it will be pretokenised anyway in a later step */
@@ -135,7 +135,7 @@
     if (Espruino.Config.PRETOKENISE==2) { // force all options always
       pretokeniseStrings = true;
       pretokeniseInts = true;
-    } else if (boardData && boardData.VERSION) {
+    } else if (boardData && boardData.VERSION) { // Espruino.Config.PRETOKENISE is nonzero or we wouldn't be called
       var v = parseFloat(boardData.VERSION.replace("v","0"));
       if (v >= 2020.48)
         pretokeniseStrings = true;
@@ -147,7 +147,7 @@
       let t = acorn.tokenizer(code, { ecmaVersion : 2020 });
       return { next : function() {
         let tk = t.getToken();
-        let tkStr = code.substring(tk.start, tk.end), tkValue = tk.value;
+        let tkStr = code.substring(tk.start, tk.end), tkValue = tk.value, tkEnd = tk.end;
         if (tk.type.label=="eof") return undefined;
         let tp = "?";
         if (tk.type.label=="`") { // template string
@@ -158,17 +158,17 @@
             if (tk2.type.label=="${")
               hasTemplate = true;
           } while (tk2.type.label!="`");
-          tkStr = code.substring(tk.start, tk2.end);
+          tkEnd = tk2.end;
+          tkStr = code.substring(tk.start, tkEnd);
           tp = hasTemplate ? "TEMPLATEDSTRING" : "STRING"; // if we don't have any templates, treat as a normal string (https://github.com/espruino/Espruino/issues/2577)
           tkValue = hasTemplate ? tkStr : eval(tkStr); // don't evaluate if it has templates as it must be done at runtime!
-        }
-        if (tk.type.label=="string") tp="STRING";
-        if (tk.type.label=="num") tp="NUMBER";
-        if (tk.type.keyword || tk.type.label=="name") tp="ID";
-        if (tp=="?" && tk.start+1==tk.end) tp="CHAR";
+        } else if (tk.type.label=="string") tp="STRING";
+        else if (tk.type.label=="num") tp="NUMBER";
+        else if (tk.type.keyword || tk.type.label=="name") tp="ID";
+        else if (tp=="?" && tk.start+1==tk.end) tp="CHAR";
         return {
           startIdx : tk.start,
-          endIdx : tk.end,
+          endIdx : tkEnd,
           str : tkStr,
           value : tkValue,
           type : tp
