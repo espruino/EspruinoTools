@@ -120,6 +120,9 @@
 
   const LEX_RAW_STRING8 = 0xD1;
   const LEX_RAW_STRING16 = 0xD2;
+  const LEX_RAW_INT0 = 0xD3;
+  const LEX_RAW_INT8 = 0xD4;
+  const LEX_RAW_INT16 = 0xD5;
 
   function pretokenise(code, callback) {
     callback(tokenise(code));
@@ -127,13 +130,17 @@
 
   function tokenise(code) {
     var pretokeniseStrings = false; // only works on 2v20.48 and later
+    var pretokeniseInts = false; // only works on 2v25.396 and later
     var boardData = Espruino.Core.Env.getBoardData();
-    if (Espruino.Config.PRETOKENISE==2) {
-      pretokeniseStrings = true; // always
+    if (Espruino.Config.PRETOKENISE==2) { // force all options always
+      pretokeniseStrings = true;
+      pretokeniseInts = true;
     } else if (boardData && boardData.VERSION) {
       var v = parseFloat(boardData.VERSION.replace("v","0"));
       if (v >= 2020.48)
         pretokeniseStrings = true;
+      if (v >= 2026)
+        pretokeniseInts = true;
     }
 
     var lex = (function() {
@@ -171,7 +178,7 @@
     var brackets = 0;
     var resultCode = "";
     var lastIdx = 0;
-    var lastTok = {str:""};
+    var lastTok = {str:""}, lastlastTok = {str:""};
     var tok = lex.next();
     while (tok!==undefined) {
       var previousString = code.substring(lastIdx, tok.startIdx);
@@ -192,6 +199,7 @@
       if (pretokeniseStrings && tok.type == "STRING") {
         let str = tok.value;  // get string value
         lastIdx = tok.endIdx; // get next token
+        lastlastTok = lastTok;
         lastTok = tok;
         tok = lex.next();
         let hadAtoB = resultCode.endsWith("atob(") && tok.str==")"; // were we surrounded by 'atob'?
@@ -207,6 +215,23 @@
         else if (length<65536)
           resultCode += String.fromCharCode(LEX_RAW_STRING16, length&255, (length>>8)&255)+str;
         if (!hadAtoB) continue; // if not atob, we already got the last token ready
+      } else if (pretokeniseInts && tok.type == "NUMBER") {
+        let val = tok.value;  // get string value
+        if (val==Math.round(val)) { // ensure it's an integer
+          // Was there a '-' in a place where it's not a subtraction?
+          if (lastTok.str=="-" && [",","(",":","?","="].includes(lastlastTok.str)) {
+            resultCode = resultCode.slice(0,-1); // remove -
+            val = -val; // negate value
+          }
+          if (val==0) { // it's shorter just to write quotes
+            resultCode += String.fromCharCode(LEX_RAW_INT0);
+          } else if (val>=-128 && val<128)
+            resultCode += String.fromCharCode(LEX_RAW_INT8, val);
+          else if (val>=-32768 && val<32768)
+            resultCode += String.fromCharCode(LEX_RAW_INT16, val&255, (val>>8)&255);
+          else
+            resultCode += tokenString;
+        } else resultCode += tokenString;
       } else if (tokenId) {
         //console.log(JSON.stringify(tok.str)+" => "+tokenId);
         resultCode += String.fromCharCode(tokenId);
@@ -219,6 +244,7 @@
       }
       // next
       lastIdx = tok.endIdx;
+      lastlastTok = lastTok;
       lastTok = tok;
       tok = lex.next();
     }
