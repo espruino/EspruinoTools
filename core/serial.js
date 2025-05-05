@@ -552,7 +552,7 @@ To add a new serial device, you must add an object to
    * @param {(ports, shouldCallAgain) => void} callback 
    */
   var getPorts = function (callback) {
-    var newPortToDevice = [];
+    var newPortToDevice = {};
 
     var devices = Espruino.Core.Serial.devices;
     if (!devices || devices.length == 0) {
@@ -578,7 +578,7 @@ To add a new serial device, you must add an object to
       devices.map((device) =>
         new Promise((resolve) => device.getPorts(resolve)).then(
           (devicePorts, instantPorts) => ({
-            device: device.name,
+            device: device,
             shouldCallAgain: !instantPorts, // If the ports are not present now (eg. BLE) then call again
             value: (devicePorts || [])
               .filter((port) => !isIgnored(port.path)) // Filter out all the ignored ports
@@ -591,12 +591,21 @@ To add a new serial device, you must add an object to
           })
         )
       )
-    ).then((ports) => {
+    ).then((devicePromises) => {
       // Reduce the responses to only promises that were fulfilled
-      const successfulPorts = ports.reduce((acc, promise) => {
+      const successfulPorts = devicePromises.reduce((acc, promise) => {
         if (promise.status === "fulfilled") acc.push(promise.value);
         return acc;
       }, []);
+
+      portToDevice = devicePromises.reduce((acc, promise) => {
+        if (promise.status === "fulfilled")
+          promise.value.value.forEach(
+            (port) => (acc[port.path] = promise.value.device)
+          );
+
+        return acc;
+      }, {});
 
       callback(
         successfulPorts
@@ -614,10 +623,10 @@ To add a new serial device, you must add an object to
 
   var openSerialInternal=function(serialPort, connectCallback, disconnectCallback, attempts) {
     /* If openSerial is called, we need to have called getPorts first
-      in order to figure out which one of the serial_ implementations
-      we must call into. */
+    in order to figure out which one of the serial_ implementations
+    we must call into. */
     if (portToDevice === undefined) {
-      portToDevice = []; // stop recursive calls if something errors
+      portToDevice = {}; // stop recursive calls if something errors
       return getPorts(function() {
         openSerialInternal(serialPort, connectCallback, disconnectCallback, attempts);
       });
