@@ -231,7 +231,7 @@ function setupConfig(Espruino, callback) {
     if (fileName=="-")
       args.storageContents[storageName] = { code : true };
     else {
-      args.storageContents[storageName] = { data: fs.readFileSync(fileName, {encoding:"utf8"}).toString() };
+      args.storageContents[storageName] = { data: fs.readFileSync(fileName, {encoding:"binary"}).toString() };
     }
   }
  }
