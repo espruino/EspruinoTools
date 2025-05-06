@@ -195,24 +195,11 @@
       };
     })();
 
-    var minifyCode = code;
-    var minifyCallback = callback;
-    if (isModule) {
-      /* if we're a module, we wrap this in a function so that unused constants
-      and functions can be removed */
-      var header = "(function(){";
-      var footer = "})();";
-      minifyCode = header+code+footer;
-      minifyCallback = function (minified){
-        callback(minified.substr(header.length, minified.length-(header.length+footer.length+1)));
-      }
-    }
-
     switch(level){
       case "WHITESPACE_ONLY":
       case "SIMPLE_OPTIMIZATIONS":
-      case "ADVANCED_OPTIMIZATIONS": minifyCodeGoogle(minifyCode, minifyCallback, level, description); break;
-      case "ESPRIMA": minifyCodeEsprima(minifyCode, minifyCallback, description); break;
+      case "ADVANCED_OPTIMIZATIONS": minifyCodeGoogle(code, callback, level, description); break;
+      case "ESPRIMA": minifyCodeEsprima(code, callback, description); break;
       default: callback(code); break;
     }
   }
