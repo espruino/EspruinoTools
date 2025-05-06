@@ -122,11 +122,12 @@
     }
 
     getAdapter().then((adapter) =>
-    scanDevices(adapter)).catch(() =>
-      callback([], true)
-    ).then((devices) =>
+    scanDevices(adapter)).then((devices) =>
       callback(devices, false)
-    );
+    ).catch((err) => {
+      console.error("serial_node_ble", "error on scanDevices", err)
+      callback([], true)
+    })
   };
 
   var closeSerial = function () {
