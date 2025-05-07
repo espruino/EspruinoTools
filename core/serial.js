@@ -598,8 +598,14 @@ To add a new serial device, you must add an object to
       }, {});
 
       callback(
-        results.flatMap((result) => result.value),
-        results.some((result) => result.shouldCallAgain)
+        results
+          .flatMap((result) => result.value)
+          .sort((a, b) => {
+            if (a.unimportant && !b.unimportant) return 1;
+            if (b.unimportant && !a.unimportant) return -1;
+            return 0;
+          }),
+        results.some((result) => result.shouldCallAgain),
       );
     });
   };
