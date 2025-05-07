@@ -167,8 +167,8 @@ To add a new serial device, you must add an object to
       this.hadData = false;
       this.flowControlWait = 0;
       this.rxDataHandlerLastCh = 0;
-      if (this.isOpen) {
-        this.isOpen = false;
+      if (!this.isOpen) {
+        this.isOpen = true;
         this.emit("open");
       }
       // if we had any writes queued, do them now
