@@ -574,7 +574,7 @@ To add a new serial device, you must add an object to
     }
 
     // Asynchronously call 'getPorts' on all devices and map results back as a series of promises
-    Promise.allSettled(
+    Promise.all(
       devices.map((device) =>
         new Promise((resolve) => device.getPorts(resolve)).then(
           (devicePorts, instantPorts) => ({
@@ -591,27 +591,15 @@ To add a new serial device, you must add an object to
           })
         )
       )
-    ).then((devicePromises) => {
-      // Reduce the responses to only promises that were fulfilled
-      const successfulPorts = devicePromises.reduce((acc, promise) => {
-        if (promise.status === "fulfilled") acc.push(promise.value);
-        return acc;
-      }, []);
-
-      portToDevice = devicePromises.reduce((acc, promise) => {
-        if (promise.status === "fulfilled")
-          promise.value.value.forEach(
-            (port) => (acc[port.path] = promise.value.device)
-          );
-
+    ).then((results) => {
+      portToDevice = results.reduce((acc, promise) => {
+        promise.value.forEach((port) => (acc[port.path] = promise.device));
         return acc;
       }, {});
 
       callback(
-        successfulPorts
-          .map((val) => val.value)
-          .reduce((acc, port) => acc.concat(port), []),
-        successfulPorts.some((val) => val.shouldCallAgain)
+        results.flatMap((result) => result.value),
+        results.some((result) => result.shouldCallAgain)
       );
     });
   };
