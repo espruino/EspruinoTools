@@ -546,54 +546,67 @@ To add a new serial device, you must add an object to
     return oldListener;
   };
 
-  /* Calls 'callback(port_list, shouldCallAgain)'
-   'shouldCallAgain==true' means that more devices
-   may appear later on (eg Bluetooth LE).*/
-  var getPorts=function(callback) {
-    var ports = [];
-    var newPortToDevice = [];
-    // get all devices
-    var responses = 0;
+  /**
+   * List ports available over all configured devices.
+   * `shouldCallAgain` mean that more devices may appear later on (eg. Bluetooth LE)
+   * @param {(ports, shouldCallAgain) => void} callback 
+   */
+  var getPorts = function (callback) {
+    var newPortToDevice = {};
+
     var devices = Espruino.Core.Serial.devices;
-    if (!devices || devices.length==0) {
-         portToDevice = newPortToDevice;
+    if (!devices || devices.length == 0) {
+      portToDevice = newPortToDevice;
       return callback(ports, false);
     }
-    var shouldCallAgain = false;
-    devices.forEach(function (device) {
-      //console.log("getPorts -->",device.name);
-      device.getPorts(function(devicePorts, instantPorts) {
-        //console.log("getPorts <--",device.name);
-        if (instantPorts===false) shouldCallAgain = true;
-        if (devicePorts) {
-          devicePorts.forEach(function(port) {
-            var ignored = false;
-            if (Espruino.Config.SERIAL_IGNORE)
-              Espruino.Config.SERIAL_IGNORE.split("|").forEach(function(wildcard) {
-                var regexp = "^"+wildcard.replace(/\./g,"\\.").replace(/\*/g,".*")+"$";
-                if (port.path.match(new RegExp(regexp)))
-                  ignored = true;
-              });
 
-            if (!ignored) {
-              if (port.usb && port.usb[0]==0x0483 && port.usb[1]==0x5740)
-                port.description = "Espruino board";
-              ports.push(port);
-              newPortToDevice[port.path] = device;
-            }
-          });
-        }
-        responses++;
-        if (responses == devices.length) {
-          portToDevice = newPortToDevice;
-          ports.sort(function(a,b) {
+    // Test to see if a given port path is ignore or not by configuration
+    function isIgnored(path) {
+      if (!Espruino.Config.SERIAL_IGNORE) return false;
+
+      return Espruino.Config.SERIAL_IGNORE.split("|").some((wildcard) => {
+        const regexp = new RegExp(
+          `^${wildcard.replace(/\./g, "\\.").replace(/\*/g, ".*")}$`
+        );
+
+        return path.match(regexp);
+      });
+    }
+
+    // Asynchronously call 'getPorts' on all devices and map results back as a series of promises
+    Promise.all(
+      devices.map((device) =>
+        new Promise((resolve) => device.getPorts(resolve)).then(
+          (devicePorts, instantPorts) => ({
+            device: device,
+            shouldCallAgain: !instantPorts, // If the ports are not present now (eg. BLE) then call again
+            value: (devicePorts || [])
+              .filter((port) => !isIgnored(port.path)) // Filter out all the ignored ports
+              .map((port) => {
+                // Map a description for this particular Product/Vendor
+                if (port.usb && port.usb[0] == 0x0483 && port.usb[1] == 0x5740)
+                  port.description = "Espruino board";
+                return port;
+              }),
+          })
+        )
+      )
+    ).then((results) => {
+      portToDevice = results.reduce((acc, promise) => {
+        promise.value.forEach((port) => (acc[port.path] = promise.device));
+        return acc;
+      }, {});
+
+      callback(
+        results
+          .flatMap((result) => result.value)
+          .sort((a, b) => {
             if (a.unimportant && !b.unimportant) return 1;
             if (b.unimportant && !a.unimportant) return -1;
             return 0;
-          });
-          callback(ports, shouldCallAgain);
-        }
-      });
+          }),
+        results.some((result) => result.shouldCallAgain),
+      );
     });
   };
 
@@ -604,10 +617,10 @@ To add a new serial device, you must add an object to
 
   var openSerialInternal=function(serialPort, connectCallback, disconnectCallback, attempts) {
     /* If openSerial is called, we need to have called getPorts first
-      in order to figure out which one of the serial_ implementations
-      we must call into. */
+    in order to figure out which one of the serial_ implementations
+    we must call into. */
     if (portToDevice === undefined) {
-      portToDevice = []; // stop recursive calls if something errors
+      portToDevice = {}; // stop recursive calls if something errors
       return getPorts(function() {
         openSerialInternal(serialPort, connectCallback, disconnectCallback, attempts);
       });
