@@ -736,9 +736,8 @@ To add a new serial device, you must add an object to
       * sent blocks to 512 because on Mac we seem to lose
       * data otherwise (not on any other platforms!) */
     if (slowWrite) blockSize=19;
-    writeData.blockSize = blockSize;
 
-    writeData.showStatus &= writeData.data.length>writeData.blockSize;
+    writeData.showStatus &= writeData.data.length>blockSize;
     if (writeData.showStatus) {
       Espruino.Core.Status.setStatus("Sending...", writeData.data.length);
       console.log("serial: ---> "+JSON.stringify(writeData.data));
@@ -775,12 +774,13 @@ To add a new serial device, you must add an object to
       }
 
       let isLast = writeData.data.length == 0;
-      // update status
-      if (writeData.showStatus)
-        Espruino.Core.Status.incrementProgress(d.length);
       // actually write data
       //console.log("serial: Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
+      Espruino.Core.Serial.connection.chunkSize = blockSize;
       Espruino.Core.Serial.connection.write(d, function() { // write data, but the callback returns a promise that delays
+        // update status
+        if (writeData.showStatus)
+          Espruino.Core.Status.incrementProgress(d.length);
         return new Promise(resolve => setTimeout(function() {
           if (isLast && writeData.showStatus) {
             Espruino.Core.Status.setStatus("Sent");
