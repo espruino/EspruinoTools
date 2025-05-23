@@ -195,7 +195,6 @@ To add a new serial device, you must add an object to
         log(1, "Disconnected");
         this.isOpen = false;
         this.emit("close");
-        connection = undefined;
       }
     }
 
