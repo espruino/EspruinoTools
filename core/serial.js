@@ -58,6 +58,7 @@ To add a new serial device, you must add an object to
     // on("open", () => ... ) connection opened
     // on("close", () => ... ) connection closed
     // on("data", (data) => ... ) when data is received (as string)
+    // on("line", (line) => ... ) when a line of data is received (as string), uses /r OR /n for lines
     // on("packet", (type,data) => ... ) when a packet is received (if .parsePackets=true)
     // on("ack", () => ... ) when an ACK is received (if .parsePackets=true)
     // on("nak", () => ... ) when an ACK is received (if .parsePackets=true)
@@ -76,6 +77,7 @@ To add a new serial device, you must add an object to
     rxDataHandlerLastCh = 0; // used by rxDataHandler - last received character
     rxDataHandlerPacket = undefined; // used by rxDataHandler - used for parsing
     rxDataHandlerTimeout = undefined; // timeout for unfinished packet
+    rxLine = "";          // current partial line for on("line" event
     progressAmt = 0;      // When sending a file, how many bytes through are we?
     progressMax = 0;      // When sending a file, how long is it in bytes? 0 if not sending a file
 
@@ -154,6 +156,13 @@ To add a new serial device, you must add an object to
         // forward any data
         if (this.cb) this.cb(data);
         this.emit('data', data);
+        // look for newlines and send out a 'line' event
+        let lines = (this.rxLine + data).split(/\r\n/);
+        while (lines.length>1)
+          this.emit('line', lines.shift());
+        this.rxLine = lines[0];
+        if (this.rxLine.length > 10000) // only store last 10k characters
+          this.rxLine = this.rxLine.slice(-10000);
       }
     }
 
@@ -167,6 +176,7 @@ To add a new serial device, you must add an object to
       this.hadData = false;
       this.flowControlWait = 0;
       this.rxDataHandlerLastCh = 0;
+      this.rxLine = "";
       if (!this.isOpen) {
         this.isOpen = true;
         this.emit("open");
@@ -177,14 +187,15 @@ To add a new serial device, you must add an object to
 
     /** Called when the connection is closed - resets any stored info/rejects promises */
     closeHandler() {
-      log(1, "Disconnected");
       this.isOpening = false;
       this.txInProgress = false;
       this.txDataQueue = [];
       this.hadData = false;
       if (this.isOpen) {
+        log(1, "Disconnected");
         this.isOpen = false;
         this.emit("close");
+        connection = undefined;
       }
     }
 
@@ -549,7 +560,7 @@ To add a new serial device, you must add an object to
   /**
    * List ports available over all configured devices.
    * `shouldCallAgain` mean that more devices may appear later on (eg. Bluetooth LE)
-   * @param {(ports, shouldCallAgain) => void} callback 
+   * @param {(ports, shouldCallAgain) => void} callback
    */
   var getPorts = function (callback) {
     var newPortToDevice = {};

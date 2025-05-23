@@ -955,6 +955,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
           case "true" : tok = lex.next(); return true;
           case "false" : tok = lex.next(); return false;
           case "null" : tok = lex.next(); return null;
+          case "NaN" : tok = lex.next(); return NaN;
         }
         if (tok.str == "[") {
           tok = lex.next();
