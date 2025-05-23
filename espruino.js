@@ -105,7 +105,10 @@ var Espruino;
     var n = 0;
     var cbCalled = false;
     var cb = function(inData) {
-      if (cbCalled) throw new Error("Internal error in "+eventType+" processor. Callback is called TWICE.");
+      if (cbCalled) {
+        throw new Error("Internal error in "+eventType+" processor. Callback is called TWICE.");
+        return;
+      }
       cbCalled = true;
       if (n < p.length) {
         cbCalled = false;
