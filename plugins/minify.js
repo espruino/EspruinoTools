@@ -187,7 +187,7 @@
 
   function minify(code, callback, level, isModule, description) {
     (function() {
-      Espruino.Core.Status.setStatus("Minifying"+(isModule?description.substr(2):""));
+      Espruino.Core.Status.setStatus("Minifying"+(isModule?description.substr(4)/*module name*/:""));
       var _callback = callback;
       callback = function(code) {
         Espruino.Core.Status.setStatus("Minification complete");
