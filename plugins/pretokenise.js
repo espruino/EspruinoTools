@@ -196,7 +196,8 @@
         resultCode += "\n";
       if (tok.str==")" || tok.str=="}" || tok.str=="]") brackets--;
       // if we have a token for something, use that - else use the string
-      if (pretokeniseStrings && tok.type == "STRING") {
+      if (pretokeniseStrings && tok.type == "STRING" &&
+          tok.value.split("").reduce((r,ch) => r&&(ch.charCodeAt(0)<256), true)/*all 8 bit*/) {
         let str = tok.value;  // get string value
         lastIdx = tok.endIdx; // get next token
         lastlastTok = lastTok;
