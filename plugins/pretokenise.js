@@ -230,8 +230,10 @@
             resultCode += String.fromCharCode(LEX_RAW_INT8, val&255);
           else if (val>=-32768 && val<32768)
             resultCode += String.fromCharCode(LEX_RAW_INT16, val&255, (val>>8)&255);
-          else
+          else {
+            if (val<0) resultCode += "-"; // re-add the '-' we took off
             resultCode += tokenString;
+          }
         } else resultCode += tokenString;
       } else if (tokenId) {
         //console.log(JSON.stringify(tok.str)+" => "+tokenId);
