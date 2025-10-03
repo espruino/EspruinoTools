@@ -41,13 +41,24 @@ To add a new serial device, you must add an object to
   var slowWrite = true;
 
   // filler to allow us to use EspruinoWebTools' Connection class
-  var uart = { writeProgress : () => {} };
+  var uart = {
+    showProgress : false,
+    writeProgress : function(chars, charsMax) {
+    if (chars===undefined) {
+      this.lastProgress = 0;
+    } else {
+      var diff = chars-this.lastProgress;
+      if (chars==0) diff=0;
+      this.lastProgress = chars;
+      if (this.showProgress)
+        Espruino.Core.Status.incrementProgress(diff);
+    }
+  } };
   function log(level, str) { if (level<3) console.log("serial:", str); }
   function ab2str(buf) { return String.fromCharCode.apply(null, new Uint8Array(buf)); }
   var parseRJSON = data => Espruino.Core.Utils.parseRJSON(data);
   // ---------------
 
-  // From https://github.com/espruino/EspruinoWebTools/blob/master/uart.js
   /// Base connection class - BLE/Serial add writeLowLevel/closeLowLevel/etc on top of this
   class Connection {
     endpoint = undefined; // Set to the endpoint used for this connection - eg maybe endpoint.name=="Web Bluetooth"
@@ -55,6 +66,7 @@ To add a new serial device, you must add an object to
     on(evt,cb) { let e = "on"+evt; if (!this[e]) this[e]=[]; this[e].push(cb); } // on only works with a single handler
     emit(evt,data1,data2) { let e = "on"+evt;  if (this[e]) this[e].forEach(fn=>fn(data1,data2)); }
     removeListener(evt,callback) { let e = "on"+evt;  if (this[e]) this[e]=this[e].filter(fn=>fn!=callback); }
+    removeAllListeners(evt) { let e = "on"+evt;  delete this[e]; }
     // on("open", () => ... ) connection opened
     // on("close", () => ... ) connection closed
     // on("data", (data) => ... ) when data is received (as string)
@@ -228,12 +240,10 @@ To add a new serial device, you must add an object to
           }
           var chunk;
           if (!connection.txDataQueue.length) {
-            uart.writeProgress();
             connection.updateProgress();
             return;
           }
           var txItem = connection.txDataQueue[0];
-          uart.writeProgress(txItem.maxLength - (txItem.data?txItem.data.length:0), txItem.maxLength);
           connection.updateProgress(txItem.maxLength - (txItem.data?txItem.data.length:0), txItem.maxLength);
           if (txItem.data.length <= connection.chunkSize) {
             chunk = txItem.data;
@@ -260,7 +270,6 @@ To add a new serial device, you must add an object to
             promise.then(writeChunk); // if txItem.callback() returned a promise, wait until it completes before continuing
           }, function(error) {
             log(1, 'SEND ERROR: ' + error);
-            uart.writeProgress();
             connection.updateProgress();
             connection.txDataQueue = [];
             connection.close();
@@ -364,7 +373,7 @@ To add a new serial device, you must add an object to
       let connection = this;
       let packetCount = 0, packetTotal = Math.ceil(data.length/CHUNK)+1;
       connection.progressAmt = 0;
-      connection.progressMax = data.length;
+      connection.progressMax = 100 + data.length;
       // always ack the FILE_SEND
       progressHandler(0, packetTotal);
       return connection.espruinoSendPacket("FILE_SEND",JSON.stringify(options)).then(sendData, err=> {
@@ -374,7 +383,7 @@ To add a new serial device, you must add an object to
       });
       // but if noACK don't ack for data
       function sendData() {
-        connection.progressAmt += CHUNK;
+        connection.progressAmt += connection.progressAmt?CHUNK:100;
         progressHandler(++packetCount, packetTotal);
         if (data.length==0) {
           connection.progressAmt = 0;
@@ -738,6 +747,7 @@ To add a new serial device, you must add an object to
     if (slowWrite) blockSize=19;
 
     writeData.showStatus &= writeData.data.length>blockSize;
+    uart.showProgress = writeData.showStatus;
     if (writeData.showStatus) {
       Espruino.Core.Status.setStatus("Sending...", writeData.data.length);
       console.log("serial: ---> "+JSON.stringify(writeData.data));
@@ -779,10 +789,11 @@ To add a new serial device, you must add an object to
       Espruino.Core.Serial.connection.chunkSize = blockSize;
       Espruino.Core.Serial.connection.write(d, function() { // write data, but the callback returns a promise that delays
         // update status
-        if (writeData.showStatus)
-          Espruino.Core.Status.incrementProgress(d.length);
+        /*if (writeData.showStatus)
+          Espruino.Core.Status.incrementProgress(d.length);*/
         return new Promise(resolve => setTimeout(function() {
           if (isLast && writeData.showStatus) {
+            uart.showProgress = false;
             Espruino.Core.Status.setStatus("Sent");
             if (writeData.callback)
               writeData.callback();
