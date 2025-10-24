@@ -87,7 +87,7 @@ var isNextValidHEX = function(next) {
  return isNextValidFileType(next, ".hex");
 }
 var isNextValidJS = function(next) {
- return next && !isNextValidJSON(next) && next.indexOf(".js") >= 0;
+ return next && !isNextValidJSON(next) && next.toLowerCase().indexOf(".js") >= 0;
 }
 var isNextValid = function(next) {
  return next && next[0]!=='-';
