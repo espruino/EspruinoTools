@@ -152,12 +152,16 @@
         let tp = "?";
         if (tk.type.label=="`") { // template string
           // acorn splits these up into tokens, so we have to work through to the end, then just include the full text
-          let tk2, hasTemplate = false;
+          let tk2, hasTemplate = false, nesting=0;
           do {
             tk2 = t.getToken();
-            if (tk2.type.label=="${")
+            if (tk2.type.label=="${") {
               hasTemplate = true;
-          } while (tk2.type.label!="`");
+              nesting++;
+            }
+            if (tk2.type.label=="{") nesting++;
+            if (tk2.type.label=="}") nesting--;
+          } while (nesting>0 || tk2.type.label!="`");
           tkEnd = tk2.end;
           tkStr = code.substring(tk.start, tkEnd);
           tp = hasTemplate ? "TEMPLATEDSTRING" : "STRING"; // if we don't have any templates, treat as a normal string (https://github.com/espruino/Espruino/issues/2577)
