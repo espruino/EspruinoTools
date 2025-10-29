@@ -56,11 +56,11 @@
   function wrap(code, callback) {
     // convert any non-0..255 charcodes to UTF8 encoding
     code = Espruino.Core.Utils.asUTF8Bytes(code);
-    // Depending on settings, choose how we package code for upload
+    // Depending on settings, choose how we package code for upload (see Espruino.Core.Send.SEND_MODE_* constants)
     var isFlashPersistent = Espruino.Config.SAVE_ON_SEND == 2;
-    var isStorageUpload = Espruino.Config.SAVE_ON_SEND == Espruino.Core.Send.SEND_MODE_STORAGE;
-    var isSDCardUpload = Espruino.Config.SAVE_ON_SEND == Espruino.Core.Send.SEND_MODE_SDCARD;
-    var isFlashUpload = Espruino.Config.SAVE_ON_SEND == Espruino.Core.Send.SEND_MODE_FLASH || isFlashPersistent || isStorageUpload;
+    var isStorageUpload = Espruino.Config.SAVE_ON_SEND == 3;
+    var isSDCardUpload = Espruino.Config.SAVE_ON_SEND == 4;
+    var isFlashUpload = Espruino.Config.SAVE_ON_SEND == 1 || isFlashPersistent || isStorageUpload;
     if (!isFlashUpload && !isSDCardUpload) return callback(code);
 
     var asJS = Espruino.Core.Utils.toJSONishString;
