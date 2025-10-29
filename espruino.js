@@ -39,7 +39,7 @@ var Espruino;
    *   debugMode            - called with true or false when debug mode is entered or left
    *   editorHover          - called with { node : htmlNode, showTooltip : function(htmlNode) } when something is hovered over
    *   notification         - called with { mdg, type:"success","error"/"warning"/"info" }
-   *   webcam               - called when webcam is visible or not {  visible : true , stream: MediaStream }  
+   *   webcam               - called when webcam is visible or not {  visible : true , stream: MediaStream }
    **/
   var processors = {};
 
@@ -106,10 +106,12 @@ var Espruino;
     var cbCalled = false;
     var cb = function(inData) {
       if (cbCalled) {
-        throw new Error("Internal error in "+eventType+" processor. Callback is called TWICE.");
-        return;
+        console.error("Callback: ", cb);
+        console.error("PREVIOUS CALL: ", cbCalled);
+        console.error("CURRENT CALL: ", (new Error()).stack);
+        throw new Error(`Internal error in '${eventType}' processor. Callback is called TWICE.`);
       }
-      cbCalled = true;
+      cbCalled = (new Error()).stack;
       if (n < p.length) {
         cbCalled = false;
         p[n++](inData, cb);
