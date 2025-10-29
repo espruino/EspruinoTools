@@ -54,7 +54,10 @@ To add a new serial device, you must add an object to
         Espruino.Core.Status.incrementProgress(diff);
     }
   } };
-  function log(level, str) { if (level<3) console.log("serial:", str); }
+
+  // ---------------
+  var logLevel = 2;
+  function log(level, str) { if (level<=logLevel) console.log("serial:", str); }
   function ab2str(buf) { return String.fromCharCode.apply(null, new Uint8Array(buf)); }
   var parseRJSON = data => Espruino.Core.Utils.parseRJSON(data);
   // ---------------
@@ -840,6 +843,7 @@ To add a new serial device, you must add an object to
     "setBinary": function(isOn) {
       sendingBinary = isOn;
     },
-    "connection": new Connection()
+    "connection": new Connection(),
+    "debug": function() { logLevel = 3; } // output extra debug info
   };
 })();
