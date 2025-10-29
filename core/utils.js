@@ -435,7 +435,7 @@
                                  undefined, function() {
         allDataSent = true;
         // now it's sent, wait for data
-        var minTimeout = 2; // seconds - how long we wait if we're not getting data
+        var minTimeout = options.minTimeout || 2; // seconds - how long we wait if we're not getting data
         var pollInterval = 200; // milliseconds
         var timeoutSeconds = 0;
         if (timeout != "cancelled") {
@@ -471,36 +471,53 @@
    * Download a file - storageFile or normal file
    * @param {string} fileName Path to file to download
    * @param {(content?: string) => void} callback Call back with contents of file, or undefined if no content
+   * @param {Object} options {fs:true} to download from SD card rather than Storage
    */
-  function downloadFile(fileName, callback) {
-    var options = {exprPrintsResult:true, maxTimeout:600}; // ten minute timeout
-    executeExpression(`(function(filename) {
+  function downloadFile(fileName, callback, options) {
+    options = options||{};
+    let exOptions = {exprPrintsResult:true, maxTimeout:600}; // ten minute timeout
+    let cmd = options.fs ? /*SD card*/`(function(filename) {
+var f = E.openFile(filename,"r"), d = f.read(${CHUNKSIZE});
+while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
+})(${JSON.stringify(fileName)});`: /*Storage*/`(function(filename) {
 var s = require("Storage").read(filename);
 if(s){ for (var i=0;i<s.length;i+=${CHUNKSIZE}) console.log(btoa(s.substr(i,${CHUNKSIZE}))); } else {
 var f=require("Storage").open(filename,"r");var d=f.read(${CHUNKSIZE});
 while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
-}})(${JSON.stringify(fileName)});`, function(contents) {
+}})(${JSON.stringify(fileName)});`
+    executeExpression(cmd, function(contents) {
         if (contents===undefined) callback();
         else callback(atob(contents));
-      }, options);
+      }, exOptions);
   }
 
   /**
    * Get the JS needed to upload a file
    * @param {string} fileName Path to file to upload
    * @param {string} contents Contents of the file being uploaded
+   * @param {Object} options {fs:true} to download from SD card rather than Storage
    * @returns {string} JS code needed to upload file
    */
-  function getUploadFileCode(fileName, contents) {
+  function getUploadFileCode(fileName, contents, options) {
+    options = options||{};
     var js = [];
     if ("string" != typeof contents)
       throw new Error("Expecting a string for contents");
     if (fileName.length==0 || fileName.length>28)
       throw new Error("Invalid filename length");
     var fn = JSON.stringify(fileName);
-    for (var i=0;i<contents.length;i+=CHUNKSIZE) {
-      var part = contents.substr(i,CHUNKSIZE);
-      js.push(`require("Storage").write(${fn},atob(${JSON.stringify(btoa(part))}),${i}${(i==0)?","+contents.length:""})`);
+    if (options.fs) { // upload to fs
+      js.push(`var _ul = E.openFile(${fn},"w")`);
+      for (var i=0;i<contents.length;i+=CHUNKSIZE) {
+        var part = contents.substr(i,CHUNKSIZE);
+        js.push(`_ul.write(atob(${JSON.stringify(btoa(part))}))`);
+      }
+      js.push(`_ul.close();delete _ul;`);
+    } else { // upload to Storage
+      for (var i=0;i<contents.length;i+=CHUNKSIZE) {
+        var part = contents.substr(i,CHUNKSIZE);
+        js.push(`require("Storage").write(${fn},atob(${JSON.stringify(btoa(part))}),${i}${(i==0)?","+contents.length:""})`);
+      }
     }
     return js.join("\n");
   }
@@ -509,9 +526,10 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
    * @param {string} fileName Path to file to upload
    * @param {string} contents Contents of the file being uploaded
    * @param {(result: string) => void} callback
+   * @param {Object} options {fs:true} to download from SD card rather than Storage
    */
-  function uploadFile(fileName, contents, callback) {
-    var js = getUploadFileCode(fileName, contents).replace(/\n/g,"\n\x10");
+  function uploadFile(fileName, contents, callback, options) {
+    var js = getUploadFileCode(fileName, contents, options).replace(/\n/g,"\n\x10");
     // executeStatement prepends other code onto the command, so don't add `\x10` at the start of line as then it just ends up in the middle of what's sent
     Espruino.Core.Utils.executeStatement(js, callback);
   }
@@ -1168,11 +1186,11 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       getLexer : getLexer,
       countBrackets : countBrackets,
       getEspruinoPrompt : getEspruinoPrompt,
-      executeExpression : function(expr,callback) { executeExpression(expr,callback,{exprPrintsResult:false}); },
-      executeStatement : function(statement,callback) { executeExpression(statement,callback,{exprPrintsResult:true}); },
-      downloadFile : downloadFile, // (fileName, callback)
-      getUploadFileCode : getUploadFileCode, //(fileName, contents);
-      uploadFile : uploadFile, // (fileName, contents, callback)
+      executeExpression : function(expr,callback,options) { executeExpression(expr, callback, Object.assign({exprPrintsResult:false},options)); },
+      executeStatement : function(statement,callback,options) { executeExpression(statement, callback, Object.assign({exprPrintsResult:true},options)); },
+      downloadFile : downloadFile, // (fileName, callback, options)
+      getUploadFileCode : getUploadFileCode, //(fileName, contents, options);
+      uploadFile : uploadFile, // (fileName, contents, callback, options)
       versionToFloat : versionToFloat,
       getURL : getURL,
       getBinaryURL : getBinaryURL,
