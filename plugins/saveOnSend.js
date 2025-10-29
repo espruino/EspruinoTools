@@ -58,9 +58,10 @@
     code = Espruino.Core.Utils.asUTF8Bytes(code);
     // Depending on settings, choose how we package code for upload
     var isFlashPersistent = Espruino.Config.SAVE_ON_SEND == 2;
-    var isStorageUpload = Espruino.Config.SAVE_ON_SEND == 3;
-    var isFlashUpload = Espruino.Config.SAVE_ON_SEND == 1 || isFlashPersistent || isStorageUpload;
-    if (!isFlashUpload) return callback(code);
+    var isStorageUpload = Espruino.Config.SAVE_ON_SEND == Espruino.Core.Send.SEND_MODE_STORAGE;
+    var isSDCardUpload = Espruino.Config.SAVE_ON_SEND == Espruino.Core.Send.SEND_MODE_SDCARD;
+    var isFlashUpload = Espruino.Config.SAVE_ON_SEND == Espruino.Core.Send.SEND_MODE_FLASH || isFlashPersistent || isStorageUpload;
+    if (!isFlashUpload && !isSDCardUpload) return callback(code);
 
     var asJS = Espruino.Core.Utils.toJSONishString;
 
@@ -75,17 +76,27 @@
         hasStorage = true;
       }
     }
+    const CHUNKSIZE = 1024;
 
      // Now create the commands to do the upload
     console.log("Uploading "+code.length+" bytes to flash");
+    // FIXME: We should use Serial's Connection class packet stuff for file uploads
     if (!hasStorage) { // old style
-      if (isStorageUpload) {
+      if (isStorageUpload || isSDCardUpload) {
         Espruino.Core.Notifications.error("You have pre-1v96 firmware - unable to upload to Storage");
         code = "";
       } else {
         Espruino.Core.Notifications.error("You have pre-1v96 firmware. Upload size is limited by available RAM");
-        code = "E.setBootCode("+asJS(code)+(isFlashPersistent?",true":"")+");load()\n";
+        code = "E.setBootCode("+asJS(code)+(isFlashPersistent?",true":"")+");";
       }
+    } else if (isSDCardUpload) {
+      var filename = Espruino.Config.SAVE_STORAGE_FILE;;
+      var newCode = [ `let _ul = E.openFile(${asJS(filename)},"w");` ];
+        var len = code.length;
+      for (var i=0;i<len;i+=CHUNKSIZE)
+        newCode.push(`_ul.write(${asJS(code.substr(i,CHUNKSIZE))});`);
+      newCode.push(`_ul.close();delete _ul;`);
+      code = newCode.join("\n");
     } else { // new style
       var filename;
       if (isStorageUpload)
@@ -96,19 +107,19 @@
         Espruino.Core.Notifications.error("Invalid Storage file name "+JSON.stringify(filename));
         code = "";
       } else {
-        var CHUNKSIZE = 1024;
         var newCode = [];
         var len = code.length;
         newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(0,CHUNKSIZE))+',0,'+len+');');
         for (var i=CHUNKSIZE;i<len;i+=CHUNKSIZE)
           newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(i,CHUNKSIZE))+','+i+');');
         code = newCode.join("\n");
-        if (Espruino.Config.LOAD_STORAGE_FILE==2 && isStorageUpload)
-          code += "\nload("+asJS(filename)+")\n";
-        else if (Espruino.Config.LOAD_STORAGE_FILE!=0)
-          code += "\nload()\n";
       }
     }
+    if (Espruino.Config.LOAD_STORAGE_FILE==2 && isStorageUpload)
+      code += "\nload("+asJS(filename)+")\n";
+    else if (Espruino.Config.LOAD_STORAGE_FILE!=0)
+      code += "\nload()\n";
+    else code += "\n";
     callback(code);
   }
 
