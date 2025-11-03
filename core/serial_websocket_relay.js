@@ -7,7 +7,7 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
 (function() {
   var autoconnect = false;
   // Support for websockets on Node.js...
-  if (typeof WebSocket == "undefined" || typeof require!=="undefined") {
+  if (typeof WebSocket == "undefined" || typeof process!=="undefined") {
     try {
       // eslint-disable-next-line no-global-assign
       WebSocket = require("ws").WebSocket;
@@ -20,7 +20,7 @@ Used for Relay service on espruino.com/ide as well as `npm espruino-web-ide`'s
   }
   // ... but if we don't have them there's nothing we can do...
   if (typeof WebSocket == "undefined") return;
-  
+
   // default host...
   var host = "www.espruino.com";
   if (typeof window != "undefined") {

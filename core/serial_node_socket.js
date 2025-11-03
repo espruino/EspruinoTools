@@ -19,7 +19,7 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
 (function () {
   var PREFIX = "tcp://"; // prefix to use with -p option for hostname/ip address
 
-  if (typeof require === 'undefined') return; // definitely not node!
+  if (typeof process === 'undefined') return; // definitely not node!
 
   var net;
   try {

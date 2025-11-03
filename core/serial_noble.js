@@ -6,7 +6,7 @@
   * sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
   */
 
-  if (typeof require === 'undefined') return;
+  if (typeof process === 'undefined') return;
   var noble = undefined;
 
   var NORDIC_SERVICE = "6e400001b5a3f393e0a9e50e24dcca9e";

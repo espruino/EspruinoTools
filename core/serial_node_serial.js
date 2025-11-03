@@ -7,10 +7,10 @@ Gordon Williams (gw@pur3.co.uk)
     console.log("We have chrome.serial - not using 'serialport' module");
     return;
   }
-  if (typeof require === 'undefined') return;
+  if (typeof process === 'undefined') return;
   var serialport;
   try {
-    require.resolve('serialport');    
+    require.resolve('serialport');
   } catch (e) {
     console.log("No 'serialport' module found");
     return;

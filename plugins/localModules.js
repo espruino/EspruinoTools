@@ -12,7 +12,7 @@
 "use strict";
 (function(){
   // Not using node - don't run this
-  if (typeof require == "undefined") return;
+  if (typeof process == "undefined") return;
 
   var path = require('path');
 

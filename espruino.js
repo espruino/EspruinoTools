@@ -11,8 +11,6 @@
 **/
 "use strict";
 
-var Espruino;
-
 (function() {
 
   /** List of processors. These are functions that are called one
@@ -123,7 +121,7 @@ var Espruino;
   }
 
   // -----------------------------------
-  Espruino = {
+  globalThis.Espruino = {
     Core : { },
     Plugins : { },
     addProcessor : addProcessor,

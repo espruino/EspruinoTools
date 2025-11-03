@@ -1,6 +1,7 @@
 require('es6-shim');
 /* Entrypoint for node module. Not used for Web IDE */
-var fs = require("fs");
+const fs = require("fs");
+const vm = require('vm');
 
 /* load all files in EspruinoTools... we do this so we can still
 use these files normally in the Web IDE */
@@ -9,17 +10,16 @@ function loadJS(filePath) {
   var contents = fs.readFileSync(filePath, {encoding:"utf8"});
   var realExports = exports;
   exports = undefined;
-  var r;
+  const script = new vm.Script(contents, {
+    filename: filePath, // This preserves the filename in the stack trace
+    displayErrors: true,
+  });
   try {
-    r = eval(contents);
+    script.runInThisContext();
   } catch (e) {
     console.log("ERROR "+e+" while loading "+filePath);
   }
   exports = realExports; // utf8 lib somehow breaks this
-  return r;
-  /* the code below would be better, but it doesn't seem to work when running
-   CLI - works fine when running as a module. */
-  //return require("vm").runInThisContext(contents, filePath );
 }
 function loadDir(dir) {
   var files = fs.readdirSync(dir);
@@ -55,7 +55,7 @@ var espruinoInitialised = false;
 
 /**
  * init Espruino global vars
- * @param {() => void} callback 
+ * @param {() => void} callback
  */
 function init(callback) {
   if (espruinoInitialised) {
@@ -63,7 +63,7 @@ function init(callback) {
     return callback();
   }
   espruinoInitialised = true;
-  
+
   if (global.$ === undefined)
     global.$ = function() { return jqShim; };
   if (global.navigator === undefined)
@@ -73,10 +73,11 @@ function init(callback) {
     global.document = undefined;
   }
   global.Espruino = undefined;
+  global.require = require
 
   try {
     global.acorn = require("acorn");
-    acorn.walk = require("acorn/util/walk"); // FIXME - Package subpath './util/walk' is not defined by "exports" in latest 
+    acorn.walk = require("acorn/util/walk"); // FIXME - Package subpath './util/walk' is not defined by "exports" in latest
   } catch(e) {
     console.log("Acorn library not found - you'll need it for compiled code");
   }
@@ -86,7 +87,7 @@ function init(callback) {
   loadDir(__dirname+"/libs");
   loadDir(__dirname+"/libs/esprima");
   // the 'main' file
-  Espruino = loadJS(__dirname+"/espruino.js");
+  loadJS(__dirname+"/espruino.js");
   // Core features
   loadDir(__dirname+"/core");
   // Various plugins
@@ -118,9 +119,9 @@ exports.init = init;
 
 /**
  * Send a file to an Espruino on the given port, call the callback when done
- * @param {string} port 
- * @param {string} filename 
- * @param {() => void} callback 
+ * @param {string} port
+ * @param {string} filename
+ * @param {() => void} callback
  */
 function sendFile(port, filename, callback) {
   var code = fs.readFileSync(filename, {encoding:"utf8"});
@@ -130,9 +131,9 @@ exports.sendFile = sendFile;
 
 /**
  * Send code to Espruino
- * @param {string} port 
- * @param {string} code 
- * @param {() => void} callback 
+ * @param {string} port
+ * @param {string} code
+ * @param {() => void} callback
 */
 function sendCode(port, code, callback) {
   var response = "";
@@ -164,9 +165,9 @@ exports.sendCode = sendCode;
 
 /**
  * Execute an expression on Espruino, call the callback with the result
- * @param {string} port 
- * @param {string} expr 
- * @param {(result: string) => void} callback 
+ * @param {string} port
+ * @param {string} expr
+ * @param {(result: string) => void} callback
  */
 function expr(port, expr, callback) {
   var exprResult = undefined;
@@ -192,9 +193,9 @@ exports.expr = expr;
 
 /**
  * Execute a statement on Espruino, call the callback with what is printed to the console
- * @param {string} port 
- * @param {string} expr 
- * @param {(result: string) => void} callback 
+ * @param {string} port
+ * @param {string} expr
+ * @param {(result: string) => void} callback
  */
 function statement(port, expr, callback) {
   var exprResult = undefined;
@@ -220,10 +221,10 @@ exports.statement = statement;
 
 /**
  * Flash the given firmware file to an Espruino board.
- * @param {string} port 
- * @param {string} filename 
+ * @param {string} port
+ * @param {string} filename
  * @param {number} flashOffset
- * @param {() => void} callback 
+ * @param {() => void} callback
  */
 function flash(port, filename, flashOffset, callback) {
   if (typeof flashOffset === 'function') {

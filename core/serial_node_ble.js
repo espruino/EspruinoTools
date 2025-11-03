@@ -20,7 +20,7 @@
 
   */
 
-  if (typeof require === 'undefined') return;
+  if (typeof process === 'undefined') return;
   if (require("os").platform() != "linux") {
     console.log("serial_node_ble: Not running Linux - disabling Bluetooth DBUS support");
     return;
