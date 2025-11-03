@@ -813,20 +813,15 @@ function startConnect() {
       terminal(path, tasksComplete);
     });
   } else {
-    //closure for stepping through each port
-    //and connect + upload (use timeout callback [iterate] for proceeding)
-    (function (ports, connect) {
-      this.ports = ports;
-      this.idx = 0;
-      this.connect = connect;
-      this.iterate = function() {
-        if (this.idx>=ports.length) tasksComplete();
-        else getPortPath(ports[this.idx++], function(path) {
-          connect(path, this.iterate);
-        });
-      };
-      this.iterate();
-    })(args.ports, connect);
+    // stepping through each port and connect + upload
+    let ports = args.ports, idx = 0;
+    let iterate = function() {
+      if (idx>=ports.length) tasksComplete();
+      else getPortPath(ports[idx++], function(path) {
+        connect(path, iterate);
+      });
+    };
+    iterate();
   }
 }
 
