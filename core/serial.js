@@ -241,12 +241,13 @@ To add a new serial device, you must add an object to
             setTimeout(writeChunk, 50);
             return;
           }
-          var chunk;
-          if (!connection.txDataQueue.length) {
+          if (!connection.txDataQueue.length) { // we're finished!
+            connection.txInProgress = false;
             connection.updateProgress();
             return;
           }
-          var txItem = connection.txDataQueue[0];
+          connection.txInProgress = true;
+          var chunk, txItem = connection.txDataQueue[0];
           connection.updateProgress(txItem.maxLength - (txItem.data?txItem.data.length:0), txItem.maxLength);
           if (txItem.data.length <= connection.chunkSize) {
             chunk = txItem.data;
@@ -255,7 +256,6 @@ To add a new serial device, you must add an object to
             chunk = txItem.data.substr(0,connection.chunkSize);
             txItem.data = txItem.data.substr(connection.chunkSize);
           }
-          connection.txInProgress = true;
           log(2, "Sending "+ JSON.stringify(chunk));
           connection.writeLowLevel(chunk).then(function() {
             log(3, "Sent");
@@ -269,7 +269,6 @@ To add a new serial device, you must add an object to
             }
             if (!(promise instanceof Promise))
               promise = Promise.resolve();
-            connection.txInProgress = false;
             promise.then(writeChunk); // if txItem.callback() returned a promise, wait until it completes before continuing
           }, function(error) {
             log(1, 'SEND ERROR: ' + error);
