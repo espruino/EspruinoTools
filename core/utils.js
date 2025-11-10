@@ -1154,13 +1154,12 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
       chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
       chr3 = ((enc3 & 3) << 6) | enc4;
 
-      output = output + String.fromCharCode(chr1);
-
+      output = output + String.fromCharCode(chr1&255);
       if (enc3 !== 64) {
-        output = output + String.fromCharCode(chr2);
+        output = output + String.fromCharCode(chr2&255);
       }
       if (enc4 !== 64) {
-        output = output + String.fromCharCode(chr3);
+        output = output + String.fromCharCode(chr3&255);
       }
     }
     return output;
