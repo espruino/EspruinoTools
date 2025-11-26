@@ -701,6 +701,9 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
    * @param {'text' | 'arraybuffer'} options.type (default 'text') Callback with either 'text' or 'arraybuffer'
    * @param {string | undefined} options.mimeType Optional comma-separated list of accepted mime types for files or extensions (eg. ".js,application/javascript")
    * @param {(contents: ArrayBuffer | string, mimeType: string, fileName: string) => void} callback
+   * @param {(files: Array<{contents: (ArrayBuffer|string), mimeType: string, fileName: string}>) => void | undefined} options.onComplete
+   *        Optional callback returns all files as an array of {contents, mimeType, fileName}. Called with `undefined` if the dialog is cancelled.
+   * @param {(contents: ArrayBuffer | string, mimeType: string, fileName: string) => void} callback Called for each file. Called with `undefined` if the dialog is cancelled.
    */
   function fileOpenDialog(options, callback) {
     function readerLoaded(e,files,i,options,fileLoader) {
@@ -712,9 +715,15 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
         result = "";
         for (var j=0;j<a.length;j++)
           result += String.fromCharCode(a[j]);
-      } else
+      } else {
         result = e.target.result;
-      fileLoader.callback(result, files[i].type, files[i].name);
+      }
+
+      fileLoader._filesResult.push({ contents: result, mimeType: files[i].type, fileName: files[i].name });
+
+      if (fileLoader.callback) {
+        fileLoader.callback(result, files[i].type, files[i].name);
+      }
 
 
       // If there's a file left to load
@@ -722,7 +731,14 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
         // Load the next file
         setupReader(files, i+1,options,fileLoader);
       } else {
+        // All files processed
+        if (fileLoader.onComplete) {
+          var results = fileLoader._filesResult || [];
+          fileLoader.onComplete(results);
+        }
+        fileLoader._filesResult = undefined;
         fileLoader.callback = undefined;
+        fileLoader.onComplete = undefined;
       }
     }
 
@@ -753,15 +769,24 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
         e.target.value = ''; // handle repeated upload of the same file
       });
       fileLoader.addEventListener('change', function(e) {
-        if (!fileLoader.callback) return;
+        if (!fileLoader.callback && !fileLoader.onComplete) return;
 
         var files = e.target.files;
         setupReader(files,0,options,fileLoader);
 
       }, false);
+      fileLoader.addEventListener('cancel', function(e) {
+        if (fileLoader.callback) fileLoader.callback();
+        if (fileLoader.onComplete) fileLoader.onComplete();
+        fileLoader._filesResult = undefined;
+        fileLoader.callback = undefined;
+        fileLoader.onComplete = undefined;
+      }, false);
       document.body.appendChild(fileLoader);
     }
+    fileLoader._filesResult = [];
     fileLoader.callback = callback;
+    fileLoader.onComplete = options.onComplete;
     fileLoader.click();
   }
 
