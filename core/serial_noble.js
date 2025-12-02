@@ -107,17 +107,18 @@
         return;
       }
       if (!dev.advertisement) return;
+      var path = dev.address || dev.uuid;
       for (var i in newDevices)
-        if (newDevices[i].path == dev.address) return; // already seen it
-      var name = dev.advertisement.localName || dev.address;
+        if (newDevices[i].path == path) return; // already seen it
+      var name = dev.advertisement.localName || path;
       var hasUartService = dev.advertisement.serviceUuids &&
                            dev.advertisement.serviceUuids.map(s => s.replaceAll('-', '')).indexOf(NORDIC_SERVICE)>=0;
       if (hasUartService ||
           Espruino.Core.Utils.isRecognisedBluetoothDevice(name, dev.address)) {
-        console.log("Noble: Found UART device:", name, dev.address);
-        newDevices.push({ path: dev.address, description: name, type: "bluetooth", rssi: dev.rssi });
-        btDevices[dev.address] = dev;
-      } else console.log("Noble: Found device:", name, dev.address);
+        console.log("Noble: Found UART device:", name, path);
+        newDevices.push({ path: path, description: name, type: "bluetooth", rssi: dev.rssi });
+        btDevices[path] = dev;
+      } else console.log("Noble: Found device:", name, path);
     });
 
     // if we didn't initialise for whatever reason, keep going anyway
