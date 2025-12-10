@@ -158,15 +158,23 @@
       });
       readLoop();
       Espruino.Core.Status.setStatus("Serial connected. Receiving data...");
-      if (!pairedDevices.includes(serialPort))
-        pairedDevices.push(serialPort);
+      let devicePath = getSerialDeviceInfo(serialPort).path;
+      // remove any existing devices with the same USB ID
+      pairedDevices = pairedDevices.filter(dev=>getSerialDeviceInfo(dev).path != devicePath);
+      // Check there aren't too many devices
+      while (pairedDevices.length>2) pairedDevices.pop(); 
+      // add the current device
+      pairedDevices.unshift(serialPort); // put this new serial port at the top
 
       openCallback({ portName : getSerialDeviceInfo(serialPort).path });
     }).catch(function(error) {
-      console.log('Serial> ERROR: ' + error);
-      pairedDevices = pairedDevices.filter(dev=>getSerialDeviceInfo(dev).path != path); // error connecting, remove from paired devices
+      console.log('Serial> ERROR: ' + error);      
+      if (serialPort) {
+        pairedDevices = pairedDevices.filter(dev=>dev != serialPort); // error connecting, remove from paired devices
+        closeSerial();
+      } 
       if (disconnectCallback) disconnectCallback();
-      disconnectCallback = undefined;
+      disconnectCallback = undefined;     
     });
   }
 
