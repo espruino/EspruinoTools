@@ -12,7 +12,7 @@
     "core"
   ],
   "bin": {
-    "espruino": "./bin/espruino-cli.js"
+    "espruino": "bin/espruino-cli.js"
   },
   "types": "./types/index.d.ts",
   "scripts": {
