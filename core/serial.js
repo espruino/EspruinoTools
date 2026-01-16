@@ -347,8 +347,9 @@ To add a new serial device, you must add an object to
           fs : true // optional -> write using require("fs") (to SD card)
           noACK : bool // (don't wait to acknowledgements)
           chunkSize : int // size of chunks to send (default 1024) for safety this depends on how big your device's input buffer is if there isn't flow control
-          progress : (chunkNo,chunkCount)=>{} // callback to report upload progress
+          progress : (byteNo,byteCount)=>{} // callback to report upload progress
           timeout : int (optional, milliseconds, default=1000)
+          c : 1 // use heatshrink compression
     } */
     espruinoSendFile(filename, data, options) {
       if ("string"!=typeof data) throw new Error("'data' must be a String");
@@ -372,12 +373,13 @@ To add a new serial device, you must add an object to
       }
       options.fs = options.fs?1:0; // .fs => use SD card
       if (!options.fs) delete options.fs; // default=0, so just remove if it's not set
+      options.c = options.c?1:0; // .c => compress
+      if (!options.c) delete options.c; // default=0, so just remove if it's not set
       let connection = this;
-      let packetCount = 0, packetTotal = Math.ceil(data.length/CHUNK)+1;
-      connection.progressAmt = 0;
-      connection.progressMax = 100 + data.length;
+      connection.progressAmt = 100;
+      connection.progressMax = connection.progressAmt + data.length;
       // always ack the FILE_SEND
-      progressHandler(0, packetTotal);
+      progressHandler(0, connection.progressMax);
       return connection.espruinoSendPacket("FILE_SEND",JSON.stringify(options)).then(sendData, err=> {
         connection.progressAmt = 0;
         connection.progressMax = 0;
@@ -385,15 +387,29 @@ To add a new serial device, you must add an object to
       });
       // but if noACK don't ack for data
       function sendData() {
-        connection.progressAmt += connection.progressAmt?CHUNK:100;
-        progressHandler(++packetCount, packetTotal);
         if (data.length==0) {
           connection.progressAmt = 0;
           connection.progressMax = 0;
           return Promise.resolve();
         }
         let packet = data.substring(0, CHUNK);
-        data = data.substring(CHUNK);
+        if (options.c) { // compression - each packet compressed individually
+          let hs = global.heatshrink;
+          if (hs===undefined) hs = require("./libs/heatshrink.js"); // for Node.js
+          let packetDecompressed;
+          let chunk = CHUNK*16;
+          do { // try compressing progressively smaller chunks until we can get in our CHUNK size
+            chunk = chunk>>1; // halve it
+            packetDecompressed = data.substring(0, chunk); // the data we're planning to compress
+            packet = Espruino.Core.Utils.arrayBufferToString(hs.compress(new Uint8Array(Espruino.Core.Utils.stringToArrayBuffer(packetDecompressed))).buffer);          
+          } while (packet.length>CHUNK);
+          data = data.substring(chunk);
+          connection.progressAmt += packetDecompressed.length;
+        } else {
+          data = data.substring(CHUNK);
+          connection.progressAmt += CHUNK;
+        }
+        progressHandler(connection.progressAmt, connection.progressMax);
         return connection.espruinoSendPacket("DATA", packet, packetOptions).then(sendData, err=> {
           connection.progressAmt = 0;
           connection.progressMax = 0;
