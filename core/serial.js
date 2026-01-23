@@ -406,8 +406,9 @@ To add a new serial device, you must add an object to
           data = data.substring(chunk);
           connection.progressAmt += packetDecompressed.length;
         } else {
-          data = data.substring(CHUNK);
-          connection.progressAmt += CHUNK;
+          let sent = Math.min(CHUNK, data.length);
+          data = data.substring(sent);
+          connection.progressAmt += sent;
         }
         progressHandler(connection.progressAmt, connection.progressMax);
         return connection.espruinoSendPacket("DATA", packet, packetOptions).then(sendData, err=> {
