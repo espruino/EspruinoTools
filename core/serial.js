@@ -500,12 +500,13 @@ To add a new serial device, you must add an object to
         }
         connection.parsePackets = true;
         connection.on("packet", onPacket);
+        let timeoutDelay = options.timeout || 1000;
         let timeout = setTimeout(() => {
           timeout = undefined;
           cleanup();
           reject("espruinoEval Timeout");
-        }, options.timeout || 1000);
-        connection.espruinoSendPacket("EVAL",expr,{noACK:options.stmFix}).then(()=>{
+        }, timeoutDelay);
+        connection.espruinoSendPacket("EVAL",expr,{noACK:options.stmFix, timeout:timeoutDelay}).then(()=>{
           // resolved/rejected with 'packet' event or timeout
           if (options.stmFix)
             prodInterval = setInterval(function() {
