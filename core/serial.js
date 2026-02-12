@@ -756,7 +756,10 @@ To add a new serial device, you must add an object to
     return prev;
   }
 
-  var writeSerialWorker = function(writeData) {
+  // Throttled serial write
+  var writeSerial = function(data, showStatus, callback) {
+    if (showStatus===undefined) showStatus=true;
+    let writeData = {data:data,callback:callback,showStatus:showStatus};
     var blockSize = 512;
     if (currentDevice.maxWriteLength)
       blockSize = currentDevice.maxWriteLength;
@@ -827,12 +830,6 @@ To add a new serial device, you must add an object to
         });
       });
     }
-  }
-
-   // Throttled serial write
-  var writeSerial = function(data, showStatus, callback) {
-    if (showStatus===undefined) showStatus=true;
-    writeSerialWorker({data:data,callback:callback,showStatus:showStatus});
   };
 
   // ----------------------------------------------------------
