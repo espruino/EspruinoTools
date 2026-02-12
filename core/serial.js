@@ -259,6 +259,7 @@ To add a new serial device, you must add an object to
           log(2, "Sending "+ JSON.stringify(chunk));
           connection.writeLowLevel(chunk).then(function() {
             log(3, "Sent");
+            connection.updateProgress(txItem.maxLength, txItem.maxLength);
             let promise = undefined;
             if (!txItem.data) {
               connection.txDataQueue.shift(); // remove this element
@@ -809,8 +810,16 @@ To add a new serial device, you must add an object to
 
       let isLast = writeData.data.length == 0;
       // actually write data
-      //console.log("serial: Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
-      Espruino.Core.Serial.connection.chunkSize = blockSize;
+      if (slowWrite) { // if we're doing slow write, manually split and add a delay here
+        while (d.length>blockSize) {
+          let c = d.substr(0,blockSize);
+          d = d.substr(blockSize);
+          Espruino.Core.Serial.connection.write(c, function() {
+            return new Promise(resolve => setTimeout(resolve,50));
+          });
+        }
+      }
+      // write the main data chunk
       Espruino.Core.Serial.connection.write(d, function() {
         // write data, but this callback returns a promise that delays the next item from being sent (if needed)
         /*if (writeData.showStatus) // update status
@@ -819,9 +828,11 @@ To add a new serial device, you must add an object to
           if (split.reason)
             console.log("serial: Delay "+split.delay+"ms for "+split.reason);
           setTimeout(function() {
-            if (isLast && writeData.showStatus) {
-              uart.showProgress = false;
-              Espruino.Core.Status.setStatus("Sent");
+            if (isLast) {
+              if (writeData.showStatus) {
+                uart.showProgress = false;
+                Espruino.Core.Status.setStatus("Sent");
+              }
               if (writeData.callback)
                 writeData.callback();
             }
