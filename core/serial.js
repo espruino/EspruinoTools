@@ -401,7 +401,7 @@ To add a new serial device, you must add an object to
           do { // try compressing progressively smaller chunks until we can get in our CHUNK size
             chunk = chunk>>1; // halve it
             packetDecompressed = data.substring(0, chunk); // the data we're planning to compress
-            packet = Espruino.Core.Utils.arrayBufferToString(hs.compress(new Uint8Array(Espruino.Core.Utils.stringToArrayBuffer(packetDecompressed))).buffer);          
+            packet = Espruino.Core.Utils.arrayBufferToString(hs.compress(new Uint8Array(Espruino.Core.Utils.stringToArrayBuffer(packetDecompressed))).buffer);
           } while (packet.length>CHUNK);
           data = data.substring(chunk);
           connection.progressAmt += packetDecompressed.length;
@@ -773,6 +773,8 @@ To add a new serial device, you must add an object to
       console.log("serial: ---> "+JSON.stringify(writeData.data));
     }
 
+    /* Split the data up into chunks and feed it to Espruino.Core.Serial.connection.write
+    (which will queue them up and execute them one after the other) */
     while (writeData.data.length>0) {
       let d = undefined;
       let split = writeData.nextSplit || { start:0, end:writeData.data.length, delay:0 };
@@ -785,7 +787,6 @@ To add a new serial device, you must add an object to
         if ((0|Espruino.Config.STORAGE_UPLOAD_METHOD)==0) // only throttle writes if we haven't disabled it
           split = findSplitIdx(writeData.data, split, /require\("Storage"\).write\([^\n]*\);?\n/, 250, "Storage.write"); // Write chunk of data
       }
-      if (split.match) console.log("serial: Splitting for "+split.reason+", delay "+split.delay);
       // Only send some of the data
       if (writeData.data.length>split.end) {
         if (slowWrite && split.delay==0) split.delay=50;
@@ -807,19 +808,23 @@ To add a new serial device, you must add an object to
       // actually write data
       //console.log("serial: Sending block "+JSON.stringify(d)+", wait "+split.delay+"ms");
       Espruino.Core.Serial.connection.chunkSize = blockSize;
-      Espruino.Core.Serial.connection.write(d, function() { // write data, but the callback returns a promise that delays
-        // update status
-        /*if (writeData.showStatus)
+      Espruino.Core.Serial.connection.write(d, function() {
+        // write data, but this callback returns a promise that delays the next item from being sent (if needed)
+        /*if (writeData.showStatus) // update status
           Espruino.Core.Status.incrementProgress(d.length);*/
-        return new Promise(resolve => setTimeout(function() {
-          if (isLast && writeData.showStatus) {
-            uart.showProgress = false;
-            Espruino.Core.Status.setStatus("Sent");
-            if (writeData.callback)
-              writeData.callback();
-          }
-          resolve();
-        }, split.delay));
+        return new Promise(resolve => {
+          if (split.reason)
+            console.log("serial: Delay "+split.delay+"ms for "+split.reason);
+          setTimeout(function() {
+            if (isLast && writeData.showStatus) {
+              uart.showProgress = false;
+              Espruino.Core.Status.setStatus("Sent");
+              if (writeData.callback)
+                writeData.callback();
+            }
+            resolve();
+          }, split.delay);
+        });
       });
     }
   }
