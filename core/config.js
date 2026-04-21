@@ -13,6 +13,8 @@
 
   Espruino.Core.Config.add("MAX_FOOBARS", {
     section : "Communications",           // Heading this will come under in the config screen
+    subSection : "Terminal",              // (optional)Subheading this will come under in the config screen
+    hidden : true,                        // (optional) don't show in the Settings screen
     name : "Foobars",                     // Nice name
     description : "How many foobars?",    // More detail about this
     type : "int"/"boolean"/"string"/{ value1:niceName, value2:niceName },
@@ -110,8 +112,8 @@
 
   /**
    * Add a section (or information on the page).
-   * @param {string} name 
-   * @param {Object} options 
+   * @param {string} name
+   * @param {Object} options
    * @param {number} options.sortOrder a number used for sorting
    * @param {string} options.description
    * @param {() => void | undefined} options.getHTML
@@ -188,7 +190,7 @@
 
   Espruino.Core.Config = {
       /** special - called before init */
-      loadConfiguration : loadConfiguration, 
+      loadConfiguration : loadConfiguration,
 
       init : init,
       add : add,
@@ -200,7 +202,7 @@
       getSections : getSections,
 
       /** Clear all settings */
-      clearAll : clearAll, 
+      clearAll : clearAll,
   };
 
 })();
