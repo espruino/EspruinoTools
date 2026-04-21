@@ -32,6 +32,7 @@
     // Configuration
     Espruino.Core.Config.add("UNICODE", {
       section : "Communications",
+      subSection: "Code Transforms",
       name : "Unicode transforms",
       description : "When encountering non-ASCII characters in strings, encode them into UTF-8 unicode",
       type : "boolean",

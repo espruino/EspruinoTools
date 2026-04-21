@@ -18,6 +18,7 @@
   function init() {
     Espruino.Core.Config.add("SAVE_ON_SEND", {
       section : "Communications",
+      subSection: "Storage",
       name : "Save on Send",
       descriptionHTML : 'How should code be uploaded? See <a href="http://www.espruino.com/Saving" target="_blank">espruino.com/Saving</a> for more information.<br>'+
                         "<b>NOTE:</b> Avoid 'Direct to flash, even after <code>reset()</code>' for normal development - it can make it hard to recover if your code crashes the device.",
@@ -32,6 +33,7 @@
     });
     Espruino.Core.Config.add("SAVE_STORAGE_FILE", {
       section : "Communications",
+      subSection: "Storage",
       name : "Send to File in Storage",
       descriptionHTML : "If <code>Save on Send</code> is set to <code>To Storage File</code>, this is the name of the file to write to.",
       type : "string",
@@ -39,6 +41,7 @@
     });
     Espruino.Core.Config.add("LOAD_STORAGE_FILE", {
       section : "Communications",
+      subSection: "Storage",
       name : "Load after saving",
       descriptionHTML : "This applies only if saving to Flash (not RAM)",
       type : {

@@ -40,6 +40,7 @@
   function init() {
     Espruino.Core.Config.add("WEB_SERIAL", {
       section : "Communications",
+      subSection: "Connections",
       name : "Connect over Serial (Web Serial)",
       descriptionHTML : 'Allow connection to Espruino from the Web Browser via Serial. The API must currently be enabled by pasting <code>chrome://flags#enable-experimental-web-platform-features</code> into the address bar and clicking <code>Enable</code>',
       type : "boolean",
@@ -134,7 +135,7 @@
         }).catch(function(e) {
           if (getReaderSuccess == false && e == "BreakError: Break received") {
             // This fixes a longstanding issue (since 2017) that affected ESP32 devices.
-            // Espruino Web IDE, sometimes did not connect to an ESP32 device, especially the first time you tried. 
+            // Espruino Web IDE, sometimes did not connect to an ESP32 device, especially the first time you tried.
             // The workaround was to use another tool to connect to the ESP32, like minicom or cutecom
             // and once connected using one of these tools, you tried again using Espruino Web IDE.
             console.log("Condition break received and ignored");
@@ -162,19 +163,19 @@
       // remove any existing devices with the same USB ID
       pairedDevices = pairedDevices.filter(dev=>getSerialDeviceInfo(dev).path != devicePath);
       // Check there aren't too many devices
-      while (pairedDevices.length>2) pairedDevices.pop(); 
+      while (pairedDevices.length>2) pairedDevices.pop();
       // add the current device
       pairedDevices.unshift(serialPort); // put this new serial port at the top
 
       openCallback({ portName : getSerialDeviceInfo(serialPort).path });
     }).catch(function(error) {
-      console.log('Serial> ERROR: ' + error);      
+      console.log('Serial> ERROR: ' + error);
       if (serialPort) {
         pairedDevices = pairedDevices.filter(dev=>dev != serialPort); // error connecting, remove from paired devices
         closeSerial();
-      } 
+      }
       if (disconnectCallback) disconnectCallback();
-      disconnectCallback = undefined;     
+      disconnectCallback = undefined;
     });
   }
 

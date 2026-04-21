@@ -10,7 +10,7 @@
   }
 
   /**
-   * @param {boolean} ignoreSettings 
+   * @param {boolean} ignoreSettings
    * @returns {{warning?: string, error?: string} | boolean}
    */
   function getStatus(ignoreSettings) {
@@ -74,6 +74,7 @@
   function init() {
     Espruino.Core.Config.add("WEB_BLUETOOTH", {
       section : "Communications",
+      subSection: "Connections",
       name : "Connect over Bluetooth LE (Web Bluetooth)",
       descriptionHTML : 'Allow connection to Espruino via BLE with the Nordic UART implementation',
       type : "boolean",
@@ -81,6 +82,7 @@
     });
     Espruino.Core.Config.add("WEB_BLUETOOTH_FILTER", {
       section : "Communications",
+      subSection: "Bluetooth",
       name : "Bluetooth LE (Web Bluetooth) Filter",
       descriptionHTML : 'If non-empty, only Bluetooth devices with names that start with this value will be shown in the Web Bluetooth device list (otherwise any supported device is shown). For example entering <code>Puck.js</code> will return only Puck.js devices.',
       type : "string",

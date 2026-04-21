@@ -21,6 +21,7 @@
   function init() {
     Espruino.Core.Config.add("COMPILATION", {
       section : "Communications",
+      subSection: "Code Transforms",
       name : "JavaScript Compiler",
       descriptionHTML : 'Compile JavaScript functions prefixed with &quot;compiled&quot; into Native code. (<a href="http://www.espruino.com/Compilation" target="_blank">More Info</a>)',
       type : "boolean",
@@ -28,6 +29,7 @@
     });
     Espruino.Core.Config.add("COMPILATION_URL", {
       section : "Communications",
+      subSection: "Code Transforms",
       name : "JavaScript Compiler URL",
       description : "When JavaScript Compilation is enabled, this is the URL of the JavaScript compiler",
       type : "string",

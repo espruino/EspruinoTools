@@ -18,6 +18,7 @@
   function init() {
     Espruino.Core.Config.add("ENV_ON_CONNECT", {
       section : "Communications",
+      subSection: "Connections",
       name : "Request board details on connect",
       description : 'Just after the board is connected, should we query `process.env` to find out which board we\'re connected to? '+
                     'This enables the Web IDE\'s code completion, compiler features, and firmware update notice.',

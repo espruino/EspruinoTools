@@ -15,6 +15,7 @@
   function init() {
     Espruino.Core.Config.add("MODULE_URL", {
       section : "Communications",
+      subSection: "Modules (Libraries)",
       name : "Module URL",
       description : "Where to search online for modules when `require()` is used. Can supply more than one URL, separated by '|'",
       type : "string",
@@ -22,6 +23,7 @@
     });
     Espruino.Core.Config.add("MODULE_EXTENSIONS", {
       section : "Communications",
+      subSection: "Modules (Libraries)",
       name : "Module Extensions",
       description : "The file extensions to use for each module. These are checked in order and the first that exists is used. One or more file extensions (including the dot) separated by `|`",
       type : "string",
@@ -29,6 +31,7 @@
     });
     Espruino.Core.Config.add("MODULE_AS_FUNCTION", {
       section : "Communications",
+      subSection: "Modules (Libraries)",
       name : "Modules uploaded as functions",
       description : "Espruino 1v90 and later ONLY. Upload modules as Functions, allowing any functions inside them to be loaded directly from flash when 'Save on Send' is enabled.",
       type : "boolean",
@@ -37,6 +40,7 @@
 
     Espruino.Core.Config.add("MODULE_PROXY_ENABLED", {
       section : "Communications",
+      subSection: "Modules (Libraries)",
       name : "Enable Proxy",
       description : "Enable Proxy for loading the modules when `require()` is used (only in native IDE)",
       type : "boolean",
@@ -45,6 +49,7 @@
 
     Espruino.Core.Config.add("MODULE_PROXY_URL", {
       section : "Communications",
+      subSection: "Modules (Libraries)",
       name : "Proxy URL",
       description : "Proxy URL for loading the modules when `require()` is used (only in native IDE)",
       type : "string",
@@ -53,6 +58,7 @@
 
     Espruino.Core.Config.add("MODULE_PROXY_PORT", {
       section : "Communications",
+      subSection: "Modules (Libraries)",
       name : "Proxy Port",
       description : "Proxy Port for loading the modules when `require()` is used (only in native IDE)",
       type : "string",

@@ -3,7 +3,7 @@
   var BAUD = 9600;
 
   /**
-   * @param {boolean} ignoreSettings 
+   * @param {boolean} ignoreSettings
    * @returns {{warning?: string, error?: string} | boolean}
    */
   function getStatus(ignoreSettings) {
@@ -57,6 +57,7 @@
   function init() {
     Espruino.Core.Config.add("SERIAL_AUDIO", {
       section : "Communications",
+      subSection: "Connections",
       name : "Connect over Audio",
       descriptionHTML : 'Allow connection to Espruino (at 9600 baud) using the headphone jack. See <a href="http://www.espruino.com/Headphone" target="_blank">espruino.com/Headphone</a>',
       type : { "0":"Disabled", "PP":"Normal Signal Polarity", "NN":"Fully Inverted", "NP":"Input Inverted", "PN":"Output Inverted" },

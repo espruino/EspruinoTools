@@ -15,6 +15,7 @@
   function init() {
     Espruino.Core.Config.add("SET_TIME_ON_WRITE", {
       section : "Communications",
+      subSection: "Uploading",
       name : "Set Current Time",
       description : "When sending code, set Espruino's clock to the current time",
       type : "boolean",

@@ -528,15 +528,9 @@ To add a new serial device, you must add an object to
 
 
   function init() {
-    Espruino.Core.Config.add("BAUD_RATE", {
-      section : "Communications",
-      name : "Baud Rate",
-      description : "When connecting over serial, this is the baud rate that is used. 9600 is the default for Espruino",
-      type : {9600:9600,14400:14400,19200:19200,28800:28800,38400:38400,57600:57600,115200:115200},
-      defaultValue : 9600,
-    });
     Espruino.Core.Config.add("SERIAL_IGNORE", {
       section : "Communications",
+      subSection: "Connections",
       name : "Ignore Serial Ports",
       description : "A '|' separated list of serial port paths to ignore, eg `/dev/ttyS*|/dev/*.SOC`",
       type : "string",
@@ -544,13 +538,23 @@ To add a new serial device, you must add an object to
     });
     Espruino.Core.Config.add("SERIAL_FLOW_CONTROL", {
       section : "Communications",
+      subSection: "Uploading",
       name : "Software Flow Control",
       description : "Respond to XON/XOFF flow control characters to throttle data uploads. By default Espruino sends XON/XOFF for USB and Bluetooth (on 2v05+).",
       type : "boolean",
       defaultValue : true
     });
+    Espruino.Core.Config.add("BAUD_RATE", {
+      section : "Communications",
+      subSection: "Serial",
+      name : "Baud Rate",
+      description : "When connecting over serial, this is the baud rate that is used. 9600 is the default for Espruino",
+      type : {9600:9600,14400:14400,19200:19200,28800:28800,38400:38400,57600:57600,115200:115200},
+      defaultValue : 9600,
+    });
     Espruino.Core.Config.add("STORAGE_UPLOAD_METHOD", {
       section : "Communications",
+      subSection: "Uploading",
       name : "Storage Upload Strategy",
       description :
   "On some connections (Serial, >9600 baud) XON/XOFF flow control is too slow to reliably throttle data transfer when writing files, "+

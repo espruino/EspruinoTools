@@ -39,7 +39,8 @@
   function init() {
     Espruino.Core.Config.add("BLUETOOTH_LOW_ENERGY", {
       section: "Communications",
-      name: "Connect over Bluetooth Smart (BTLE) via 'noble'",
+      subSection: "Connections",
+      name: "Connect over Bluetooth LE via 'noble'",
       descriptionHTML: 'Allow connection to Espruino via BLE with the Nordic UART implementation',
       type: "boolean",
       defaultValue: true

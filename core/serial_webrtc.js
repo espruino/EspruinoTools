@@ -18,7 +18,7 @@ Do we want a way to cancel the remote connection once it is set up?
     console.log("libs/webrtc-connection.js not loaded - Remote Connection disabled");
     return;
   }
-  
+
   console.log("Remote Connection enabled");
 
   var webrtc; // Our WebRTC connection
@@ -30,6 +30,7 @@ Do we want a way to cancel the remote connection once it is set up?
   function init() {
     Espruino.Core.Config.add("WEBRTC_BRIDGE_ID", {
       section : "Communications",
+      subSection: "Connections",
       name : "Remote Connection Bridge Peer ID",
       descriptionHTML : 'The Bridge\'s Peer ID from  <a href="https://www.espruino.com/ide/remote" target="_blank">espruino.com/ide/remote</a> on another device, or Gadgetbridge. You\'ll then be able to use the Web IDE to communicate with a device via the Bridge. Leave blank to disable.',
       type : "string",
@@ -39,25 +40,25 @@ Do we want a way to cancel the remote connection once it is set up?
 
   function initWebRTC(callback) {
     webrtc = webrtcInit({
-      bridge:false, 
+      bridge:false,
       connectToPeerID : Espruino.Config.WEBRTC_BRIDGE_ID ? Espruino.Config.WEBRTC_BRIDGE_ID.trim() : undefined,
       onStatus : function(s) {
         console.log("[WebRTC Status] "+s);
         if (s.startsWith("ERROR"))
           if (callback) { // callback even if no ID because there was an error
-            callback(undefined); 
+            callback(undefined);
             callback = undefined;
           }
         // we were using Espruino.Core.Terminal.outputDataHandler(s+"\n");
       },
-      onPeerID : function(id) {      
+      onPeerID : function(id) {
         // we have our Peer ID
         if (!Espruino.Config.WEBRTC_BRIDGE_ID && callback) {
           callback(id);
           callback = undefined;
         }
       },
-      onBridgePeerID : function(id) {      
+      onBridgePeerID : function(id) {
         // We got the bridge's peer ID - save it
         Espruino.Config.set("WEBRTC_BRIDGE_ID", id); // force webcam icon
       },
@@ -76,10 +77,10 @@ Do we want a way to cancel the remote connection once it is set up?
         if (popup) {
           popup.close(); // popup.onClose will call openCallback(undefined);
           popup = undefined;
-        } 
+        }
         setTimeout(() => {
           // we might be running as a CLI
-          if (Espruino.Core.MenuPortSelector) 
+          if (Espruino.Core.MenuPortSelector)
             Espruino.Core.MenuPortSelector.showPortSelector()
         }, 100); // now open the port selector again and we should hopefully see some stuff!
       },
@@ -96,7 +97,7 @@ Do we want a way to cancel the remote connection once it is set up?
       onPortDisconnected : function() {
         if (serialDisconnectCallback) serialDisconnectCallback();
       }
-    });  
+    });
   }
 
   var getPorts=function(callback) {
@@ -111,7 +112,7 @@ Do we want a way to cancel the remote connection once it is set up?
       webrtcLoading = true;
       initWebRTC(function(id) {
         // could be success or error, it's fine
-        webrtcLoading = false;          
+        webrtcLoading = false;
       });
       callback([], false);
     } else {
@@ -140,7 +141,7 @@ Do we want a way to cancel the remote connection once it is set up?
       // qrcode doesn't complete immediately and there is no callback
       popup = Espruino.Core.App.openPopup({
         title: "Remote Connection",
-        contents: 
+        contents:
 `<div style="padding:20px;text-align:center;">
 Please scan the QR code below with your phone or copy/paste the URL to start a connection<br/>
 <div style="padding:20px">${qrDiv.innerHTML}<br/></div><a href="${url}" target="_blank" style="word-break: break-all;">${url}</a>
@@ -149,7 +150,7 @@ Please scan the QR code below with your phone or copy/paste the URL to start a c
         onClose: function() {
           popup = undefined;
         }
-      });   
+      });
     }, 200);
   }
 

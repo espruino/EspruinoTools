@@ -15,6 +15,7 @@
   function init() {
     Espruino.Core.Config.add("RESET_BEFORE_SEND", {
       section : "Communications",
+      subSection: "Uploading",
       name : "Reset before Send",
       description : "Reset Espruino before sending code from the editor pane?",
       type : "boolean",
@@ -22,6 +23,7 @@
     });
     Espruino.Core.Config.add("STORE_LINE_NUMBERS", {
       section : "Communications",
+      subSection: "Code Transforms",
       name : "Store line numbers",
       description : "Should Espruino store line numbers for each function? This uses one extra variable per function, but allows you to get source code debugging in the Web IDE",
       type : "boolean",
@@ -76,7 +78,7 @@
 
   /**
    * Parse and fix issues like `if (false)\n foo` in the root scope
-   * @param {string} code 
+   * @param {string} code
    * @returns {string | undefined}
    */
   function reformatCode(code) {
