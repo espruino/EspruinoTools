@@ -473,49 +473,51 @@ function sendCode(callback) {
         }
       }
     }
-    Espruino.callProcessor("transformForEspruino", code, function(code) {
-      if (args.outputHEX) {
-        log("Writing hex output to "+args.outputHEX);
-        var storage = {}
-        var hadCode = false;
-        for (let storageName in args.storageContents) {
-          let storageContent = args.storageContents[storageName];
-          if (storageContent.code) {
-            storage[storageName] = code;
-            hadCode = true;
-          } else {
-            storage[storageName] = storageContent.data;
+    Espruino.callProcessor("sending", null, function() {
+      Espruino.callProcessor("transformForEspruino", code, function(code) {
+        if (args.outputHEX) {
+          log("Writing hex output to "+args.outputHEX);
+          var storage = {}
+          var hadCode = false;
+          for (let storageName in args.storageContents) {
+            let storageContent = args.storageContents[storageName];
+            if (storageContent.code) {
+              storage[storageName] = code;
+              hadCode = true;
+            } else {
+              storage[storageName] = storageContent.data;
+            }
+          }
+          // add code in default place
+          if (!hadCode) storage[".bootcde"]=code;
+          require("fs").writeFileSync(args.outputHEX, toIntelHex(storage));
+        } else {
+          // if not creating a hex, we just add the code needed to upload
+          // files to the beginning of what we upload
+          for (let storageName in args.storageContents) {
+            let storageContent = args.storageContents[storageName];
+            if (!storageContent.code) {
+              code = Espruino.Core.Utils.getUploadFileCode(storageName, storageContent.data)+"\n" + code;
+            }
           }
         }
-        // add code in default place
-        if (!hadCode) storage[".bootcde"]=code;
-        require("fs").writeFileSync(args.outputHEX, toIntelHex(storage));
-      } else {
-        // if not creating a hex, we just add the code needed to upload
-        // files to the beginning of what we upload
-        for (let storageName in args.storageContents) {
-          let storageContent = args.storageContents[storageName];
-          if (!storageContent.code) {
-            code = Espruino.Core.Utils.getUploadFileCode(storageName, storageContent.data)+"\n" + code;
-          }
+        if (args.outputJS) {
+          log("Writing output to "+args.outputJS);
+          require("fs").writeFileSync(args.outputJS, code, "binary");
         }
-      }
-      if (args.outputJS) {
-        log("Writing output to "+args.outputJS);
-        require("fs").writeFileSync(args.outputJS, code, "binary");
-      }
-      if (!args.nosend)
-        Espruino.Core.CodeWriter.writeToEspruino(code, function() {
-          if (args.sleepAfterUpload) {
-            log("Upload Complete. Sleeping for "+args.sleepAfterUpload+"s");
-            setTimeout(callback, args.sleepAfterUpload*1000);
-          } else {
-            log("Upload Complete");
-            callback();
-          }
-        });
-      else
-        callback();
+        if (!args.nosend)
+          Espruino.Core.CodeWriter.writeToEspruino(code, function() {
+            if (args.sleepAfterUpload) {
+              log("Upload Complete. Sleeping for "+args.sleepAfterUpload+"s");
+              setTimeout(callback, args.sleepAfterUpload*1000);
+            } else {
+              log("Upload Complete");
+              callback();
+            }
+          });
+        else
+          callback();
+      });
     });
   } else {
     callback();

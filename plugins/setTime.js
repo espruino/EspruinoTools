@@ -23,13 +23,14 @@
       onChange : function(newValue) {  }
     });
 
-   // When code is sent to Espruino, append code to set the current time
-   Espruino.addProcessor("transformForEspruino", function(code, callback) {
+   // Just before code is sent to Espruino, write code that will set the current time and timezone
+   Espruino.addProcessor("sending", function(_, callback) {
      if (Espruino.Config.SET_TIME_ON_WRITE) {
        var time = new Date();
-       code = "setTime("+(time.getTime()/1000)+");E.setTimeZone("+(-time.getTimezoneOffset()/60)+")\n"+code;
-     }
-     callback(code);
+       var code = "\x10setTime("+(time.getTime()/1000)+");E.setTimeZone("+(-time.getTimezoneOffset()/60)+")\n";
+       Espruino.Core.Serial.write(code, false, callback);
+     } else
+       callback();
    });
   }
 
