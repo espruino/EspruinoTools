@@ -313,7 +313,7 @@
 
   Espruino.Plugins.Pretokenise = {
     init : init,
-    sortOrder : 100, // after most plugins, before saveOnSend
+    sortOrder : 100, // after most plugins
     isTokenised : isTokenised, // could the given data be tokenised JS?
     untokenise : untokenise, // fn(code) convert a file containing tokens back into strings
     tokenise : tokenise // fn(code) convert a file containing tokens back into strings

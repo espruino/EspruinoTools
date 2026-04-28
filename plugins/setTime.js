@@ -36,6 +36,6 @@
 
   Espruino.Plugins.SetTime = {
     init : init,
-    sortOrder : 1100, // after pretty much everything, speficically saveOnSend
+    sortOrder : 1100, // after pretty much everything
   };
 }());

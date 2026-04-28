@@ -29,14 +29,125 @@
       type : "boolean",
       defaultValue : true
     });
-
+    Espruino.Core.Config.add("SAVE_ON_SEND", {
+      section : "Communications",
+      subSection: "Storage",
+      name : "Save on Send",
+      descriptionHTML : 'How should code be uploaded? See <a href="http://www.espruino.com/Saving" target="_blank">espruino.com/Saving</a> for more information.<br>'+
+                        "<b>NOTE:</b> Avoid 'Direct to flash, even after <code>reset()</code>' for normal development - it can make it hard to recover if your code crashes the device.",
+      type : {
+    // -1: is used by the app loader to signify that we want the code as-is (app loader adds write statements). Allows pretokenise to correctly check if we're writing to RAM or not
+        0: "To RAM (default) - execute code while uploading. Use 'save()' to save a RAM image to Flash",
+        1: "Direct to Flash (execute code at boot)",
+        2: "Direct to Flash (execute code at boot, even after 'reset()') - USE WITH CARE",
+        3: "To Storage File (see 'File in Storage to send to')",
+      },
+      defaultValue : 0
+    });
+    Espruino.Core.Config.add("SAVE_STORAGE_FILE", {
+      section : "Communications",
+      subSection: "Storage",
+      name : "Send to File in Storage",
+      descriptionHTML : "If <code>Save on Send</code> is set to <code>To Storage File</code>, this is the name of the file to write to.",
+      type : "string",
+      defaultValue : "myapp"
+    });
+    Espruino.Core.Config.add("LOAD_STORAGE_FILE", {
+      section : "Communications",
+      subSection: "Storage",
+      name : "Load after saving",
+      descriptionHTML : "This applies only if saving to Flash (not RAM)",
+      type : {
+        0: "Don't load",
+        1: "Load default application",
+        2: "Load the Storage File just written to"
+      },
+      defaultValue : 2
+    });
   }
 
+  /** Convert code into the JS commands needed to upload that code */
+  function getUploadCommands(code) {
+    // convert any non-0..255 charcodes to UTF8 encoding
+    code = Espruino.Core.Utils.asUTF8Bytes(code);
+    // Depending on settings, choose how we package code for upload (see Espruino.Core.Send.SEND_MODE_* constants)
+    var isFlashPersistent = Espruino.Config.SAVE_ON_SEND == 2;
+    var isStorageUpload = Espruino.Config.SAVE_ON_SEND == 3;
+    var isSDCardUpload = Espruino.Config.SAVE_ON_SEND == 4;
+    var isFlashUpload = Espruino.Config.SAVE_ON_SEND == 1 || isFlashPersistent || isStorageUpload;
+    if (!isFlashUpload && !isSDCardUpload) {
+      // Just uploading to RAM
+      /* hack around non-K&R code formatting that would have
+      broken Espruino CLI's bracket counting */
+      return reformatCodeForREPL(code);
+    }
+
+    var asJS = Espruino.Core.Utils.toJSONishString;
+
+    // Check environment vars
+    var hasStorage = false;
+    var ENV = Espruino.Core.Env.getData();
+    if (ENV &&
+        ENV.VERSION_MAJOR &&
+        ENV.VERSION_MINOR!==undefined) {
+      if (ENV.VERSION_MAJOR>1 ||
+          ENV.VERSION_MINOR>=96) {
+        hasStorage = true;
+      }
+    }
+    const CHUNKSIZE = 1024;
+
+     // Now create the commands to do the upload
+    console.log("Uploading "+code.length+" bytes to flash");
+    // FIXME: We should use Serial's Connection class packet stuff for file uploads
+    if (!hasStorage) { // old style
+      if (isStorageUpload || isSDCardUpload) {
+        Espruino.Core.Notifications.error("You have pre-1v96 firmware - unable to upload to Storage");
+        code = "";
+      } else {
+        Espruino.Core.Notifications.error("You have pre-1v96 firmware. Upload size is limited by available RAM");
+        code = "E.setBootCode("+asJS(code)+(isFlashPersistent?",true":"")+");";
+      }
+    } else if (isSDCardUpload) {
+      var filename = Espruino.Config.SAVE_STORAGE_FILE;;
+      var newCode = [ `let _ul = E.openFile(${asJS(filename)},"w");` ];
+        var len = code.length;
+      for (var i=0;i<len;i+=CHUNKSIZE)
+        newCode.push(`_ul.write(${asJS(code.substr(i,CHUNKSIZE))});`);
+      newCode.push(`_ul.close();delete _ul;`);
+      code = "\x10"+newCode.join("\n\x10")+"\n";
+    } else { // new style
+      var filename;
+      if (isStorageUpload)
+        filename = Espruino.Config.SAVE_STORAGE_FILE;
+      else
+        filename = isFlashPersistent ? ".bootrst" : ".bootcde";
+      if (!filename || filename.length>28) {
+        Espruino.Core.Notifications.error("Invalid Storage file name "+JSON.stringify(filename));
+        code = "";
+      } else {
+        var newCode = [];
+        var len = code.length;
+        newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(0,CHUNKSIZE))+',0,'+len+');');
+        for (var i=CHUNKSIZE;i<len;i+=CHUNKSIZE)
+          newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(i,CHUNKSIZE))+','+i+');');
+        code = "\x10"+newCode.join("\n\x10")+"\n";
+      }
+    }
+    if (Espruino.Config.LOAD_STORAGE_FILE==2 && isStorageUpload)
+      code += "\x10load("+asJS(filename)+")\n";
+    else if (Espruino.Config.LOAD_STORAGE_FILE!=0)
+      code += "\x10load()\n";
+    return code;
+  }
+
+
   function writeToEspruino(code, callback) {
-    /* hack around non-K&R code formatting that would have
-    broken Espruino CLI's bracket counting */
-    code = reformatCode(code);
     if (code === undefined) return; // it should already have errored
+
+    /* If needed, convert code to upload to a set of JS commands
+    which will upload the code into Espruino's flash/etc */
+    code = getUploadCommands(code);
 
     // We want to make sure we've got a prompt before sending. If not,
     // this will issue a Ctrl+C
@@ -81,7 +192,7 @@
    * @param {string} code
    * @returns {string | undefined}
    */
-  function reformatCode(code) {
+  function reformatCodeForREPL(code) {
     var APPLY_LINE_NUMBERS = false;
     var lineNumberOffset = 0;
     var ENV = Espruino.Core.Env.getData();
@@ -211,7 +322,7 @@
       if (previousBrackets==0 &&
           previousString.indexOf("\n")>=0 &&
           previousString.indexOf("\x1B\x0A")<0) {
-        previousString = "\n\x10";
+        previousString = "\n\x10";//FIXME
         // Apply line numbers to each new line sent, to aid debugger
         if (APPLY_LINE_NUMBERS && tok.lineNumber && (tok.lineNumber+lineNumberOffset)>0) {
           // Esc [ 1234 d
@@ -242,6 +353,6 @@
   Espruino.Core.CodeWriter = {
     init : init,
     writeToEspruino : writeToEspruino, // call this to send to Espruino
-    reformatCode : reformatCode  // Parse and fix issues like `if (false)\n foo` in the root scope
+    reformatCodeForREPL : reformatCodeForREPL  // Parse and fix issues like `if (false)\n foo` in the root scope
   };
 }());
