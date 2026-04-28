@@ -64,18 +64,55 @@
       },
       defaultValue : 2
     });
+    Espruino.Core.Config.add("PACKET_UPLOAD", {
+      section : "Communications",
+      subSection: "Storage",
+      name : "Packet Upload",
+      descriptionHTML : "Use packet-based file uploads for better performance (new). This works well on connections without flow control, and requires firmware 2v25 or later.",
+      type : "boolean",
+      defaultValue : false
+    });
+  }
+
+
+
+  function getUploadState() {
+    var ENV = Espruino.Core.Env.getData();
+
+    var ul = {
+      isFlashPersistent: Espruino.Config.SAVE_ON_SEND == 2,
+      isStorageUpload: Espruino.Config.SAVE_ON_SEND == 3,
+      isSDCardUpload: Espruino.Config.SAVE_ON_SEND == 4,
+      isRAMUpload: Espruino.Config.SAVE_ON_SEND == 0,
+      hasStorage: ENV && ENV.VERSION_MAJOR && ENV.VERSION_MINOR && (ENV.VERSION_MAJOR>1 || (ENV.VERSION_MAJOR==1 && ENV.VERSION_MINOR>=96)),
+      hasPacketUpload: ENV && ENV.VERSION_MAJOR && ENV.VERSION_MINOR && (ENV.VERSION_MAJOR>2 || (ENV.VERSION_MAJOR==2 && ENV.VERSION_MINOR>=25))
+    };
+    ul.isFlashUpload = Espruino.Config.SAVE_ON_SEND == 1 || ul.isFlashPersistent || ul.isStorageUpload;
+    if (ul.isStorageUpload || ul.isSDCardUpload)
+      ul.filename = Espruino.Config.SAVE_STORAGE_FILE;
+    else if (ul.isFlashUpload)
+      ul.filename = ul.isFlashPersistent ? ".bootrst" : ".bootcde";
+    return ul;
+  }
+
+  /* Get the command used to load the uploaded file */
+  function getLoadCommand() {
+    var ul = getUploadState();
+    if (Espruino.Config.LOAD_STORAGE_FILE==2 && ul.isStorageUpload)
+      return "\x10load("+Espruino.Core.Utils.toJSONishString(ul.filename)+")\n";
+    else if (Espruino.Config.LOAD_STORAGE_FILE!=0)
+      return "\x10load()\n";
+    return "";
   }
 
   /** Convert code into the JS commands needed to upload that code */
   function getUploadCommands(code) {
+    let ul = getUploadState();
     // convert any non-0..255 charcodes to UTF8 encoding
     code = Espruino.Core.Utils.asUTF8Bytes(code);
     // Depending on settings, choose how we package code for upload (see Espruino.Core.Send.SEND_MODE_* constants)
-    var isFlashPersistent = Espruino.Config.SAVE_ON_SEND == 2;
-    var isStorageUpload = Espruino.Config.SAVE_ON_SEND == 3;
-    var isSDCardUpload = Espruino.Config.SAVE_ON_SEND == 4;
-    var isFlashUpload = Espruino.Config.SAVE_ON_SEND == 1 || isFlashPersistent || isStorageUpload;
-    if (!isFlashUpload && !isSDCardUpload) {
+
+    if (!ul.isFlashUpload && !ul.isSDCardUpload) {
       // Just uploading to RAM
       /* hack around non-K&R code formatting that would have
       broken Espruino CLI's bracket counting */
@@ -83,61 +120,38 @@
     }
 
     var asJS = Espruino.Core.Utils.toJSONishString;
-
-    // Check environment vars
-    var hasStorage = false;
-    var ENV = Espruino.Core.Env.getData();
-    if (ENV &&
-        ENV.VERSION_MAJOR &&
-        ENV.VERSION_MINOR!==undefined) {
-      if (ENV.VERSION_MAJOR>1 ||
-          ENV.VERSION_MINOR>=96) {
-        hasStorage = true;
-      }
-    }
     const CHUNKSIZE = 1024;
 
      // Now create the commands to do the upload
     console.log("Uploading "+code.length+" bytes to flash");
-    // FIXME: We should use Serial's Connection class packet stuff for file uploads
-    if (!hasStorage) { // old style
-      if (isStorageUpload || isSDCardUpload) {
+    if (!ul.hasStorage) { // old style
+      if (ul.isStorageUpload || ul.isSDCardUpload) {
         Espruino.Core.Notifications.error("You have pre-1v96 firmware - unable to upload to Storage");
         code = "";
       } else {
         Espruino.Core.Notifications.error("You have pre-1v96 firmware. Upload size is limited by available RAM");
-        code = "E.setBootCode("+asJS(code)+(isFlashPersistent?",true":"")+");";
+        code = "E.setBootCode("+asJS(code)+(ul.isFlashPersistent?",true":"")+");";
       }
-    } else if (isSDCardUpload) {
-      var filename = Espruino.Config.SAVE_STORAGE_FILE;;
-      var newCode = [ `let _ul = E.openFile(${asJS(filename)},"w");` ];
+    } else if (ul.isSDCardUpload) {
+      var newCode = [ `let _ul = E.openFile(${asJS(ul.filename)},"w");` ];
         var len = code.length;
       for (var i=0;i<len;i+=CHUNKSIZE)
         newCode.push(`_ul.write(${asJS(code.substr(i,CHUNKSIZE))});`);
       newCode.push(`_ul.close();delete _ul;`);
       code = "\x10"+newCode.join("\n\x10")+"\n";
     } else { // new style
-      var filename;
-      if (isStorageUpload)
-        filename = Espruino.Config.SAVE_STORAGE_FILE;
-      else
-        filename = isFlashPersistent ? ".bootrst" : ".bootcde";
-      if (!filename || filename.length>28) {
-        Espruino.Core.Notifications.error("Invalid Storage file name "+JSON.stringify(filename));
+      if (!ul.filename || ul.filename.length>28) {
+        Espruino.Core.Notifications.error("Invalid Storage file name "+JSON.stringify(ul.filename));
         code = "";
       } else {
         var newCode = [];
         var len = code.length;
-        newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(0,CHUNKSIZE))+',0,'+len+');');
+        newCode.push('require("Storage").write('+asJS(ul.filename)+','+asJS(code.substr(0,CHUNKSIZE))+',0,'+len+');');
         for (var i=CHUNKSIZE;i<len;i+=CHUNKSIZE)
-          newCode.push('require("Storage").write('+asJS(filename)+','+asJS(code.substr(i,CHUNKSIZE))+','+i+');');
+          newCode.push('require("Storage").write('+asJS(ul.filename)+','+asJS(code.substr(i,CHUNKSIZE))+','+i+');');
         code = "\x10"+newCode.join("\n\x10")+"\n";
       }
     }
-    if (Espruino.Config.LOAD_STORAGE_FILE==2 && isStorageUpload)
-      code += "\x10load("+asJS(filename)+")\n";
-    else if (Espruino.Config.LOAD_STORAGE_FILE!=0)
-      code += "\x10load()\n";
     return code;
   }
 
@@ -145,13 +159,63 @@
   function writeToEspruino(code, callback) {
     if (code === undefined) return; // it should already have errored
 
-    /* If needed, convert code to upload to a set of JS commands
-    which will upload the code into Espruino's flash/etc */
-    code = getUploadCommands(code);
+    function recoverAndCallback() {
+      // give 5 seconds for sending with save and 2 seconds without save
+      var count = Espruino.Config.SAVE_ON_SEND ? 50 : 20;
+      setTimeout(function cb() {
+        if (Espruino.Core.Terminal!==undefined &&
+            !Espruino.Core.Terminal.getTerminalLine().startsWith(">")) {
+          count--;
+          if (count>0) {
+            setTimeout(cb, 100);
+          } else {
+            Espruino.Core.Notifications.error("Prompt not detected - upload failed. Trying to recover...");
+            Espruino.Core.Serial.write("\x03\x03echo(1)\n", false, callback);
+          }
+        } else {
+          callback();
+        }
+      }, 100);
+    }
 
     // We want to make sure we've got a prompt before sending. If not,
     // this will issue a Ctrl+C
     Espruino.Core.Utils.getEspruinoPrompt(function() {
+      var ul = getUploadState();
+      if (Espruino.Config.PACKET_UPLOAD && !ul.hasPacketUpload) {
+        Espruino.Core.Notifications.warning("Your firmware doesn't support packet uploads - please update to 2v25 or later");
+      }
+      if (Espruino.Config.PACKET_UPLOAD && ul.hasPacketUpload) {
+        if (ul.isStorageUpload || ul.isSDCardUpload || ul.isFlashUpload) {
+          Espruino.Core.Status.setStatus("Sending...", 1);
+          let lastProgress = 0;
+          var options = {
+            fs : ul.isSDCardUpload ? 1 : 0,
+            progress : (byteNo,byteCount) => {
+              Espruino.Core.Status.incrementProgress((byteNo-lastProgress) / byteCount);
+              lastProgress = byteNo;
+            }
+          };
+
+          return Espruino.Core.Serial.connection.espruinoSendFile(ul.filename, code, options).then(function() {
+            Espruino.Core.Status.setStatus("Upload Complete");
+            var loadCmd = getLoadCommand();
+            if (loadCmd != "") {
+              Espruino.Core.Serial.write(loadCmd, true, recoverAndCallback);
+            } else
+              callback(); // just return now
+
+          }, function(err) {
+            Espruino.Core.Notifications.error("Error uploading file: "+err);
+            callback();
+          });
+        }
+      }
+
+      /* If needed, convert code to upload to a set of JS commands
+      which will upload the code into Espruino's flash/etc */
+      code = getUploadCommands(code) + getLoadCommand();
+
       // Make sure code ends in 2 newlines
       while (code[code.length-2]!="\n" || code[code.length-1]!="\n")
         code += "\n";
@@ -166,24 +230,7 @@
       }
 
       //console.log("Sending... "+data);
-      Espruino.Core.Serial.write(code, true, function() {
-        // give 5 seconds for sending with save and 2 seconds without save
-        var count = Espruino.Config.SAVE_ON_SEND ? 50 : 20;
-        setTimeout(function cb() {
-          if (Espruino.Core.Terminal!==undefined &&
-              !Espruino.Core.Terminal.getTerminalLine().startsWith(">")) {
-            count--;
-            if (count>0) {
-              setTimeout(cb, 100);
-            } else {
-              Espruino.Core.Notifications.error("Prompt not detected - upload failed. Trying to recover...");
-              Espruino.Core.Serial.write("\x03\x03echo(1)\n", false, callback);
-            }
-          } else {
-            if (callback) callback();
-          }
-        }, 100);
-      });
+      Espruino.Core.Serial.write(code, true, recoverAndCallback);
     });
   }
 
