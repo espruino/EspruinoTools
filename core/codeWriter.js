@@ -66,7 +66,7 @@
     });
     Espruino.Core.Config.add("PACKET_UPLOAD", {
       section : "Communications",
-      subSection: "Storage",
+      subSection: "Uploading",
       name : "Packet Upload",
       descriptionHTML : "Use packet-based file uploads for better performance (new). This works well on connections without flow control, and requires firmware 2v25 or later.",
       type : "boolean",
