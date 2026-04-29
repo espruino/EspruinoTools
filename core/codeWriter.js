@@ -98,6 +98,7 @@
   /* Get the command used to load the uploaded file */
   function getLoadCommand() {
     var ul = getUploadState();
+    if (ul.isRAMUpload) return "";
     if (Espruino.Config.LOAD_STORAGE_FILE==2 && ul.isStorageUpload)
       return "\x10load("+Espruino.Core.Utils.toJSONishString(ul.filename)+")\n";
     else if (Espruino.Config.LOAD_STORAGE_FILE!=0)
