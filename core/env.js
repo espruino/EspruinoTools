@@ -51,12 +51,18 @@
         (Espruino.Core.MenuFlasher && Espruino.Core.MenuFlasher.isFlashing())) {
       return callback(data);
     }
-
-    Espruino.Core.Utils.executeExpression("process.env", function(result) {
+    // get process.env, but also any files that might be modules, so we can add them to the modules list
+    // check for Storage module so VERY old Espruino boards can still be connected to
+    Espruino.Core.Utils.executeExpression(`[process.env,process.env.MODULES.includes("Storage")&&require("Storage").list(/^[^.]*$/).join(",")]`, function(result) {
       var json = {};
       if (result!==undefined) {
         try {
-          json = JSON.parse(result);
+          var r = JSON.parse(result);
+          json = r[0];
+          if (r[1] && r[1].length) {
+            if (!json.MODULES) json.MODULES = "";
+            json.MODULES += (json.MODULES ? "," : "") + r[1];
+          }
         } catch (e) {
           console.log("JSON parse failed - " + e + " in " + JSON.stringify(result));
         }
