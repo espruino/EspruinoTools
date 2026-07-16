@@ -173,7 +173,7 @@
       Espruino.Core.Status.setStatus("Configuring BLE....");
       rxCharacteristic = characteristic;
       setMaxPacketLength(NORDIC_DEFAULT_TX_LENGTH); // set default packet length
-      console.log("BT> RX characteristic:"+JSON.stringify(rxCharacteristic));
+      console.log("BT> Got RX characteristic");
       rxCharacteristic.addEventListener('characteristicvaluechanged', function(event) {
         // In Chrome 50+, a DataView is returned instead of an ArrayBuffer.
         var value = event.target.value.buffer;
@@ -191,7 +191,7 @@
     }).then(function (characteristic) {
       Espruino.Core.Status.setStatus("Configuring BLE.....");
       txCharacteristic = characteristic;
-      console.log("BT> TX characteristic:"+JSON.stringify(txCharacteristic));
+      console.log("BT> Got TX characteristic");
     }).then(function() {
       Espruino.Core.Status.setStatus("Configuring BLE.....");
       txInProgress = false;
