@@ -51,7 +51,7 @@
 
   function init() {
     // Add stuff we need
-    document.querySelector(".editor--terminal .editor__canvas").innerHTML = '<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1" style="z-index:-100;position:absolute;left:0px;top:0px;"></textarea><div id="terminal" class="terminal"></div>';
+    document.querySelector(".editor--terminal .editor__canvas").innerHTML = '<textarea id="terminalfocus" class="terminal__focus" rows="1" cols="1" style="z-index:-100;position:absolute;left:0px;top:0px;" autocorrect="off" autocapitalize="none" spellcheck="false" autocomplete="off"></textarea><div id="terminal" class="terminal"></div>';
 
     var terminal = document.getElementById("terminal");
     var terminalfocus = document.getElementById("terminalfocus");
