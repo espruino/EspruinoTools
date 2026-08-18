@@ -93,5 +93,6 @@ Author: Alfie Kirkpatrick (jugglingcats@akirkpatrick.com)
     "open": openSerial,
     "write": writeSerial,
     "close": closeSerial,
+    "maxWriteLength" : 512, // ensure we don't end up staying with 20
   });
 })();

@@ -691,6 +691,8 @@ To add a new serial device, you must add an object to
 
     Espruino.Core.Serial.connection.isOpen = false;
     Espruino.Core.Serial.connection.isOpening = true;
+    Espruino.Core.Serial.connection.chunkSize = 20; // default - writeSerial will overwrite this
+    
     var portInfo = { port:serialPort };
     var connectionInfo = undefined;
     currentDevice = portToDevice[serialPort];
@@ -766,8 +768,10 @@ To add a new serial device, you must add an object to
     if (showStatus===undefined) showStatus=true;
     let writeData = {data:data,callback:callback,showStatus:showStatus};
     var blockSize = 512;
-    if (currentDevice.maxWriteLength)
+    if (currentDevice.maxWriteLength) {
       blockSize = currentDevice.maxWriteLength;
+      Espruino.Core.Serial.connection.chunkSize = currentDevice.maxWriteLength;
+    }
     /* if we're throttling our writes we want to send small
       * blocks of data at once. We still limit the size of
       * sent blocks to 512 because on Mac we seem to lose

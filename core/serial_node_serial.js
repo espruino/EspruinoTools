@@ -112,5 +112,6 @@ Gordon Williams (gw@pur3.co.uk)
     "open": openSerial,
     "write": writeSerial,
     "close": closeSerial,
+    "maxWriteLength" : 512, // ensure we don't end up staying with 20
   });
 })();
