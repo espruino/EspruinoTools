@@ -52,8 +52,8 @@
       return callback(data);
     }
     // get process.env, but also any files that might be modules, so we can add them to the modules list
-    // check for Storage module so VERY old Espruino boards can still be connected to
-    Espruino.Core.Utils.executeExpression(`[process.env,process.env.MODULES.includes("Storage")&&require("Storage").list(/^[^.]*$/).join(",")]`, function(result) {
+    // check for Storage module so VERY old Espruino boards can still be connected to (also use RegExp rather than /.../ syntax so the code will parse)
+    Espruino.Core.Utils.executeExpression(`[process.env,process.env.MODULES.includes("Storage")&&require("Storage").list(new RegExp("^[^.]*$")).join(",")]`, function(result) {
       var json = {};
       if (result!==undefined) {
         try {
