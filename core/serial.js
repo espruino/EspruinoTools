@@ -314,11 +314,11 @@ To add a new serial device, you must add an object to
         }
         function onACK(ok) {
           tidy();
-          setTimeout(resolve,0);
+          queueMicrotask(resolve);
         }
         function onNAK(ok) {
           tidy();
-          setTimeout(reject,0,"NAK while sending packet");
+          queueMicrotask(() => reject("NAK while sending packet"));
         }
         if (!options.noACK) {
           connection.parsePackets = true;
@@ -329,7 +329,7 @@ To add a new serial device, you must add an object to
         connection.write(String.fromCharCode(/*DLE*/16,/*SOH*/1,(flags>>8)&0xFF,flags&0xFF)+data, function() {
           // write complete
           if (options.noACK) {
-            setTimeout(resolve,0); // if not listening for acks, just resolve immediately
+            queueMicrotask(resolve); // if not listening for acks, just resolve immediately
           } else {
             timeout = setTimeout(function() {
               timeout = undefined;
@@ -402,7 +402,7 @@ To add a new serial device, you must add an object to
           do { // try compressing progressively smaller chunks until we can get in our CHUNK size
             chunk = chunk>>1; // halve it
             packetDecompressed = data.substring(0, chunk); // the data we're planning to compress
-            packet = Espruino.Core.Utils.arrayBufferToString(hs.compress(new Uint8Array(Espruino.Core.Utils.stringToArrayBuffer(packetDecompressed))).buffer);
+            packet = ab2str(hs.compress(new Uint8Array(str2ab(packetDecompressed))).buffer);
           } while (packet.length>CHUNK);
           data = data.substring(chunk);
           connection.progressAmt += packetDecompressed.length;
@@ -412,10 +412,16 @@ To add a new serial device, you must add an object to
           connection.progressAmt += sent;
         }
         progressHandler(connection.progressAmt, connection.progressMax);
-        return connection.espruinoSendPacket("DATA", packet, packetOptions).then(sendData, err=> {
-          connection.progressAmt = 0;
-          connection.progressMax = 0;
-          throw err;
+        return connection.espruinoSendPacket("DATA", packet, packetOptions).then(sendData, err => {
+          log(1, "espruinoSendFile packet send failed - waiting 1s...");
+          return new Promise(resolve => setTimeout(resolve,1000)).then(() => {
+            log(1, "espruinoSendFile trying again");
+            return connection.espruinoSendPacket("DATA", packet, packetOptions);
+          }).then(sendData, err => {
+            connection.progressAmt = 0;
+            connection.progressMax = 0;
+            throw err;
+          });
         });
       }
     }
@@ -453,7 +459,7 @@ To add a new serial device, you must add an object to
           if (type!=0x8000) return; // ignore things that are not DATA packet
           if (data.length==0) { // 0 length packet = EOF
             cleanup();
-            setTimeout(resolve,0,fileContents);
+            queueMicrotask(resolve.bind(null, fileContents));
           } else {
             fileContents += data;
             options.progress(fileContents.length);
@@ -498,7 +504,7 @@ To add a new serial device, you must add an object to
         function onPacket(type,data) {
           if (type!=0) return; // ignore things that are not a response
           cleanup();
-          setTimeout(resolve,0, parseRJSON(data));
+          queueMicrotask(resolve.bind(null, parseRJSON(data)));
         }
         connection.parsePackets = true;
         connection.on("packet", onPacket);
@@ -525,7 +531,6 @@ To add a new serial device, you must add an object to
       });
     }
   } // End of Connection class
-
 
   function init() {
     Espruino.Core.Config.add("SERIAL_IGNORE", {
