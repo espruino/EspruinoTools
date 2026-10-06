@@ -62,6 +62,7 @@ To add a new serial device, you must add an object to
   var parseRJSON = data => Espruino.Core.Utils.parseRJSON(data);
   // ---------------
 
+  const UART_VERSION = "1.31";
   /// Base connection class - BLE/Serial add writeLowLevel/closeLowLevel/etc on top of this
   class Connection {
     endpoint = undefined; // Set to the endpoint used for this connection - eg maybe endpoint.name=="Web Bluetooth"
@@ -481,6 +482,7 @@ To add a new serial device, you must add an object to
     /* Send a JS expression to be evaluated on Espruino using using 2v25 packets.
         options = {
             timeout : int // milliseconds timeout (default=1000)
+            noParse : bool // if set, pass the text returned straight back rather than being parsed into a JS object
             stmFix : bool // if set, this works around an issue in Espruino STM32 2v24 and earlier where USB could get in a state where it only sent small chunks of data at a time
         }*/
     espruinoEval(expr, options) {
@@ -504,7 +506,7 @@ To add a new serial device, you must add an object to
         function onPacket(type,data) {
           if (type!=0) return; // ignore things that are not a response
           cleanup();
-          queueMicrotask(resolve.bind(null, parseRJSON(data)));
+          queueMicrotask(resolve.bind(null, options.noParse ? data : parseRJSON(data)));
         }
         connection.parsePackets = true;
         connection.on("packet", onPacket);
@@ -697,7 +699,7 @@ To add a new serial device, you must add an object to
     Espruino.Core.Serial.connection.isOpen = false;
     Espruino.Core.Serial.connection.isOpening = true;
     Espruino.Core.Serial.connection.chunkSize = 20; // default - writeSerial will overwrite this
-    
+
     var portInfo = { port:serialPort };
     var connectionInfo = undefined;
     currentDevice = portToDevice[serialPort];

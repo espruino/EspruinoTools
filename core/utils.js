@@ -999,6 +999,7 @@ while (d!==undefined) {console.log(btoa(d));d=f.read(${CHUNKSIZE});}
           case "false" : tok = lex.next(); return false;
           case "null" : tok = lex.next(); return null;
           case "NaN" : tok = lex.next(); return NaN;
+          default: { let v = tok.value; tok = lex.next(); return v; } // eg a pin name in Espruino like 'D0' - just treat as a string
         }
         if (tok.str == "[") {
           tok = lex.next();
