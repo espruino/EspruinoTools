@@ -88,6 +88,14 @@
       type : "string",
       defaultValue : "",
     });
+    Espruino.Core.Config.add("WEB_BLUETOOTH_REMEMBER", {
+      section : "Communications",
+      subSection: "Bluetooth",
+      name : "Remember Devices",
+      descriptionHTML : 'Should the IDE show previously connected devices in the Port Chooser?',
+      type : "boolean",
+      defaultValue : true,
+    });
     // If we're ok and have the getDevices extension, use it to remember previously paired devices
     if (getStatus(true)===true && navigator.bluetooth.getDevices) {
       console.log("BT> bluetooth.getDevices exists - grab known devices");
@@ -108,9 +116,10 @@
     }
     if (Espruino.Config.WEB_BLUETOOTH && OK) {
       var list = [{path:'Web Bluetooth', description:'Bluetooth Low Energy', type : "bluetooth", promptsUser:true}];
-      pairedDevices.forEach(function(btDevice) {
-        list.push({path:btDevice.name, description:'Web Bluetooth device', type : "bluetooth"});
-      });
+      if (Espruino.Config.WEB_BLUETOOTH_REMEMBER)
+        pairedDevices.forEach(function(btDevice) {
+          list.push({path:btDevice.name, description:'Web Bluetooth device', type : "bluetooth"});
+        });
       callback(list, true/*instantPorts*/);
     } else
       callback(undefined, true/*instantPorts*/);
